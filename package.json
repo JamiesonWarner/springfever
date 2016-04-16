@@ -1,0 +1,19 @@
+{
+  "name": "fever",
+  "version": "1.0.0",
+  "description": "Cellular automata plant growth",
+  "main": "webpack.config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/JamiesonWarner/springfever.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JamiesonWarner/springfever/issues"
+  },
+  "homepage": "https://github.com/JamiesonWarner/springfever#readme"
+}
