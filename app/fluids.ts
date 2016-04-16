@@ -1,11 +1,14 @@
 
 var N_FLUIDS = 4;
 
+
 export class Fluids {
+    static WATER = 0;
+    static GLUCOSE = 1;
     vector;
-    constructor(water = 100) {
+    constructor(water = 100, glucose = 0) {
         this.vector = new Array(N_FLUIDS);
-        this.vector[0] = water;
-        //this.vector[1] = 100;
+        this.vector[Fluids.WATER] = water;
+        this.vector[Fluids.GLUCOSE] = glucose;
     }
 }

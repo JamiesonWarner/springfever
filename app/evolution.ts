@@ -7,6 +7,7 @@ export class Evolution {
 
     run(iterations:number, seed:DNA, growtime: number = 400) {
         // grow the seed for growtime iterations, then eval its fitness
+
     }
 
 

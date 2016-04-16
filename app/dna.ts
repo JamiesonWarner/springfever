@@ -13,22 +13,29 @@ export class DNA {
       return seed;
   }
 
-  /*
-  (N_SIGNALS) x (N_SIGNALS+N_FLUIDS)
-  */
-  signalMatrix = [
-    [], // apical auxin
-    [0,1], // nonapical auxin
-    [0,0,0,0,0,0], // ??
-    [0,0,0,0,0,0], // ??
-  ];
-
-  signalB = [-0.25,-0.25,-0.25,-0.25];
-
   cellTypes = {
     'a1': {
+      cost: new Fluids(0, 50),
+      /*
+      (N_SIGNALS) x (N_SIGNALS+N_FLUIDS)
+      */
+      signalMatrix: [
+        [0,0,0.2,0.2], // auxin production depends on resources
+        [0,0,1,1,0,0], // new apical contender (force apical)
+        [0,0,0,0,0,0], // old apical (starts 0, goes to 1)
+        [0,0,0,0,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
+      ],
+      signalB: [-0.3,-0.5,0.05,-0.05],
+      signalInit: [0,0,0,1],
       color: "#ededbe",
       actions: [
+        {
+          name: 'demote',
+          activator: {
+            w: [0,10,0,0],
+            b: 0
+          }
+        },
         {
           name: 'grow',
           parameters: {
@@ -76,6 +83,15 @@ export class DNA {
       ]
     },
     'a2': {
+      cost: new Fluids(0, 20),
+      signalMatrix: [
+        [0,0,0,0,0,0], // auxin production depends on resources
+        [0,0,0,0,0,0], // new apical contender (force apical)
+        [0,0,0,0,0,0], // old apical (starts 0, goes to 1)
+        [0,0,0,0,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
+      ],
+      signalB: [-0.05,-0.5,-0.05,-0.05],
+      signalInit: [0,0,0,0],
       color: "#8F8F6E",
       actions: [
         {
@@ -114,6 +130,15 @@ export class DNA {
       ]
     },
     'b1': {
+      cost: new Fluids(0, 40),
+      signalMatrix: [
+        [0,0,0,0,0,0], // auxin production depends on resources
+        [0,0,0,0,0,0], // new apical contender (force apical)
+        [0,0,0,0,0,0], // old apical (starts 0, goes to 1)
+        [0,0,0,0,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
+      ],
+      signalB: [-0.05,-0.5,-0.05,-0.05],
+      signalInit: [0,0,0,0],
       color: "#6E6E8F",
       actions: [
         {
@@ -163,6 +188,15 @@ export class DNA {
       ]
     },
     'b2': {
+      cost: new Fluids(0, 20),
+      signalMatrix: [
+        [0,0,0,0,0,0], // auxin production depends on resources
+        [0,0,0,0,0,0], // new apical contender (force apical)
+        [0,0,0,0,0,0], // old apical (starts 0, goes to 1)
+        [0,0,0,0,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
+      ],
+      signalB: [-0.05,-0.5,-0.05,-0.05],
+      signalInit: [0,0,0,0],
       color: "#8F6E7F",
       actions: [
         {
@@ -190,6 +224,15 @@ export class DNA {
       ]
     },
     'l': {
+      cost: new Fluids(0, 80),
+      signalMatrix: [
+        [0,0,0,0,0,0], // auxin production depends on resources
+        [0,0,0,0,0,0], // new apical contender (force apical)
+        [0,0,0,0,0,0], // old apical (starts 0, goes to 1)
+        [0,0,0,0,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
+      ],
+      signalB: [-0.05,-0.5,-0.05,-0.05],
+      signalInit: [0,0,0,0],
       color: "#80C4A1",
       actions: [
         {

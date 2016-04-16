@@ -86,10 +86,35 @@ export class Automata {
 
 
 
+
+                let cost = this.dna.cellTypes[action.parameters.type].cost;
+
+                if (cost.vector.length != 4)
+                    console.log("dafuq");
+
+
+                let canAfford = true;
+                for (var i = 0; i < cost.vector.length; i++){
+                    if(!this.plant[i].fluids.vector[i] >= cost.vector[i]){
+                        canAfford = false;
+                        break;
+                    }
+                }
+
+                /*
+                if (!canAfford)
+                    continue;
+
+                this.subtractFluids(this.plant[i].fluids, cost);
+
+                */
+
+
                 if(gI < 0 || gI >= Automata.GRID_DIMENSION_Y || gJ < 0 || gJ >= Automata.GRID_DIMENSION_X ){
                     // console.log("cannot make cell at " + gJ + ", " + gI);
                     continue;
                 }
+
 
 
                 if(typeof this.grid[gI][gJ] === "undefined"){
@@ -115,18 +140,15 @@ export class Automata {
 
         //this.updatePlan();
         this.fluidUpdate();
+        this.signalsUpdate();
 
-        let waterCount = 0;
 
-        for (var i = 0; i < Automata.GRID_DIMENSION_Y; i ++){
-            for (var j = 0; j < Automata.GRID_DIMENSION_X; j ++){
-                if(this.grid[i][j]){
-                    waterCount += this.grid[i][j].fluids.vector[0];
-                }
-            }
+    }
+
+    subtractFluids(a, b){
+        for (var i = 0; i < a.vector.length; i ++){
+            a.vector[i] -= b.vector[i];
         }
-        //console.log("Total Water count " + waterCount);
-
     }
 
     splitFluids(cell){
@@ -138,10 +160,51 @@ export class Automata {
         return newFluids;
     }
 
+    signalsUpdate() {
+        // Update each cell's individual signal levels
+
+        for (var i = 0; i < this.plant.length; ++i) {
+            var cell = this.plant[i];
+            cell.updateSignals();
+        }
+
+        // Send signals to neighbors
+        // let SPREAD_COEFF = 0.1;
+        // for (var i = 0; i < this.plant.length; i++) {
+        //     var cell = this.plant[i];
+        //     var neighbs = [[-1, 0], [1, 0], [0, 1], [0, -1]];
+        //     for (var i = 0; i < neighbs.length; ++i) {
+        //         var dx = cell.x + neighbs[i][0];
+        //         var dy = cell.x + neighbs[i][1];
+        //         if (dx < 0 || dy < 0 || dx >= Automata.GRID_DIMENSION_X || dy >= Automata.GRID_DIMENSION_Y)
+        //             continue;
+        //         var neighb = this.grid[dy][dx];
+        //         if (neighb instanceof Cell) {
+        //             var nsignals = neighb.signals.vector;
+        //             for (var i = 0; i < nsignals.length; ++i) {
+        //                 nsignals += SPREAD_COEFF * cell.signals.vector[i];
+        //             }
+        //         }
+        //     }
+        // }
+    }
+
     fluidUpdate(){
         var dFluids = new Array(Automata.GRID_DIMENSION_Y);
         for (var i = 0; i < Automata.GRID_DIMENSION_Y; i ++){
             dFluids[i] = new Array(Automata.GRID_DIMENSION_X);
+        }
+
+
+        for (var i = 0; i < this.plant.length; i ++){
+            let cell = this.plant[i];
+            if(cell.type === "l"){
+                let numAir = this.countAirNeighbors(cell.y, cell.x);
+                dFluids[cell.y][cell.x] = new Fluids(0);
+                let dGlucose = Math.min(cell.fluids.vector[Fluids.WATER], 50 * numAir);
+                dFluids[cell.y][cell.x].vector[Fluids.WATER] = -dGlucose;
+                dFluids[cell.y][cell.x].vector[Fluids.GLUCOSE] = dGlucose;
+            }
         }
 
         for (var i = 0; i < Automata.GRID_DIMENSION_Y; i ++){
@@ -160,7 +223,7 @@ export class Automata {
 
                 if(neighborA){
                     if(neighborA instanceof Cell && cur instanceof Cell){
-                        flowRatio = 0.25
+                        flowRatio = 1
                     }
                     if(!dFluids[i][j]){
                         dFluids[i][j] = new Fluids(0);
@@ -169,7 +232,12 @@ export class Automata {
                         dFluids[i + 1][j] = new Fluids(0);
                     }
                     let waterDiff = cur.fluids.vector[0] - neighborA.fluids.vector[0];
-                    let waterChange = flowRatio * waterDiff;
+                    let waterChange = Math.max(Math.min(flowRatio * waterDiff, cur.fluids.vector[Fluids.WATER] +
+                        dFluids[i][j].vector[Fluids.WATER]),
+                        -(neighborA.fluids.vector[Fluids.WATER] + dFluids[i+1][j].vector[Fluids.WATER])
+                    );
+
+
 
                     dFluids[i][j].vector[0] -= waterChange;
                     dFluids[i + 1][j].vector[0] += waterChange;
@@ -186,8 +254,10 @@ export class Automata {
                         dFluids[i][j+1] = new Fluids(0);
                     }
                     let waterDiff = cur.fluids.vector[0] - neighborB.fluids.vector[0];
-                    let waterChange = flowRatio * waterDiff;
-
+                    let waterChange = Math.max(Math.min(flowRatio * waterDiff, cur.fluids.vector[Fluids.WATER] +
+                        dFluids[i][j].vector[Fluids.WATER]),
+                        -(neighborB.fluids.vector[Fluids.WATER] + dFluids[i][j+1].vector[Fluids.WATER])
+                    );
                     dFluids[i][j].vector[0] -= waterChange;
                     dFluids[i][j+1].vector[0] += waterChange;
 
@@ -213,6 +283,23 @@ export class Automata {
         }
     }
 
+    countAirNeighbors(i , j){
+        let count = 0;
+        if(i < Automata.GRID_DIMENSION_Y - 1 && ! this.grid[i+1][j]){
+            count++;
+        }
+        if (i > 0 && !this.grid[i - 1][j]) {
+            count++;
+        }
+        if (j < Automata.GRID_DIMENSION_X -1 && !this.grid[i][j+1]) {
+            count++;
+        }
+        if (j > 0 && !this.grid[i + 1][j-1]) {
+            count++;
+        }
+        return count;
+    }
+
 
 
 
@@ -235,15 +322,15 @@ export class Automata {
                     let waterContent = Math.max(Math.min(Math.round(cell.fluids.vector[0]),255),0);
                     if (cell instanceof Cell) {
                         if (this.viewStyle === 'water') {
-                            let colorString = "#" + "0064";
-                            if(waterContent < 16){
-                                colorString += "0" + waterContent.toString(16);
-                            }
-                            else{
-                                colorString += waterContent.toString(16);
-                            }
-
+                            let colorString = "#" + "0064" + this.getColorHex(waterContent);
                             this.canvasCtx.fillStyle = colorString;
+                        }
+                        else if(this.viewStyle === 'glucose'){
+                            let colorString = "#" + this.getColorHex(Math.min(255,Math.ceil(cell.fluids.vector[Fluids.GLUCOSE]))) + "0000";
+                            this.canvasCtx.fillStyle = colorString;
+                        }
+                        else if (this.viewStyle === 'auxin') {
+                            let colorString = "#" + "0000" + this.getColorHex(Math.min(255,Math.ceil(cell.signals.vector[0])));
                         }
                         else{
                             this.canvasCtx.fillStyle = cell.dna.cellTypes[cell.type].color;
@@ -255,13 +342,8 @@ export class Automata {
                         // this.canvasCtx.putImageData(this.cellRectangles[cell.type], scale * j, scale * i);
                     }
                     else if(cell instanceof Dirt){
-                        let colorString = "#" + "6400";
-                        if (waterContent < 16) {
-                            colorString += "0" + waterContent.toString(16);
-                        }
-                        else {
-                            colorString += waterContent.toString(16);
-                        }
+                        let colorString = "#" + "6400" +this.getColorHex(waterContent);
+
                         this.canvasCtx.fillStyle = colorString;
                         this.canvasCtx.fillRect(scale*j, scale*i, scale, scale);
                     }
@@ -276,5 +358,16 @@ export class Automata {
             this.canvasCtx.fillRect(scale * i, scale * (Automata.GRID_DIMENSION_Y-1), scale, scale);
         }*/
 
+    }
+
+    getColorHex(byte){
+        let colorString = "";
+        if (byte < 16) {
+            colorString += "0" + byte.toString(16);
+        }
+        else {
+            colorString += byte.toString(16);
+        }
+        return colorString;
     }
 }

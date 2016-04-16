@@ -136,6 +136,23 @@
 	                }
 	                var gI = this.plant[i].y + dy;
 	                var gJ = this.plant[i].x + dx;
+	                var cost = this.dna.cellTypes[action.parameters.type].cost;
+	                if (cost.vector.length != 4)
+	                    console.log("dafuq");
+	                var canAfford = true;
+	                for (var i = 0; i < cost.vector.length; i++) {
+	                    if (!this.plant[i].fluids.vector[i] >= cost.vector[i]) {
+	                        canAfford = false;
+	                        break;
+	                    }
+	                }
+	                /*
+	                if (!canAfford)
+	                    continue;
+
+	                this.subtractFluids(this.plant[i].fluids, cost);
+
+	                */
 	                if (gI < 0 || gI >= Automata.GRID_DIMENSION_Y || gJ < 0 || gJ >= Automata.GRID_DIMENSION_X) {
 	                    // console.log("cannot make cell at " + gJ + ", " + gI);
 	                    continue;
@@ -159,15 +176,12 @@
 	        }
 	        //this.updatePlan();
 	        this.fluidUpdate();
-	        var waterCount = 0;
-	        for (var i = 0; i < Automata.GRID_DIMENSION_Y; i++) {
-	            for (var j = 0; j < Automata.GRID_DIMENSION_X; j++) {
-	                if (this.grid[i][j]) {
-	                    waterCount += this.grid[i][j].fluids.vector[0];
-	                }
-	            }
+	        this.signalsUpdate();
+	    };
+	    Automata.prototype.subtractFluids = function (a, b) {
+	        for (var i = 0; i < a.vector.length; i++) {
+	            a.vector[i] -= b.vector[i];
 	        }
-	        //console.log("Total Water count " + waterCount);
 	    };
 	    Automata.prototype.splitFluids = function (cell) {
 	        var newFluids = new fluids_1.Fluids(0);
@@ -177,10 +191,46 @@
 	        }
 	        return newFluids;
 	    };
+	    Automata.prototype.signalsUpdate = function () {
+	        // Update each cell's individual signal levels
+	        for (var i = 0; i < this.plant.length; ++i) {
+	            var cell = this.plant[i];
+	            cell.updateSignals();
+	        }
+	        // Send signals to neighbors
+	        // let SPREAD_COEFF = 0.1;
+	        // for (var i = 0; i < this.plant.length; i++) {
+	        //     var cell = this.plant[i];
+	        //     var neighbs = [[-1, 0], [1, 0], [0, 1], [0, -1]];
+	        //     for (var i = 0; i < neighbs.length; ++i) {
+	        //         var dx = cell.x + neighbs[i][0];
+	        //         var dy = cell.x + neighbs[i][1];
+	        //         if (dx < 0 || dy < 0 || dx >= Automata.GRID_DIMENSION_X || dy >= Automata.GRID_DIMENSION_Y)
+	        //             continue;
+	        //         var neighb = this.grid[dy][dx];
+	        //         if (neighb instanceof Cell) {
+	        //             var nsignals = neighb.signals.vector;
+	        //             for (var i = 0; i < nsignals.length; ++i) {
+	        //                 nsignals += SPREAD_COEFF * cell.signals.vector[i];
+	        //             }
+	        //         }
+	        //     }
+	        // }
+	    };
 	    Automata.prototype.fluidUpdate = function () {
 	        var dFluids = new Array(Automata.GRID_DIMENSION_Y);
 	        for (var i = 0; i < Automata.GRID_DIMENSION_Y; i++) {
 	            dFluids[i] = new Array(Automata.GRID_DIMENSION_X);
+	        }
+	        for (var i = 0; i < this.plant.length; i++) {
+	            var cell = this.plant[i];
+	            if (cell.type === "l") {
+	                var numAir = this.countAirNeighbors(cell.y, cell.x);
+	                dFluids[cell.y][cell.x] = new fluids_1.Fluids(0);
+	                var dGlucose = Math.min(cell.fluids.vector[fluids_1.Fluids.WATER], 50 * numAir);
+	                dFluids[cell.y][cell.x].vector[fluids_1.Fluids.WATER] = -dGlucose;
+	                dFluids[cell.y][cell.x].vector[fluids_1.Fluids.GLUCOSE] = dGlucose;
+	            }
 	        }
 	        for (var i = 0; i < Automata.GRID_DIMENSION_Y; i++) {
 	            for (var j = 0; j < Automata.GRID_DIMENSION_X; j++) {
@@ -196,7 +246,7 @@
 	                var flowRatio = 0.1;
 	                if (neighborA) {
 	                    if (neighborA instanceof cell_1.Cell && cur instanceof cell_1.Cell) {
-	                        flowRatio = 0.25;
+	                        flowRatio = 1;
 	                    }
 	                    if (!dFluids[i][j]) {
 	                        dFluids[i][j] = new fluids_1.Fluids(0);
@@ -205,7 +255,8 @@
 	                        dFluids[i + 1][j] = new fluids_1.Fluids(0);
 	                    }
 	                    var waterDiff = cur.fluids.vector[0] - neighborA.fluids.vector[0];
-	                    var waterChange = flowRatio * waterDiff;
+	                    var waterChange = Math.max(Math.min(flowRatio * waterDiff, cur.fluids.vector[fluids_1.Fluids.WATER] +
+	                        dFluids[i][j].vector[fluids_1.Fluids.WATER]), -(neighborA.fluids.vector[fluids_1.Fluids.WATER] + dFluids[i + 1][j].vector[fluids_1.Fluids.WATER]));
 	                    dFluids[i][j].vector[0] -= waterChange;
 	                    dFluids[i + 1][j].vector[0] += waterChange;
 	                }
@@ -220,7 +271,8 @@
 	                        dFluids[i][j + 1] = new fluids_1.Fluids(0);
 	                    }
 	                    var waterDiff = cur.fluids.vector[0] - neighborB.fluids.vector[0];
-	                    var waterChange = flowRatio * waterDiff;
+	                    var waterChange = Math.max(Math.min(flowRatio * waterDiff, cur.fluids.vector[fluids_1.Fluids.WATER] +
+	                        dFluids[i][j].vector[fluids_1.Fluids.WATER]), -(neighborB.fluids.vector[fluids_1.Fluids.WATER] + dFluids[i][j + 1].vector[fluids_1.Fluids.WATER]));
 	                    dFluids[i][j].vector[0] -= waterChange;
 	                    dFluids[i][j + 1].vector[0] += waterChange;
 	                }
@@ -240,6 +292,22 @@
 	            fluid.vector[i] += dFluid.vector[i];
 	        }
 	    };
+	    Automata.prototype.countAirNeighbors = function (i, j) {
+	        var count = 0;
+	        if (i < Automata.GRID_DIMENSION_Y - 1 && !this.grid[i + 1][j]) {
+	            count++;
+	        }
+	        if (i > 0 && !this.grid[i - 1][j]) {
+	            count++;
+	        }
+	        if (j < Automata.GRID_DIMENSION_X - 1 && !this.grid[i][j + 1]) {
+	            count++;
+	        }
+	        if (j > 0 && !this.grid[i + 1][j - 1]) {
+	            count++;
+	        }
+	        return count;
+	    };
 	    Automata.prototype.draw = function () {
 	        var scale = 10;
 	        //console.log("draw");
@@ -255,14 +323,15 @@
 	                    var waterContent = Math.max(Math.min(Math.round(cell.fluids.vector[0]), 255), 0);
 	                    if (cell instanceof cell_1.Cell) {
 	                        if (this.viewStyle === 'water') {
-	                            var colorString = "#" + "0064";
-	                            if (waterContent < 16) {
-	                                colorString += "0" + waterContent.toString(16);
-	                            }
-	                            else {
-	                                colorString += waterContent.toString(16);
-	                            }
+	                            var colorString = "#" + "0064" + this.getColorHex(waterContent);
 	                            this.canvasCtx.fillStyle = colorString;
+	                        }
+	                        else if (this.viewStyle === 'glucose') {
+	                            var colorString = "#" + this.getColorHex(Math.min(255, Math.ceil(cell.fluids.vector[fluids_1.Fluids.GLUCOSE]))) + "0000";
+	                            this.canvasCtx.fillStyle = colorString;
+	                        }
+	                        else if (this.viewStyle === 'auxin') {
+	                            var colorString = "#" + "0000" + this.getColorHex(Math.min(255, Math.ceil(cell.signals.vector[0])));
 	                        }
 	                        else {
 	                            this.canvasCtx.fillStyle = cell.dna.cellTypes[cell.type].color;
@@ -270,13 +339,7 @@
 	                        this.canvasCtx.fillRect(Math.floor(scale * j), Math.floor(scale * i), scale, scale);
 	                    }
 	                    else if (cell instanceof dirt_1.Dirt) {
-	                        var colorString = "#" + "6400";
-	                        if (waterContent < 16) {
-	                            colorString += "0" + waterContent.toString(16);
-	                        }
-	                        else {
-	                            colorString += waterContent.toString(16);
-	                        }
+	                        var colorString = "#" + "6400" + this.getColorHex(waterContent);
 	                        this.canvasCtx.fillStyle = colorString;
 	                        this.canvasCtx.fillRect(scale * j, scale * i, scale, scale);
 	                    }
@@ -288,6 +351,16 @@
 	        for (var i = 0; i < Automata.GRID_DIMENSION_X; i ++){
 	            this.canvasCtx.fillRect(scale * i, scale * (Automata.GRID_DIMENSION_Y-1), scale, scale);
 	        }*/
+	    };
+	    Automata.prototype.getColorHex = function (byte) {
+	        var colorString = "";
+	        if (byte < 16) {
+	            colorString += "0" + byte.toString(16);
+	        }
+	        else {
+	            colorString += byte.toString(16);
+	        }
+	        return colorString;
 	    };
 	    Automata.GRID_DIMENSION_X = 100;
 	    Automata.GRID_DIMENSION_Y = 100;
@@ -306,20 +379,29 @@
 	var fluids_1 = __webpack_require__(4);
 	var DNA = (function () {
 	    function DNA() {
-	        /*
-	        (N_SIGNALS) x (N_SIGNALS+N_FLUIDS)
-	        */
-	        this.signalMatrix = [
-	            [],
-	            [0, 1],
-	            [0, 0, 0, 0, 0, 0],
-	            [0, 0, 0, 0, 0, 0],
-	        ];
-	        this.signalB = [-0.25, -0.25, -0.25, -0.25];
 	        this.cellTypes = {
 	            'a1': {
+	                cost: new fluids_1.Fluids(0, 50),
+	                /*
+	                (N_SIGNALS) x (N_SIGNALS+N_FLUIDS)
+	                */
+	                signalMatrix: [
+	                    [0, 0, 0.2, 0.2],
+	                    [0, 0, 1, 1, 0, 0],
+	                    [0, 0, 0, 0, 0, 0],
+	                    [0, 0, 0, 0, 0, 0],
+	                ],
+	                signalB: [-0.3, -0.5, 0.05, -0.05],
+	                signalInit: [0, 0, 0, 1],
 	                color: "#ededbe",
 	                actions: [
+	                    {
+	                        name: 'demote',
+	                        activator: {
+	                            w: [0, 10, 0, 0],
+	                            b: 0
+	                        }
+	                    },
 	                    {
 	                        name: 'grow',
 	                        parameters: {
@@ -367,6 +449,15 @@
 	                ]
 	            },
 	            'a2': {
+	                cost: new fluids_1.Fluids(0, 20),
+	                signalMatrix: [
+	                    [0, 0, 0, 0, 0, 0],
+	                    [0, 0, 0, 0, 0, 0],
+	                    [0, 0, 0, 0, 0, 0],
+	                    [0, 0, 0, 0, 0, 0],
+	                ],
+	                signalB: [-0.05, -0.5, -0.05, -0.05],
+	                signalInit: [0, 0, 0, 0],
 	                color: "#8F8F6E",
 	                actions: [
 	                    {
@@ -405,6 +496,15 @@
 	                ]
 	            },
 	            'b1': {
+	                cost: new fluids_1.Fluids(0, 40),
+	                signalMatrix: [
+	                    [0, 0, 0, 0, 0, 0],
+	                    [0, 0, 0, 0, 0, 0],
+	                    [0, 0, 0, 0, 0, 0],
+	                    [0, 0, 0, 0, 0, 0],
+	                ],
+	                signalB: [-0.05, -0.5, -0.05, -0.05],
+	                signalInit: [0, 0, 0, 0],
 	                color: "#6E6E8F",
 	                actions: [
 	                    {
@@ -454,6 +554,15 @@
 	                ]
 	            },
 	            'b2': {
+	                cost: new fluids_1.Fluids(0, 20),
+	                signalMatrix: [
+	                    [0, 0, 0, 0, 0, 0],
+	                    [0, 0, 0, 0, 0, 0],
+	                    [0, 0, 0, 0, 0, 0],
+	                    [0, 0, 0, 0, 0, 0],
+	                ],
+	                signalB: [-0.05, -0.5, -0.05, -0.05],
+	                signalInit: [0, 0, 0, 0],
 	                color: "#8F6E7F",
 	                actions: [
 	                    {
@@ -481,6 +590,15 @@
 	                ]
 	            },
 	            'l': {
+	                cost: new fluids_1.Fluids(0, 80),
+	                signalMatrix: [
+	                    [0, 0, 0, 0, 0, 0],
+	                    [0, 0, 0, 0, 0, 0],
+	                    [0, 0, 0, 0, 0, 0],
+	                    [0, 0, 0, 0, 0, 0],
+	                ],
+	                signalB: [-0.05, -0.5, -0.05, -0.05],
+	                signalInit: [0, 0, 0, 0],
 	                color: "#80C4A1",
 	                actions: [
 	                    {
@@ -585,8 +703,28 @@
 	        this.fluids = fluids;
 	        this.type = type;
 	        this.dna = dna;
-	        this.signals = new signals_1.Signals();
+	        this.signals = new signals_1.Signals(dna.cellTypes[type].signalInit);
 	    }
+	    Cell.prototype.updateSignals = function () {
+	        // multiply by matrix
+	        var newSignals = new Array(this.signals.vector.length);
+	        var mtx = this.dna.cellTypes[this.type].signalMatrix;
+	        for (var i = 0; i < newSignals.length; i++) {
+	            for (var j = 0; j < this.signals.vector.length; j++) {
+	                newSignals[i] += this.signals.vector[j] * mtx[i][j];
+	            }
+	            for (j = 0; j < this.fluids.vector.length; ++j) {
+	                newSignals[j] += this.fluids.vector[j] * mtx[i][j + this.signals.vector.length];
+	            }
+	        }
+	        var vec = this.dna.cellTypes[this.type].signalB;
+	        for (var i = 0; i < vec.length; i++) {
+	            newSignals[i] += vec[i];
+	        }
+	        for (var i = 0; i < newSignals.length; i++) {
+	            this.signals.vector[i] = newSignals[i];
+	        }
+	    };
 	    Cell.prototype.update = function () {
 	    };
 	    /*
@@ -639,12 +777,15 @@
 	"use strict";
 	var N_FLUIDS = 4;
 	var Fluids = (function () {
-	    function Fluids(water) {
+	    function Fluids(water, glucose) {
 	        if (water === void 0) { water = 100; }
+	        if (glucose === void 0) { glucose = 0; }
 	        this.vector = new Array(N_FLUIDS);
-	        this.vector[0] = water;
-	        //this.vector[1] = 100;
+	        this.vector[Fluids.WATER] = water;
+	        this.vector[Fluids.GLUCOSE] = glucose;
 	    }
+	    Fluids.WATER = 0;
+	    Fluids.GLUCOSE = 1;
 	    return Fluids;
 	}());
 	exports.Fluids = Fluids;
@@ -672,10 +813,17 @@
 	"use strict";
 	var N_SIGNALS = 4;
 	var Signals = (function () {
-	    function Signals() {
+	    function Signals(start) {
 	        this.vector = new Array(N_SIGNALS);
-	        for (var i = 0; i < N_SIGNALS; ++i) {
-	            this.vector[i] = 0;
+	        if (start) {
+	            for (var i = 0; i < N_SIGNALS; i++) {
+	                this.vector[i] = start[i];
+	            }
+	        }
+	        else {
+	            for (var i = 0; i < N_SIGNALS; i++) {
+	                this.vector[i] = 0;
+	            }
 	        }
 	    }
 	    return Signals;

@@ -15,10 +15,34 @@ export class Cell {
         this.fluids = fluids;
         this.type = type;
         this.dna = dna;
-        this.signals = new Signals();
+        this.signals = new Signals(dna.cellTypes[type].signalInit);
+    }
+
+    updateSignals() {
+        // multiply by matrix
+        var newSignals = new Array(this.signals.vector.length);
+        var mtx = this.dna.cellTypes[this.type].signalMatrix;
+        for (var i = 0; i < newSignals.length; i++) {
+            for (var j = 0; j < this.signals.vector.length; j++) {
+                newSignals[i] += this.signals.vector[j] * mtx[i][j];
+            }
+            for (j = 0; j < this.fluids.vector.length; ++j) {
+                newSignals[j] += this.fluids.vector[j] * mtx[i][j+this.signals.vector.length];
+            }
+        }
+
+        var vec = this.dna.cellTypes[this.type].signalB;
+        for (var i = 0; i < vec.length; i++) {
+            newSignals[i] += vec[i];
+        }
+
+        for (var i = 0; i < newSignals.length; i++) {
+            this.signals.vector[i] = newSignals[i];
+        }
     }
 
     update() {
+
     }
 
     /*
