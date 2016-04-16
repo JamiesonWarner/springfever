@@ -4,9 +4,25 @@
     <meta charset="UTF-8">
     <title>UW-Madison Spring Fever 2016</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.3/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
     <script src="bundle.js"></script>
+
 </head>
 <body>
-    <canvas id="draw"></canvas>
+    <canvas id="draw" width="1000" height="1000"></canvas>
+    <div class="sidemenu">
+        <div class="dropdown">
+          <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">View
+          <span class="caret"></span></button>
+          <ul class="dropdown-menu">
+            <li><a href="#" onclick="viewStyle('types')">Cell Types</a></li>
+            <li><a href="#" onclick="viewStyle('water')">Water</a></li>
+            <li><a href="#" onclick="viewStyle('auxin')">Auxin</a></li>
+            <li><a href="#" onclick="viewStyle('glucose')">Glucose</a></li>
+          </ul>
+        </div>
+    </div>
 </body>
 </html>

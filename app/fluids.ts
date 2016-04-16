@@ -1,12 +1,11 @@
 
-var N_FLUIDS = 2;
+var N_FLUIDS = 4;
 
 export class Fluids {
     vector;
-    constructor(water=100) {
+    constructor(water = 100) {
         this.vector = new Array(N_FLUIDS);
-        for (var i = 0; i < N_FLUIDS; ++i) {
-            this.vector[i] = water;
-        }
+        this.vector[0] = water;
+        //this.vector[1] = 100;
     }
 }

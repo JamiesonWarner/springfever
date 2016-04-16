@@ -1,9 +1,13 @@
+import {Signals} from "./signals";
+
 export class Cell {
     fluids;
     x;
     y;
     type;
     dna;
+    angle;
+    signals;
 
     constructor(x,y,fluids,type, dna) {
         this.x = x;
@@ -11,6 +15,7 @@ export class Cell {
         this.fluids = fluids;
         this.type = type;
         this.dna = dna;
+        this.signals = new Signals();
     }
 
     update() {

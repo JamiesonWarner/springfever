@@ -47,16 +47,26 @@
 	"use strict";
 	console.log('HELLO WORLD!');
 	var automata_1 = __webpack_require__(1);
+	var updateInterval;
+	var automata;
 	document.addEventListener('DOMContentLoaded', function () {
-	    var automata = new automata_1.Automata("prototype");
+	    automata = new automata_1.Automata("prototype");
 	    window['automata'] = automata;
-	    window.setInterval(function () {
+	    updateInterval = window.setInterval(function () {
 	        automata.update();
 	        automata.draw();
 	    }, 1000);
 	    // window.setInterval(function() {
 	    // }, 100);
 	});
+	window['stopSimulation'] = function () {
+	    window.clearInterval(updateInterval);
+	};
+	window['viewStyle'] = function (style) {
+	    console.log('viewstyle', style);
+	    automata.viewStyle = style;
+	    automata.draw();
+	};
 
 
 /***/ },
@@ -71,27 +81,13 @@
 	var fluids_1 = __webpack_require__(4);
 	var Automata = (function () {
 	    function Automata(runString) {
+	        this.drawWater = false;
 	        var dna = new dna_1.DNA();
 	        this.dna = dna;
 	        this.plant = dna.getSeed();
 	        console.log('foo');
 	        this.canvas = document.getElementById("draw");
 	        this.canvasCtx = this.canvas.getContext("2d");
-	        // this.canvasCtx.
-	        // Make rectangles for every cell type in dna to make drawing fast
-	        var cellTypes = Object.keys(dna.cellTypes);
-	        this.cellRectangles = {};
-	        for (var i = 0; i < cellTypes.length; ++i) {
-	            var ct = cellTypes[i];
-	            var color = dna.cellTypes[ct].color;
-	            var ctx = this.canvasCtx;
-	            if (!color)
-	                console.error('Color is not defined for cell type ' + ct);
-	            ctx.fillStyle = color;
-	            ctx.fillRect(0, 0, 10, 10);
-	            this.cellRectangles[ct] = ctx.getImageData(4, 4, Automata.CELL_SCALE, Automata.CELL_SCALE);
-	            ctx.clearRect(0, 0, 10, 10);
-	        }
 	        this.grid = new Array(Automata.GRID_DIMENSION_X);
 	        for (var i = 0; i < Automata.GRID_DIMENSION_Y; i++) {
 	            this.grid[i] = new Array(Automata.GRID_DIMENSION_X);
@@ -103,7 +99,7 @@
 	            for (var j = 0; j < Automata.GRID_DIMENSION_X; j++) {
 	                if (typeof this.grid[i][j] === "undefined") {
 	                    var fluids = new fluids_1.Fluids();
-	                    fluids.vector[0] = 200;
+	                    fluids.vector[0] = 200 * Math.random();
 	                    this.grid[i][j] = new dirt_1.Dirt(fluids);
 	                }
 	            }
@@ -144,9 +140,16 @@
 	                    // console.log("cannot make cell at " + gJ + ", " + gI);
 	                    continue;
 	                }
-	                if (typeof this.grid[gI][gJ] === "undefined" || this.grid[gI][gJ] instanceof dirt_1.Dirt) {
+	                if (typeof this.grid[gI][gJ] === "undefined") {
 	                    // console.log("cell is not taken")
-	                    var nCell = new cell_1.Cell(gJ, gI, null, action.parameters.type, this.dna);
+	                    var newFluids = this.splitFluids(this.plant[i]);
+	                    var nCell = new cell_1.Cell(gJ, gI, newFluids, action.parameters.type, this.dna);
+	                    this.plant.push(nCell);
+	                    this.grid[gI][gJ] = nCell;
+	                }
+	                else if (this.grid[gI][gJ] instanceof dirt_1.Dirt) {
+	                    var newFluids = this.grid[gI][gJ].fluids;
+	                    var nCell = new cell_1.Cell(gJ, gI, newFluids, action.parameters.type, this.dna);
 	                    this.plant.push(nCell);
 	                    this.grid[gI][gJ] = nCell;
 	                }
@@ -155,17 +158,92 @@
 	            }
 	        }
 	        //this.updatePlan();
+	        this.fluidUpdate();
+	        var waterCount = 0;
+	        for (var i = 0; i < Automata.GRID_DIMENSION_Y; i++) {
+	            for (var j = 0; j < Automata.GRID_DIMENSION_X; j++) {
+	                if (this.grid[i][j]) {
+	                    waterCount += this.grid[i][j].fluids.vector[0];
+	                }
+	            }
+	        }
+	        //console.log("Total Water count " + waterCount);
+	    };
+	    Automata.prototype.splitFluids = function (cell) {
+	        var newFluids = new fluids_1.Fluids(0);
+	        for (var i = 0; i < cell.fluids.vector.length; i++) {
+	            cell.fluids.vector[i] /= 2;
+	            newFluids.vector[i] = cell.fluids.vector[i];
+	        }
+	        return newFluids;
 	    };
 	    Automata.prototype.fluidUpdate = function () {
 	        var dFluids = new Array(Automata.GRID_DIMENSION_Y);
 	        for (var i = 0; i < Automata.GRID_DIMENSION_Y; i++) {
 	            dFluids[i] = new Array(Automata.GRID_DIMENSION_X);
 	        }
+	        for (var i = 0; i < Automata.GRID_DIMENSION_Y; i++) {
+	            for (var j = 0; j < Automata.GRID_DIMENSION_X; j++) {
+	                if (typeof this.grid[i][j] === "undefined")
+	                    continue;
+	                var cur = this.grid[i][j];
+	                var neighborA = null;
+	                var neighborB = null;
+	                if (i < Automata.GRID_DIMENSION_Y - 1)
+	                    neighborA = this.grid[i + 1][j];
+	                if (j < Automata.GRID_DIMENSION_X - 1)
+	                    neighborB = this.grid[i][j + 1];
+	                var flowRatio = 0.1;
+	                if (neighborA) {
+	                    if (neighborA instanceof cell_1.Cell && cur instanceof cell_1.Cell) {
+	                        flowRatio = 0.25;
+	                    }
+	                    if (!dFluids[i][j]) {
+	                        dFluids[i][j] = new fluids_1.Fluids(0);
+	                    }
+	                    if (!dFluids[i + 1][j]) {
+	                        dFluids[i + 1][j] = new fluids_1.Fluids(0);
+	                    }
+	                    var waterDiff = cur.fluids.vector[0] - neighborA.fluids.vector[0];
+	                    var waterChange = flowRatio * waterDiff;
+	                    dFluids[i][j].vector[0] -= waterChange;
+	                    dFluids[i + 1][j].vector[0] += waterChange;
+	                }
+	                if (neighborB) {
+	                    if (neighborB instanceof cell_1.Cell && cur instanceof cell_1.Cell) {
+	                        flowRatio = 0.25;
+	                    }
+	                    if (!dFluids[i][j]) {
+	                        dFluids[i][j] = new fluids_1.Fluids(0);
+	                    }
+	                    if (!dFluids[i][j + 1]) {
+	                        dFluids[i][j + 1] = new fluids_1.Fluids(0);
+	                    }
+	                    var waterDiff = cur.fluids.vector[0] - neighborB.fluids.vector[0];
+	                    var waterChange = flowRatio * waterDiff;
+	                    dFluids[i][j].vector[0] -= waterChange;
+	                    dFluids[i][j + 1].vector[0] += waterChange;
+	                }
+	            }
+	        }
+	        for (var i = 0; i < Automata.GRID_DIMENSION_Y; i++) {
+	            for (var j = 0; j < Automata.GRID_DIMENSION_X; j++) {
+	                if (dFluids[i][j]) {
+	                    //console.log("Change fluid by " + dFluids[i][j][0])
+	                    this.applyFluidChange(this.grid[i][j].fluids, dFluids[i][j]);
+	                }
+	            }
+	        }
+	    };
+	    Automata.prototype.applyFluidChange = function (fluid, dFluid) {
+	        for (var i = 0; i < dFluid.vector.length; i++) {
+	            fluid.vector[i] += dFluid.vector[i];
+	        }
 	    };
 	    Automata.prototype.draw = function () {
-	        var scale = 1;
+	        var scale = 10;
 	        //console.log("draw");
-	        this.canvasCtx.fillStyle = "#715DF9";
+	        this.canvasCtx.fillStyle = "#7EC0DD";
 	        this.canvasCtx.fillRect(0, 0, Automata.GRID_DIMENSION_X * scale, scale * Automata.GRID_DIMENSION_Y);
 	        this.canvasCtx.fillRect(0, 0, 100, 100);
 	        // this.canvasCtx.fillStyle = "#FFF000";
@@ -174,15 +252,33 @@
 	            for (var j = 0; j < Automata.GRID_DIMENSION_X; j++) {
 	                var cell = this.grid[i][j];
 	                if (typeof cell != "undefined") {
+	                    var waterContent = Math.max(Math.min(Math.round(cell.fluids.vector[0]), 255), 0);
 	                    if (cell instanceof cell_1.Cell) {
-	                        //console.log("Drawing plant cell");
-	                        this.canvasCtx.fillStyle = cell.dna.cellTypes[cell.type].color;
-	                        // this.canvasCtx.fillRect(scale * (j), scale * (i), scale, scale);
-	                        this.canvasCtx.putImageData(this.cellRectangles[cell.type], scale * j, scale * i);
+	                        if (this.viewStyle === 'water') {
+	                            var colorString = "#" + "0064";
+	                            if (waterContent < 16) {
+	                                colorString += "0" + waterContent.toString(16);
+	                            }
+	                            else {
+	                                colorString += waterContent.toString(16);
+	                            }
+	                            this.canvasCtx.fillStyle = colorString;
+	                        }
+	                        else {
+	                            this.canvasCtx.fillStyle = cell.dna.cellTypes[cell.type].color;
+	                        }
+	                        this.canvasCtx.fillRect(Math.floor(scale * j), Math.floor(scale * i), scale, scale);
 	                    }
 	                    else if (cell instanceof dirt_1.Dirt) {
-	                        this.canvasCtx.fillStyle = "#A87F0F";
-	                        this.canvasCtx.fillRect(scale * (j), scale * (i), scale, scale);
+	                        var colorString = "#" + "6400";
+	                        if (waterContent < 16) {
+	                            colorString += "0" + waterContent.toString(16);
+	                        }
+	                        else {
+	                            colorString += waterContent.toString(16);
+	                        }
+	                        this.canvasCtx.fillStyle = colorString;
+	                        this.canvasCtx.fillRect(scale * j, scale * i, scale, scale);
 	                    }
 	                }
 	            }
@@ -210,6 +306,16 @@
 	var fluids_1 = __webpack_require__(4);
 	var DNA = (function () {
 	    function DNA() {
+	        /*
+	        (N_SIGNALS) x (N_SIGNALS+N_FLUIDS)
+	        */
+	        this.signalMatrix = [
+	            [],
+	            [0, 1],
+	            [0, 0, 0, 0, 0, 0],
+	            [0, 0, 0, 0, 0, 0],
+	        ];
+	        this.signalB = [-0.25, -0.25, -0.25, -0.25];
 	        this.cellTypes = {
 	            'a1': {
 	                color: "#ededbe",
@@ -233,7 +339,7 @@
 	                        },
 	                        activator: {
 	                            w: [2, 2],
-	                            b: -20
+	                            b: 2
 	                        }
 	                    },
 	                    {
@@ -279,6 +385,17 @@
 	                        parameters: {
 	                            direction: 'left',
 	                            type: 'a2'
+	                        },
+	                        activator: {
+	                            w: [2, 2],
+	                            b: 2
+	                        }
+	                    },
+	                    {
+	                        name: 'grow',
+	                        parameters: {
+	                            direction: 'left',
+	                            type: 'l'
 	                        },
 	                        activator: {
 	                            w: [2, 2],
@@ -406,6 +523,13 @@
 	        }
 	        return Math.sqrt(n);
 	    };
+	    DNA.prototype.l1norm = function (arr) {
+	        var n = 0;
+	        for (var i = 0; i < arr.length; ++i) {
+	            n += arr[i];
+	        }
+	        return n;
+	    };
 	    DNA.prototype.distanceToActivator = function (fluids, activator) {
 	        var normW = this.l2norm(activator.w);
 	        var d = 0;
@@ -423,7 +547,7 @@
 	        return 1 / (1 + Math.exp(-v));
 	    };
 	    DNA.prototype.weightedChoose = function (values, weights) {
-	        var norm = this.l2norm(weights);
+	        var norm = this.l1norm(weights);
 	        var rand = Math.random();
 	        var prob = 0;
 	        for (var i = 0; i < values.length; ++i) {
@@ -440,6 +564,7 @@
 	        for (var i = 0; i < activators.length; ++i) {
 	            activators[i] = this.activatorFunction(this.distanceToActivator(fluids, actions[i].activator));
 	        }
+	        // console.log('activators', activators, 'actions', actions);
 	        return this.weightedChoose(actions, activators);
 	    };
 	    return DNA;
@@ -449,9 +574,10 @@
 
 /***/ },
 /* 3 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
+	var signals_1 = __webpack_require__(7);
 	var Cell = (function () {
 	    function Cell(x, y, fluids, type, dna) {
 	        this.x = x;
@@ -459,6 +585,7 @@
 	        this.fluids = fluids;
 	        this.type = type;
 	        this.dna = dna;
+	        this.signals = new signals_1.Signals();
 	    }
 	    Cell.prototype.update = function () {
 	    };
@@ -510,14 +637,13 @@
 /***/ function(module, exports) {
 
 	"use strict";
-	var N_FLUIDS = 2;
+	var N_FLUIDS = 4;
 	var Fluids = (function () {
 	    function Fluids(water) {
 	        if (water === void 0) { water = 100; }
 	        this.vector = new Array(N_FLUIDS);
-	        for (var i = 0; i < N_FLUIDS; ++i) {
-	            this.vector[i] = water;
-	        }
+	        this.vector[0] = water;
+	        //this.vector[1] = 100;
 	    }
 	    return Fluids;
 	}());
@@ -537,6 +663,24 @@
 	    return Dirt;
 	}());
 	exports.Dirt = Dirt;
+
+
+/***/ },
+/* 7 */
+/***/ function(module, exports) {
+
+	"use strict";
+	var N_SIGNALS = 4;
+	var Signals = (function () {
+	    function Signals() {
+	        this.vector = new Array(N_SIGNALS);
+	        for (var i = 0; i < N_SIGNALS; ++i) {
+	            this.vector[i] = 0;
+	        }
+	    }
+	    return Signals;
+	}());
+	exports.Signals = Signals;
 
 
 /***/ }

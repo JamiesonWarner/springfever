@@ -13,6 +13,17 @@ export class DNA {
       return seed;
   }
 
+  /*
+  (N_SIGNALS) x (N_SIGNALS+N_FLUIDS)
+  */
+  signalMatrix = [
+    [], // apical auxin
+    [0,1], // nonapical auxin
+    [0,0,0,0,0,0], // ??
+    [0,0,0,0,0,0], // ??
+  ];
+
+  signalB = [-0.25,-0.25,-0.25,-0.25];
 
   cellTypes = {
     'a1': {
@@ -37,7 +48,7 @@ export class DNA {
           },
           activator: {
             w: [2, 2],
-            b: -20,
+            b: 2,
           }
         },
         {
@@ -83,6 +94,17 @@ export class DNA {
           parameters: {
               direction: 'left',
               type: 'a2'
+          },
+          activator: {
+            w: [2, 2],
+            b: 2,
+          }
+        },
+        {
+          name: 'grow',
+          parameters: {
+              direction: 'left',
+              type: 'l'
           },
           activator: {
             w: [2, 2],
@@ -204,6 +226,14 @@ export class DNA {
       return Math.sqrt(n);
   }
 
+  l1norm(arr) {
+    var n = 0;
+    for (var i = 0; i < arr.length; ++i) {
+      n += arr[i];
+    }
+    return n;
+  }
+
   distanceToActivator(fluids, activator) {
     var normW = this.l2norm(activator.w);
 
@@ -224,7 +254,7 @@ export class DNA {
   }
 
   weightedChoose(values, weights) {
-    var norm = this.l2norm(weights);
+    var norm = this.l1norm(weights);
     var rand = Math.random();
     var prob = 0;
     for (var i = 0; i < values.length; ++i) {
@@ -242,6 +272,7 @@ export class DNA {
     for (var i = 0; i < activators.length; ++i) {
         activators[i] = this.activatorFunction(this.distanceToActivator(fluids, actions[i].activator));
     }
+    // console.log('activators', activators, 'actions', actions);
     return this.weightedChoose(actions, activators);
   }
 }
