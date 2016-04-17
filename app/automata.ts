@@ -57,10 +57,11 @@ export class Automata {
         var tx = x / 10;
         var ty = y / 10;
         var cell = this.grid[Math.floor(ty)][Math.floor(tx)];
-
-        document.getElementById('bar-water').style.width = cell.fluids.vector[0] + 'px';
-        document.getElementById('bar-glucose').style.width = cell.fluids.vector[1] + 'px';
-        document.getElementById('bar-auxin').style.width = (10*cell.signals.vector[0]) + 'px';
+        if (cell instanceof Cell) {
+            document.getElementById('bar-water').style.width = cell.fluids.vector[0] + 'px';
+            document.getElementById('bar-glucose').style.width = cell.fluids.vector[1] + 'px';
+            document.getElementById('bar-auxin').style.width = (10*cell.signals.vector[0]) + 'px';
+        }
     }
 
     update() {

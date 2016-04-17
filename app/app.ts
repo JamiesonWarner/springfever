@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
         automata.draw();
     }, 1000);
 
-    document.getElementById("draw").addEventListener("click", function(event) {
+    document.getElementById("draw").addEventListener("mousemove", function(event) {
         automata.showInfo(event.offsetX, event.offsetY);
     })
 

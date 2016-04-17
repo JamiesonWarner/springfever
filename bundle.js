@@ -56,7 +56,7 @@
 	        automata.update();
 	        automata.draw();
 	    }, 1000);
-	    document.getElementById("draw").addEventListener("click", function (event) {
+	    document.getElementById("draw").addEventListener("mousemove", function (event) {
 	        automata.showInfo(event.offsetX, event.offsetY);
 	    });
 	});
@@ -111,9 +111,11 @@
 	        var tx = x / 10;
 	        var ty = y / 10;
 	        var cell = this.grid[Math.floor(ty)][Math.floor(tx)];
-	        document.getElementById('bar-water').style.width = cell.fluids.vector[0] + 'px';
-	        document.getElementById('bar-glucose').style.width = cell.fluids.vector[1] + 'px';
-	        document.getElementById('bar-auxin').style.width = (10 * cell.signals.vector[0]) + 'px';
+	        if (cell instanceof cell_1.Cell) {
+	            document.getElementById('bar-water').style.width = cell.fluids.vector[0] + 'px';
+	            document.getElementById('bar-glucose').style.width = cell.fluids.vector[1] + 'px';
+	            document.getElementById('bar-auxin').style.width = (10 * cell.signals.vector[0]) + 'px';
+	        }
 	    };
 	    Automata.prototype.update = function () {
 	        //console.log("tick");
