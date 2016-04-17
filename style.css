@@ -2,6 +2,14 @@
     float: left;
 }
 
+.bar {
+    background-color: blue;
+    min-width: 1px;
+    height: 20px;
+    margin: 10px;
+    display: inline-block;
+}
+
 .sidemenu {
     float: left;
 }

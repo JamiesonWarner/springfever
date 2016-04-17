@@ -11,8 +11,11 @@ document.addEventListener('DOMContentLoaded', function() {
         automata.update();
         automata.draw();
     }, 1000);
-    // window.setInterval(function() {
-    // }, 100);
+
+    document.getElementById("draw").addEventListener("click", function(event) {
+        automata.showInfo(event.offsetX, event.offsetY);
+    })
+
 })
 
 window['stopSimulation'] = function() {

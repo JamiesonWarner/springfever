@@ -1,5 +1,5 @@
 
-var N_FLUIDS = 4;
+var N_FLUIDS = 2;
 
 
 export class Fluids {

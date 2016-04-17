@@ -21,23 +21,28 @@ export class Cell {
     updateSignals() {
         // multiply by matrix
         var newSignals = new Array(this.signals.vector.length);
+        for (var i = 0; i < newSignals.length; ++i) {
+            newSignals[i] = 0;
+        }
+
         var mtx = this.dna.cellTypes[this.type].signalMatrix;
         for (var i = 0; i < newSignals.length; i++) {
             for (var j = 0; j < this.signals.vector.length; j++) {
                 newSignals[i] += this.signals.vector[j] * mtx[i][j];
             }
             for (j = 0; j < this.fluids.vector.length; ++j) {
-                newSignals[j] += this.fluids.vector[j] * mtx[i][j+this.signals.vector.length];
+                newSignals[i] += this.fluids.vector[j] * mtx[i][j+this.signals.vector.length];
             }
         }
 
         var vec = this.dna.cellTypes[this.type].signalB;
+        // console.log('signals', newSignals, 'mtx', mtx, 'vec', vec);
         for (var i = 0; i < vec.length; i++) {
             newSignals[i] += vec[i];
         }
 
         for (var i = 0; i < newSignals.length; i++) {
-            this.signals.vector[i] = newSignals[i];
+            this.signals.vector[i] = Math.max(0, Math.min(1, newSignals[i]));
         }
     }
 
@@ -83,6 +88,6 @@ export class Cell {
         //     }
         // }
 
-        return this.dna.chooseAction(this.fluids, this.type);
+        return this.dna.chooseAction(this.signals, this.type);
     }
 }
