@@ -110,7 +110,10 @@
 	        console.log('INFO SHOW', x, y);
 	        var tx = x / 10;
 	        var ty = y / 10;
-	        // document.getElementById('bar-water').setAttribute('width', )
+	        var cell = this.grid[Math.floor(ty)][Math.floor(tx)];
+	        document.getElementById('bar-water').style.width = cell.fluids.vector[0] + 'px';
+	        document.getElementById('bar-glucose').style.width = cell.fluids.vector[1] + 'px';
+	        document.getElementById('bar-auxin').style.width = (10 * cell.signals.vector[0]) + 'px';
 	    };
 	    Automata.prototype.update = function () {
 	        //console.log("tick");
@@ -334,57 +337,87 @@
 	            }
 	        }
 	    };
-	    Automata.prototype.calculateDiffusion = function (i, j, dFluids, flowRatioFluid, flowDirectionPref, diffuseToDirt) {
-	        obj = this.grid[i][j];
-	        middle = obj.fluids;
-	        left = new fluids_1.Fluids(fluids.vector[0], fluids.vector[1]);
-	        right = new fluids_1.Fluids(fluids.vector[0], fluids.vector[1]);
-	        up = new fluids_1.Fluids(fluids.vector[0], fluids.vector[1]);
-	        down = new fluids_1.Fluids(fluids.vector[0], fluids.vector[1]);
-	        if (i > 0) {
+	    /*
+
+	    calculateDiffusion(i,j, dFluids, flowRatioFluid, flowDirectionPref, diffuseToDirt){
+	        let obj = this.grid[i][j];
+
+	        let middle = obj.fluids;
+
+	        let left = new Fluids(fluids.vector[0],fluids.vector[1]);
+	        let right = new Fluids(fluids.vector[0], fluids.vector[1]);
+	        let up = new Fluids(fluids.vector[0], fluids.vector[1]);
+	        let down = new Fluids(fluids.vector[0], fluids.vector[1]);
+
+	        if(!dFluids[i][j]){
+	            dFluids[i][j] = new Fluids(0,0);
+	        }
+
+	        if(i > 0){
 	            up = this.grid[i - 1][j].fluids;
 	            if (!dFluids[i - 1][j]) {
-	                dFluids[i - 1][j] = new fluids_1.Fluids;
+	                dFluids[i - 1][j] = new Fluids
 	            }
 	        }
-	        if (i < Automata.GRID_DIMENSION_Y - 1) {
+	        if(i < Automata.GRID_DIMENSION_Y -1){
 	            down = this.grid[i + 1][j].fluids;
-	            if (!dFluids[i + 1][j]) {
-	                dFluids[i + 1][j] = new fluids_1.Fluids;
+	            if (!dFluids[i +1][j]) {
+	                dFluids[i +1][j] = new Fluids
 	            }
 	        }
-	        if (j > 0) {
+	        if(j > 0){
 	            left = this.grid[i][j - 1].fluids;
-	            if (!dFluids[i][j - 1]) {
-	                dFluids[i][j - 1] = new fluids_1.Fluids;
+	            if (!dFluids[i][j-1]) {
+	                dFluids[i][j-1] = new Fluids
 	            }
 	        }
-	        if (j < Automata.GRID_DIMENSION_X - 1) {
+	        if(j < Automata.GRID_DIMENSION_X - 1){
 	            right = this.grid[i][j + 1].fluids;
 	            if (!dFluids[i][j + 1]) {
-	                dFluids[i][j + 1] = new fluids_1.Fluids;
+	                dFluids[i][j + 1] = new Fluids
 	            }
 	        }
-	        for (var f = 0; f < obj.fluids.vector.length; f++) {
-	            var min = 999;
-	            var dUp = Math.max(0, up.vector[f] - middle.vector[f]);
-	            if (this.grid[i - 1][j] instanceof dirt_1.Dirt && !diffuseToDirt[f]) {
+
+	        for (var f = 0; f < obj.fluids.vector.length; f ++){
+	            let min = 999;
+
+	            let dUp = Math.max(0,up.vector[f] - middle.vector[f]);
+	            if(this.grid[i-1][j] instanceof Dirt && !diffuseToDirt[f]){
 	                dUp = 0;
 	            }
-	            var dDown = Math.max(0, down.vector[f] - middle.vector[f]);
-	            if (this.grid[i + 1][j] instanceof dirt_1.Dirt && !diffuseToDirt[f]) {
+	            else{
+	                min = Math.min(dUp, min);
+	            }
+
+	            let dDown = Math.max(0, down.vector[f] - middle.vector[f]);
+	            if (this.grid[i +1][j] instanceof Dirt && !diffuseToDirt[f]) {
 	                dDown = 0;
 	            }
-	            var dLeft = Math.max(0, left.vector[f] - middle.vector[f]);
-	            if (this.grid[i][j - 1] instanceof dirt_1.Dirt && !diffuseToDirt[f]) {
+	            else{
+	                min = Math.min(dDown, min);
+	            }
+	            let dLeft = Math.max(0, left.vector[f] - middle.vector[f]);
+	            if (this.grid[i][j - 1] instanceof Dirt && !diffuseToDirt[f]) {
 	                dLeft = 0;
 	            }
-	            var dRight = Math.max(0, right.vector[f] - middle.vector[f]);
-	            if (this.grid[i - 1][j] instanceof dirt_1.Dirt && !diffuseToDirt[f]) {
+	            else{
+	                min = Math.min(dLeft, min);
+	            }
+	            let dRight = Math.max(0, right.vector[f] - middle.vector[f]);
+	            if (this.grid[i - 1][j] instanceof Dirt && !diffuseToDirt[f]) {
 	                dUp = 0;
 	            }
-	            var total = dUp + dDown + dLeft + dRight;
-	            var giveAway = Math.min(flowRatioFluid[f] * obj.fluids[f], 0.5 * min);
+	            else{
+	                min = Math.min(dUp, min);
+	            }
+
+
+
+
+	            let total = dUp + dDown + dLeft + dRight;
+
+	            let giveAway = Math.min(flowRatioFluid[f] * obj.fluids[f], 0.5 * min);
+
 	            if (i > 0) {
 	                dFluids[i - 1][j].vector[f] += (dUp / total) * giveAway;
 	            }
@@ -392,13 +425,18 @@
 	                dFluids[i + 1][j].vector[f] += (dDown / total) * giveAway;
 	            }
 	            if (j > 0) {
-	                dFluids[i][j - 1].vector[f] += (dLeft / total) * giveAway;
+	                dFluids[i][j-1].vector[f] += (dLeft / total) * giveAway;
 	            }
 	            if (j < Automata.GRID_DIMENSION_X - 1) {
 	                dFluids[i][j + 1].vector[f] += (dRight / total) * giveAway;
 	            }
+
+	            dFluids[i][j] +=
+
 	        }
-	    };
+
+	    }
+	*/
 	    Automata.prototype.shuffle = function (array) {
 	        var currentIndex = array.length, temporaryValue, randomIndex;
 	        // While there remain elements to shuffle...
