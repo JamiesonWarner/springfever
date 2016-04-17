@@ -114,7 +114,7 @@
 	        if (cell instanceof cell_1.Cell) {
 	            document.getElementById('bar-water').style.width = cell.fluids.vector[0] + 'px';
 	            document.getElementById('bar-glucose').style.width = cell.fluids.vector[1] + 'px';
-	            document.getElementById('bar-auxin').style.width = (10 * cell.signals.vector[0]) + 'px';
+	            document.getElementById('bar-auxin').style.width = (40 * cell.signals.vector[0]) + 'px';
 	        }
 	    };
 	    Automata.prototype.update = function () {
