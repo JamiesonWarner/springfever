@@ -1,15 +1,16 @@
 import {Cell} from "./cell";
 import {Fluids} from "./fluids";
+import {Grid} from "./grid";
 
 export class DNA {
   constructor() {
       window['dna'] = this;
   }
 
-  getSeed() {
+  plantSeed(grid: Grid) {
       var seed = [];
-      seed.push(new Cell(50, 50, new Fluids(100,1000), 'a1', this));
-      seed.push(new Cell(50, 51, new Fluids(100,1000), 'b1', this));
+      seed.push(new Cell(this, 'a1', new Fluids(100,10000), grid, 50, 50 ));
+      seed.push(new Cell(this, 'b1', new Fluids(100,10000), grid, 50, 51 ));
       return seed;
   }
 

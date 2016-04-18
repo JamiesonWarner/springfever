@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateInterval = window.setInterval(function() {
         automata.update();
         automata.draw();
-    }, 1000);
+    }, 100);
 
     document.getElementById("draw").addEventListener("mousemove", function(event) {
         automata.showInfo(event.offsetX, event.offsetY);

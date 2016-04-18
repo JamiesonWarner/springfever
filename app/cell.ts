@@ -1,7 +1,9 @@
 import {Signals} from "./signals";
+import {Fluids} from "./fluids";
 
 export class Cell {
-    fluids;
+    grid: Array<Array<Object>>;
+    fluids: Fluids;
     x;
     y;
     type;
@@ -9,7 +11,8 @@ export class Cell {
     angle;
     signals;
 
-    constructor(x,y,fluids,type, dna) {
+    constructor(dna,type,fluids,grid,x,y) {
+        this.grid = grid;
         this.x = x;
         this.y = y;
         this.fluids = fluids;
