@@ -1,0 +1,17 @@
+{
+    "actions": [
+
+    ]
+    "cellTypes": [
+        {
+            "actions": [
+                {
+                    "grow": {
+                        // constant,
+                        "angle": []
+                    }
+                }
+            ]
+        }
+    ]
+}

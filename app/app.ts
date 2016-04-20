@@ -2,6 +2,9 @@ console.log('HELLO WORLD!');
 
 import {Automata} from "./automata";
 
+import {Angle} from "./angle";
+window['Angle'] = Angle;
+
 var updateInterval;
 var automata;
 document.addEventListener('DOMContentLoaded', function() {

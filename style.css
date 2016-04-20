@@ -10,6 +10,7 @@
     display: inline-block;
 }
 
-.sidemenu {
-    float: left;
+.controls {
+    position: absolute;
+    right: 0;
 }

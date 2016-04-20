@@ -8,9 +8,11 @@ export class DNA {
   }
 
   plantSeed(grid: Grid) {
-      var seed = [];
-      seed.push(new Cell(this, 'a1', new Fluids(100,10000), grid, 50, 50 ));
-      seed.push(new Cell(this, 'b1', new Fluids(100,10000), grid, 50, 51 ));
+      var c1 = new Cell(this, 'a1', new Fluids(100,10000), grid, 50, 50 ),
+          c2 = new Cell(this, 'b1', new Fluids(100,10000), grid, 50, 51 );
+      var seed = [c1, c2];
+      grid[50][50] = c1;
+      grid[51][50] = c2;
       return seed;
   }
 

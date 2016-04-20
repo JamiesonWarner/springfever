@@ -5,7 +5,7 @@
   "main": "webpack.config.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "http-server || echo \"Error: http-server not installed. Install with npm install http-server -g\"",
+    "start": "http-server -c-1 || echo \"Error: http-server not installed. Install with npm install http-server -g\"",
     "prepublish": "webpack"
   },
   "repository": {
