@@ -9,8 +9,8 @@ export class DNA {
   }
 
   plantSeed(grid: Grid) {
-      var c1 = new Cell(this, 'a1', new Fluids(100,100), grid, Automata.GRID_N_ROWS/2, Automata.GRID_N_COLUMNS/2 ),
-          c2 = new Cell(this, 'b1', new Fluids(100,100), grid, Automata.GRID_N_ROWS/2 + 1, Automata.GRID_N_COLUMNS/2 );
+      var c1 = new Cell(this, 'a1', new Fluids(1000,1000), grid, Automata.GRID_N_ROWS/2, Automata.GRID_N_COLUMNS/2 ),
+          c2 = new Cell(this, 'b1', new Fluids(1000,1000), grid, Automata.GRID_N_ROWS/2 + 1, Automata.GRID_N_COLUMNS/2 );
       var seed = [c1, c2];
       grid[c1.row][c1.col] = c1;
       grid[c2.row][c2.col] = c2;

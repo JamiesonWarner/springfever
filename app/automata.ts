@@ -149,7 +149,7 @@ export class Automata {
 
         this.fluidUpdate();
         this.signalsUpdate();
-        // this.cellDeath();
+        this.cellDeath();
     }
 
     /*

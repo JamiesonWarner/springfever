@@ -213,7 +213,7 @@
 	        }
 	        this.fluidUpdate();
 	        this.signalsUpdate();
-	        // this.cellDeath();
+	        this.cellDeath();
 	    };
 	    /*
 	    Kill all cells who don't have enough resources to live
@@ -779,7 +779,7 @@
 	        window['dna'] = this;
 	    }
 	    DNA.prototype.plantSeed = function (grid) {
-	        var c1 = new cell_1.Cell(this, 'a1', new fluids_1.Fluids(100, 100), grid, automata_1.Automata.GRID_N_ROWS / 2, automata_1.Automata.GRID_N_COLUMNS / 2), c2 = new cell_1.Cell(this, 'b1', new fluids_1.Fluids(100, 100), grid, automata_1.Automata.GRID_N_ROWS / 2 + 1, automata_1.Automata.GRID_N_COLUMNS / 2);
+	        var c1 = new cell_1.Cell(this, 'a1', new fluids_1.Fluids(1000, 1000), grid, automata_1.Automata.GRID_N_ROWS / 2, automata_1.Automata.GRID_N_COLUMNS / 2), c2 = new cell_1.Cell(this, 'b1', new fluids_1.Fluids(1000, 1000), grid, automata_1.Automata.GRID_N_ROWS / 2 + 1, automata_1.Automata.GRID_N_COLUMNS / 2);
 	        var seed = [c1, c2];
 	        grid[c1.row][c1.col] = c1;
 	        grid[c2.row][c2.col] = c2;
