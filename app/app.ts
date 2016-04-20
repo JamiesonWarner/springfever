@@ -5,7 +5,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
     var drawCanvas = document.getElementById("draw");
     var sim = new Simulation(drawCanvas);
     window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
-    window['resetSimulation'] = sim.viewStyle.bind(sim);
+    window['resetSimulation'] = sim.resetSimulation.bind(sim);
+    window['toggleDraw'] = sim.toggleDraw.bind(sim);
     window['viewStyle'] = sim.viewStyle.bind(sim);
 
     // DEBUG //

@@ -58,11 +58,10 @@ export class Automata {
                 var f = this.grid[row][col].vector || this.grid[row][col].fluids.vector;
                 for (var k = 0; k < f.length; ++k) {
                     if (typeof f[k] !== 'number' || isNaN(f[k])) {
-                        console.log('INVALID FLUID VECTOR:', row, col);
-                        return;
+                        throw new Error('Error: Invalid fluid vector at: ' + row+', '+col);
                     }
                     if (f[k] < 0) {
-                        console.log('NEGATIVE FLUIDS: ', row, col);
+                        console.log('Warning: Negative fluids at: ', row, col);
                         return;
                     }
                 }
@@ -177,7 +176,7 @@ export class Automata {
 
         for (var i = 0; i < toKill.length; ++i) {
             var cell = toKill[i];
-            console.log('killing cell, ', cell);
+            console.log('Killing cell at: ', cell.row, cell.col);
             var index = this.plant.indexOf(cell);
             this.plant.splice(index, 1);
             this.grid[cell.row][cell.col] = cell.fluids;
@@ -258,6 +257,13 @@ export class Automata {
             }
         }
 
+        // respiration. this is needed for stuff
+        var RESPIRATION_AMOUNT = 0.1;
+        for (var i = 0; i < this.plant.length; ++i) {
+            let cell = this.plant[i];
+            cell.fluids.vector[Fluids.WATER] -= RESPIRATION_AMOUNT;
+            cell.fluids.vector[Fluids.GLUCOSE] -= RESPIRATION_AMOUNT;
+        }
 
 
         // Passive transport / diffusion. Give nutrients to neighbors.

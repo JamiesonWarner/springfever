@@ -51,7 +51,8 @@
 	    var drawCanvas = document.getElementById("draw");
 	    var sim = new simulation_1.Simulation(drawCanvas);
 	    window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
-	    window['resetSimulation'] = sim.viewStyle.bind(sim);
+	    window['resetSimulation'] = sim.resetSimulation.bind(sim);
+	    window['toggleDraw'] = sim.toggleDraw.bind(sim);
 	    window['viewStyle'] = sim.viewStyle.bind(sim);
 	    // DEBUG //
 	    window['automata'] = sim.automata;
@@ -103,11 +104,10 @@
 	                var f = this.grid[row][col].vector || this.grid[row][col].fluids.vector;
 	                for (var k = 0; k < f.length; ++k) {
 	                    if (typeof f[k] !== 'number' || isNaN(f[k])) {
-	                        console.log('INVALID FLUID VECTOR:', row, col);
-	                        return;
+	                        throw new Error('Error: Invalid fluid vector at: ' + row + ', ' + col);
 	                    }
 	                    if (f[k] < 0) {
-	                        console.log('NEGATIVE FLUIDS: ', row, col);
+	                        console.log('Warning: Negative fluids at: ', row, col);
 	                        return;
 	                    }
 	                }
@@ -210,7 +210,7 @@
 	        }
 	        for (var i = 0; i < toKill.length; ++i) {
 	            var cell = toKill[i];
-	            console.log('killing cell, ', cell);
+	            console.log('Killing cell at: ', cell.row, cell.col);
 	            var index = this.plant.indexOf(cell);
 	            this.plant.splice(index, 1);
 	            this.grid[cell.row][cell.col] = cell.fluids;
@@ -282,6 +282,13 @@
 	                fluidsDiff[cell.row][cell.col][fluids_1.Fluids.WATER] -= dGlucose;
 	                fluidsDiff[cell.row][cell.col][fluids_1.Fluids.GLUCOSE] += REACTION_FACTOR * dGlucose;
 	            }
+	        }
+	        // respiration. this is needed for stuff
+	        var RESPIRATION_AMOUNT = 0.1;
+	        for (var i = 0; i < this.plant.length; ++i) {
+	            var cell = this.plant[i];
+	            cell.fluids.vector[fluids_1.Fluids.WATER] -= RESPIRATION_AMOUNT;
+	            cell.fluids.vector[fluids_1.Fluids.GLUCOSE] -= RESPIRATION_AMOUNT;
 	        }
 	        // Passive transport / diffusion. Give nutrients to neighbors.
 	        var neighbs = [[-1, 0], [1, 0], [0, 1], [0, -1]];
@@ -1053,14 +1060,25 @@
 	var Simulation = (function () {
 	    function Simulation(drawCanvas) {
 	        this.FRAME_DELAY = 100;
+	        this.drawCanvas = drawCanvas;
+	        this.drawEnabled = true;
 	        this.automata = new automata_1.Automata('prototype', drawCanvas);
 	        this.startSimulation();
 	    }
 	    Simulation.prototype.startSimulation = function () {
 	        var self = this;
 	        this.updateInterval = window.setInterval(function () {
-	            self.automata.update();
-	            self.automata.draw();
+	            try {
+	                self.automata.update();
+	            }
+	            catch (e) {
+	                console.error("Automata error! Stopping simulation...");
+	                self.stopSimulation();
+	                throw e;
+	            }
+	            if (self.drawEnabled) {
+	                self.automata.draw();
+	            }
 	        }, this.FRAME_DELAY);
 	        this.isSimulationRunning = true;
 	    };
@@ -1075,6 +1093,13 @@
 	            this.startSimulation();
 	    };
 	    Simulation.prototype.resetSimulation = function () {
+	        this.stopSimulation();
+	        this.automata = null;
+	        this.automata = new automata_1.Automata('prototype', this.drawCanvas);
+	        this.startSimulation();
+	    };
+	    Simulation.prototype.toggleDraw = function () {
+	        this.drawEnabled = !this.drawEnabled;
 	    };
 	    Simulation.prototype.viewStyle = function (style) {
 	        console.log('viewstyle', style);

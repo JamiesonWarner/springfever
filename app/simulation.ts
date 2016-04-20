@@ -10,9 +10,12 @@ export class Simulation {
     updateInterval: number;
     automata: Automata;
     isSimulationRunning: boolean;
+    drawEnabled: boolean;
     drawCanvas: Element;
 
     constructor(drawCanvas: Element) {
+        this.drawCanvas = drawCanvas;
+        this.drawEnabled = true;
         this.automata = new Automata('prototype', drawCanvas);
         this.startSimulation();
     }
@@ -20,8 +23,17 @@ export class Simulation {
     startSimulation() {
         var self = this;
         this.updateInterval = window.setInterval(function() {
-            self.automata.update();
-            self.automata.draw();
+            try {
+                self.automata.update();
+            } catch(e) {
+                console.error("Automata error! Stopping simulation...");
+                self.stopSimulation();
+                throw e;
+            }
+
+            if (self.drawEnabled) {
+                self.automata.draw();
+            }
         }, this.FRAME_DELAY);
         this.isSimulationRunning = true;
     }
@@ -39,9 +51,15 @@ export class Simulation {
     }
 
     resetSimulation() {
-
+        this.stopSimulation();
+        this.automata = null;
+        this.automata = new Automata('prototype', this.drawCanvas);
+        this.startSimulation();
     }
 
+    toggleDraw() {
+        this.drawEnabled = !this.drawEnabled;
+    }
     viewStyle(style) {
         console.log('viewstyle', style);
         this.automata.viewStyle = style;
