@@ -195,8 +195,8 @@
 	    Kill all cells who don't have enough resources to live
 	    */
 	    Automata.prototype.cellDeath = function () {
-	        var MIN_WATER = 1;
-	        var MIN_GLUCOSE = 1;
+	        var MIN_WATER = 10;
+	        var MIN_GLUCOSE = 10;
 	        var toKill = [];
 	        for (var i = 0; i < this.plant.length; ++i) {
 	            var cell = this.plant[i];
@@ -272,14 +272,15 @@
 	            }
 	        }
 	        // photosynthesis. TODO this will be an action
+	        var REACTION_FACTOR = 10; // expend 1 water to get 4 glucose
 	        for (var i = 0; i < this.plant.length; i++) {
 	            var cell = this.plant[i];
 	            if (cell.type === "l") {
 	                var numAir = this.countAirNeighbors(cell.row, cell.col);
-	                var dGlucose = Math.min(cell.fluids.vector[fluids_1.Fluids.WATER] / 4, 20 * numAir);
+	                var dGlucose = Math.min(cell.fluids.vector[fluids_1.Fluids.WATER] / 4, 100 * numAir);
 	                // convert water to glucose
-	                fluidsDiff[cell.row][cell.col][fluids_1.Fluids.WATER] = -dGlucose;
-	                fluidsDiff[cell.row][cell.col][fluids_1.Fluids.GLUCOSE] = dGlucose;
+	                fluidsDiff[cell.row][cell.col][fluids_1.Fluids.WATER] -= dGlucose;
+	                fluidsDiff[cell.row][cell.col][fluids_1.Fluids.GLUCOSE] += REACTION_FACTOR * dGlucose;
 	            }
 	        }
 	        // Passive transport / diffusion. Give nutrients to neighbors.
@@ -355,7 +356,7 @@
 	    };
 	    Automata.prototype.draw = function () {
 	        var scale = Automata.CELL_SCALE_PIXELS;
-	        this.canvasCtx.lineWidth = 2;
+	        this.canvasCtx.lineWidth = 3;
 	        this.canvasCtx.fillStyle = "#7EC0DD";
 	        this.canvasCtx.fillRect(0, 0, Automata.GRID_N_COLUMNS * scale, scale * Automata.GRID_N_ROWS);
 	        this.canvasCtx.fillRect(0, 0, 100, 100);
@@ -389,8 +390,8 @@
 	                        this.canvasCtx.fillStyle = obj.dna.cellTypes[obj.type].color;
 	                    }
 	                    else if (row >= 50) {
-	                        this.canvasCtx.fillStyle = "#6400" + this.getColorHex(waterContent);
-	                        ;
+	                        var val = Math.floor(Math.max(0, Math.min(500, waterContent) / 4));
+	                        this.canvasCtx.fillStyle = "#3311" + this.getColorHex(val);
 	                    }
 	                    else {
 	                        this.canvasCtx.fillStyle = "#7EC0DD";
@@ -408,20 +409,20 @@
 	                            if (this.isCellInGrid(nrow, ncol) && !(this.grid[nrow][ncol] instanceof cell_1.Cell)) {
 	                                this.canvasCtx.beginPath();
 	                                if (neighbs[i][0] == -1) {
-	                                    this.canvasCtx.moveTo(scale * col, scale * row);
-	                                    this.canvasCtx.lineTo(scale * (col + 1), scale * row);
+	                                    this.canvasCtx.moveTo(scale * col + 0.5, scale * row + 0.5);
+	                                    this.canvasCtx.lineTo(scale * (col + 1) + 0.5, scale * row + 0.5);
 	                                }
 	                                else if (neighbs[i][0] == 1) {
-	                                    this.canvasCtx.moveTo(scale * (col + 1), scale * (row + 1));
-	                                    this.canvasCtx.lineTo(scale * col, scale * (row + 1));
+	                                    this.canvasCtx.moveTo(scale * (col + 1) + 0.5, scale * (row + 1) + 0.5);
+	                                    this.canvasCtx.lineTo(scale * col + 0.5, scale * (row + 1) + 0.5);
 	                                }
 	                                else if (neighbs[i][1] == -1) {
-	                                    this.canvasCtx.moveTo(scale * col, scale * row);
-	                                    this.canvasCtx.lineTo(scale * col, scale * (row + 1));
+	                                    this.canvasCtx.moveTo(scale * col + 0.5, scale * (row + 1) + 0.5);
+	                                    this.canvasCtx.lineTo(scale * col + 0.5, scale * row + 0.5);
 	                                }
 	                                else if (neighbs[i][1] == 1) {
-	                                    this.canvasCtx.moveTo(scale * (col + 1), scale * row);
-	                                    this.canvasCtx.lineTo(scale * (col + 1), scale * (row + 1));
+	                                    this.canvasCtx.moveTo(scale * (col + 1) + 0.5, scale * row + 0.5);
+	                                    this.canvasCtx.lineTo(scale * (col + 1) + 0.5, scale * (row + 1) + 0.5);
 	                                }
 	                                this.canvasCtx.stroke();
 	                            }
