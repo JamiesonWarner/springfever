@@ -2,7 +2,12 @@ import {DNA} from "./dna";
 import {Cell} from "./cell"
 import {Dirt} from "./dirt";
 import {Fluids} from "./fluids";
+import {ISystem} from "./system";
 
+/*
+TODO turn Automata into systems model.
+Automata just stores stuff like the fluidsArray, and its state is transformed by Systems.
+*/
 export class Automata {
     static GRID_N_COLUMNS = 120;
     static GRID_N_ROWS = 100;
@@ -10,12 +15,15 @@ export class Automata {
 
     canvas;
     canvasCtx: CanvasRenderingContext2D;
-    grid;
-    plant;
+    fluidsArray: Array<Array<Fluids>>;
+    cellBitmap: Array<Array<boolean>>;
+    plant: Array<Cell>;
     dna;
     drawWater = false;
 
     viewStyle: string;
+
+    systems: Array<ISystem>;
 
     constructor(runString: String, drawCanvas: Element) {
         var dna = new DNA();
@@ -26,16 +34,16 @@ export class Automata {
         this.canvas.setAttribute('height', Automata.GRID_N_ROWS * Automata.CELL_SCALE_PIXELS);
         this.canvasCtx = this.canvas.getContext("2d");
 
-        this.grid = new Array(Automata.GRID_N_ROWS);
+        this.fluidsArray = new Array(Automata.GRID_N_ROWS);
         for (var row = 0; row < Automata.GRID_N_ROWS; row++) {
-            this.grid[row] = new Array(Automata.GRID_N_COLUMNS);
+            this.fluidsArray[row] = new Array(Automata.GRID_N_COLUMNS);
             for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
                 var water = this.isAirCell(row, col) ? 100 * Math.random() : 500 * Math.random();
-                this.grid[row][col] = new Fluids(water, 0);
+                this.fluidsArray[row][col] = new Fluids(water, 0);
             }
         }
 
-        this.plant = dna.plantSeed(this.grid);
+        this.plant = dna.plantSeed(this.fluidsArray);
 
         var self = this;
         drawCanvas.addEventListener("mousemove", function(event: MouseEvent) {
@@ -47,7 +55,7 @@ export class Automata {
     printGridFluids() {
         for (var row = 0; row < Automata.GRID_N_ROWS; ++row) {
             for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
-                console.log(this.grid[row][col].vector || this.grid[row][col].fluids.vector);
+                console.log(this.fluidsArray[row][col].vector);
             }
         }
     }
@@ -55,7 +63,7 @@ export class Automata {
     validateGridFluids() {
         for (var row = 0; row < Automata.GRID_N_ROWS; ++row) {
             for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
-                var f = this.grid[row][col].vector || this.grid[row][col].fluids.vector;
+                var f = this.fluidsArray[row][col].vector;
                 for (var k = 0; k < f.length; ++k) {
                     if (typeof f[k] !== 'number' || isNaN(f[k])) {
                         throw new Error('Error: Invalid fluid vector at: ' + row+', '+col);
@@ -72,17 +80,12 @@ export class Automata {
     showInfo(x,y) {
         var tx = x / 10;
         var ty = y / 10;
-        var obj = this.grid[Math.floor(ty)][Math.floor(tx)];
-        if (obj instanceof Cell) {
-            document.getElementById('bar-water').style.width = obj.fluids.vector[0] + 'px';
-            document.getElementById('bar-glucose').style.width = obj.fluids.vector[1] + 'px';
-            document.getElementById('bar-auxin').style.width = (40*obj.signals.vector[0]) + 'px';
-        }
-        else {
-            document.getElementById('bar-water').style.width = obj.vector[0] + 'px';
-            document.getElementById('bar-glucose').style.width = obj.vector[1] + 'px';
-            document.getElementById('bar-auxin').style.width = 0 + 'px';
-        }
+        var row = Math.floor(ty);
+        var col = Math.floor(tx)
+        var fluids = this.fluidsArray[row][col];
+        document.getElementById('bar-water').style.width = fluids.vector[Fluids.WATER] + 'px';
+        document.getElementById('bar-glucose').style.width = fluids.vector[Fluids.GLUCOSE] + 'px';
+        document.getElementById('bar-auxin').style.width = (40*fluids.vector[Fluids.AUXIN]) + 'px';
     }
 
     update() {
@@ -139,13 +142,13 @@ export class Automata {
                     continue;
                 }
 
-                if(! (this.grid[gI][gJ] instanceof Cell)){
+                if(! (this.cellBitmap[gI][gJ])){
                     // console.log("growing new cell...")
-                    let newFluids = this.splitFluids(this.plant[i]);
-                    var nCell = new Cell(this.dna, action.parameters.type, newFluids, this.grid, gI, gJ);
-                    this.plant.push(nCell);
-                    this.grid[gI][gJ] = nCell;
                     this.subtractFluids(this.plant[i].fluids, cost);
+                    let newFluids = this.splitFluids(this.plant[i]);
+                    var nCell = new Cell(this.dna, action.parameters.type, newFluids, this.fluidsArray, gI, gJ);
+                    this.plant.push(nCell);
+                    this.cellBitmap[gI][gJ] = true;
                 }
 
             }
@@ -179,7 +182,7 @@ export class Automata {
             // console.log('Killing cell at: ', cell.row, cell.col);
             var index = this.plant.indexOf(cell);
             this.plant.splice(index, 1);
-            this.grid[cell.row][cell.col] = cell.fluids;
+            this.fluidsArray[cell.row][cell.col] = cell.fluids;
         }
     }
 
@@ -216,7 +219,7 @@ export class Automata {
                 var ncol = cell.row + neighbs[j][1];
                 if (ncol < 0 || nrow < 0 || ncol >= Automata.GRID_N_COLUMNS || nrow >= Automata.GRID_N_ROWS)
                     continue;
-                var neighb = this.grid[nrow][ncol];
+                var neighb = this.fluidsArray[nrow][ncol];
                 if (neighb instanceof Cell) {
                     var nsignals = neighb.signals.vector;
                     for (var k = 0; k < nsignals.length; k++) {
@@ -286,8 +289,8 @@ export class Automata {
                         flowRate = 0.2;
                     }
 
-                    let obj = this.grid[row][col];
-                    let neighbFluids = this.grid[neighbRow][neighbCol];
+                    let obj = this.fluidsArray[row][col];
+                    let neighbFluids = this.fluidsArray[neighbRow][neighbCol];
                     let fluids = obj instanceof Cell ? obj.fluids.vector : obj.vector;
                     neighbFluids = neighbFluids instanceof Cell ? neighbFluids.fluids.vector : neighbFluids.vector;
                     for (var j = 0; j < Fluids.N_FLUIDS; ++j) {
@@ -306,7 +309,7 @@ export class Automata {
         // Apply fluidsDiff to fluids
         for (var row = 0; row < Automata.GRID_N_ROWS; row ++){
             for (var col = 0; col < Automata.GRID_N_COLUMNS; col ++ ){
-                let obj = this.grid[row][col];
+                let obj = this.fluidsArray[row][col];
                 let fluids = obj instanceof Cell ? obj.fluids.vector : obj.vector;
                 let fluidDiff = fluidsDiff[row][col];
                 for (var i = 0; i < Fluids.N_FLUIDS; ++i) {
@@ -323,7 +326,7 @@ export class Automata {
 
     isAirCell(row, col) {
         if (!this.isCellInGrid(row, col)) return false;
-        return row < 50 && !(this.grid[row][col] instanceof Cell);
+        return row < 50 && !(this.fluidsArray[row][col] instanceof Cell);
     }
 
     countAirNeighbors(row, col){
@@ -338,7 +341,7 @@ export class Automata {
     Returns fluid vector (actual array) at row,col
     */
     fluidsAt(row, col) {
-        var obj = this.grid[row][col];
+        var obj = this.fluidsArray[row][col];
         if (obj instanceof Cell) {
             return obj.fluids.vector;
         }
@@ -355,7 +358,7 @@ export class Automata {
 
         for (var row = 0; row < Automata.GRID_N_ROWS; row ++){
             for (var col = 0; col < Automata.GRID_N_COLUMNS; col ++){
-                var obj = this.grid[row][col];
+                var obj = this.fluidsArray[row][col];
                 let fluids = this.fluidsAt(row,col);
                 let waterContent = Math.max(Math.min(Math.round(fluids[Fluids.WATER]),255),0);
 
@@ -401,7 +404,7 @@ export class Automata {
                         for (var i = 0; i < neighbs.length; ++i) {
                             var nrow = obj.row + neighbs[i][0];
                             var ncol = obj.col + neighbs[i][1];
-                            if (this.isCellInGrid(nrow,ncol) && !(this.grid[nrow][ncol] instanceof Cell) ) {
+                            if (this.isCellInGrid(nrow,ncol) && !(this.fluidsArray[nrow][ncol] instanceof Cell) ) {
                                 this.canvasCtx.beginPath();
                                 if (neighbs[i][0] == -1) {
                                     this.canvasCtx.moveTo(scale*col + 0.5, scale*row + 0.5);

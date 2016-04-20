@@ -63,9 +63,11 @@ export class Simulation {
 
     resetSimulation() {
         this.showStatusString('Resetting...');
+        let view = this.automata.viewStyle;
         this.stopSimulation();
         this.automata = null;
         this.automata = new Automata('prototype', this.drawCanvas);
+        this.automata.viewStyle = view;
         this.startSimulation();
     }
 

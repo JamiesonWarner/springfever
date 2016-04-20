@@ -1,5 +1,5 @@
 /*
-Grid is where I store all my cell properties.
+Grid is where data about the env is stored....
 */
 
 export class Grid {

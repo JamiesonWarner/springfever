@@ -45,7 +45,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var simulation_1 = __webpack_require__(8);
+	var simulation_1 = __webpack_require__(1);
 	var angle_1 = __webpack_require__(7);
 	document.addEventListener("DOMContentLoaded", function (event) {
 	    var drawCanvas = document.getElementById("draw");
@@ -66,10 +66,103 @@
 /* 1 */
 /***/ function(module, exports, __webpack_require__) {
 
+	/*
+	app.ts
+	*/
 	"use strict";
-	var dna_1 = __webpack_require__(2);
-	var cell_1 = __webpack_require__(3);
-	var fluids_1 = __webpack_require__(5);
+	var automata_1 = __webpack_require__(2);
+	var Simulation = (function () {
+	    function Simulation(drawCanvas) {
+	        this.FRAME_DELAY = 20;
+	        this.drawCanvas = drawCanvas;
+	        this.drawEnabled = true;
+	        this.automata = new automata_1.Automata('prototype', drawCanvas);
+	        this.startSimulation();
+	    }
+	    Simulation.prototype.runForNTicks = function (N) {
+	        // run sim for N ticks
+	        for (var n = 0; n < N; ++n) {
+	            this.automata.update();
+	        }
+	        this.automata.draw();
+	    };
+	    Simulation.prototype.startSimulation = function () {
+	        this.isSimulationRunning = true;
+	        this.updateStatus();
+	        var self = this;
+	        this.updateInterval = window.setInterval(function () {
+	            try {
+	                self.automata.update();
+	            }
+	            catch (e) {
+	                console.warn("Automata error! Stopping simulation...");
+	                self.stopSimulation();
+	                throw e;
+	            }
+	            if (self.drawEnabled) {
+	                self.automata.draw();
+	            }
+	        }, this.FRAME_DELAY);
+	    };
+	    Simulation.prototype.stopSimulation = function () {
+	        this.showStatusString('Simulation stopped.');
+	        window.clearInterval(this.updateInterval);
+	        this.isSimulationRunning = false;
+	    };
+	    Simulation.prototype.toggleSimulation = function () {
+	        if (this.isSimulationRunning)
+	            this.stopSimulation();
+	        else
+	            this.startSimulation();
+	    };
+	    Simulation.prototype.resetSimulation = function () {
+	        this.showStatusString('Resetting...');
+	        var view = this.automata.viewStyle;
+	        this.stopSimulation();
+	        this.automata = null;
+	        this.automata = new automata_1.Automata('prototype', this.drawCanvas);
+	        this.automata.viewStyle = view;
+	        this.startSimulation();
+	    };
+	    Simulation.prototype.toggleDraw = function () {
+	        this.drawEnabled = !this.drawEnabled;
+	        this.updateStatus();
+	    };
+	    Simulation.prototype.viewStyle = function (style) {
+	        console.log('viewstyle', style);
+	        this.automata.viewStyle = style;
+	        this.automata.draw();
+	    };
+	    Simulation.prototype.updateStatus = function () {
+	        var status;
+	        if (this.isSimulationRunning)
+	            status = 'Simulation running. ';
+	        else
+	            status = 'Simulation stopped. ';
+	        if (!this.drawEnabled)
+	            status += '(Draw disabled.) ';
+	        this.showStatusString(status);
+	    };
+	    Simulation.prototype.showStatusString = function (status) {
+	        document.getElementById("status").innerHTML = status;
+	    };
+	    return Simulation;
+	}());
+	exports.Simulation = Simulation;
+
+
+/***/ },
+/* 2 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var dna_1 = __webpack_require__(3);
+	var cell_1 = __webpack_require__(4);
+	var fluids_1 = __webpack_require__(6);
+	/*
+	TODO turn Automata into systems model.
+	Automata just stores stuff like the fluidsArray, and its state is transformed by Systems.
+	*/
 	var Automata = (function () {
 	    function Automata(runString, drawCanvas) {
 	        this.drawWater = false;
@@ -79,15 +172,15 @@
 	        this.canvas.setAttribute('width', Automata.GRID_N_COLUMNS * Automata.CELL_SCALE_PIXELS);
 	        this.canvas.setAttribute('height', Automata.GRID_N_ROWS * Automata.CELL_SCALE_PIXELS);
 	        this.canvasCtx = this.canvas.getContext("2d");
-	        this.grid = new Array(Automata.GRID_N_ROWS);
+	        this.fluidsArray = new Array(Automata.GRID_N_ROWS);
 	        for (var row = 0; row < Automata.GRID_N_ROWS; row++) {
-	            this.grid[row] = new Array(Automata.GRID_N_COLUMNS);
+	            this.fluidsArray[row] = new Array(Automata.GRID_N_COLUMNS);
 	            for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
 	                var water = this.isAirCell(row, col) ? 100 * Math.random() : 500 * Math.random();
-	                this.grid[row][col] = new fluids_1.Fluids(water, 0);
+	                this.fluidsArray[row][col] = new fluids_1.Fluids(water, 0);
 	            }
 	        }
-	        this.plant = dna.plantSeed(this.grid);
+	        this.plant = dna.plantSeed(this.fluidsArray);
 	        var self = this;
 	        drawCanvas.addEventListener("mousemove", function (event) {
 	            self.showInfo(event.offsetX, event.offsetY);
@@ -96,14 +189,14 @@
 	    Automata.prototype.printGridFluids = function () {
 	        for (var row = 0; row < Automata.GRID_N_ROWS; ++row) {
 	            for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
-	                console.log(this.grid[row][col].vector || this.grid[row][col].fluids.vector);
+	                console.log(this.fluidsArray[row][col].vector || this.fluidsArray[row][col].fluids.vector);
 	            }
 	        }
 	    };
 	    Automata.prototype.validateGridFluids = function () {
 	        for (var row = 0; row < Automata.GRID_N_ROWS; ++row) {
 	            for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
-	                var f = this.grid[row][col].vector || this.grid[row][col].fluids.vector;
+	                var f = this.fluidsArray[row][col].vector || this.fluidsArray[row][col].fluids.vector;
 	                for (var k = 0; k < f.length; ++k) {
 	                    if (typeof f[k] !== 'number' || isNaN(f[k])) {
 	                        throw new Error('Error: Invalid fluid vector at: ' + row + ', ' + col);
@@ -119,7 +212,7 @@
 	    Automata.prototype.showInfo = function (x, y) {
 	        var tx = x / 10;
 	        var ty = y / 10;
-	        var obj = this.grid[Math.floor(ty)][Math.floor(tx)];
+	        var obj = this.fluidsArray[Math.floor(ty)][Math.floor(tx)];
 	        if (obj instanceof cell_1.Cell) {
 	            document.getElementById('bar-water').style.width = obj.fluids.vector[0] + 'px';
 	            document.getElementById('bar-glucose').style.width = obj.fluids.vector[1] + 'px';
@@ -179,13 +272,13 @@
 	                    // console.log("cannot make cell at " + gJ + ", " + gI);
 	                    continue;
 	                }
-	                if (!(this.grid[gI][gJ] instanceof cell_1.Cell)) {
+	                if (!(this.fluidsArray[gI][gJ] instanceof cell_1.Cell)) {
 	                    // console.log("growing new cell...")
-	                    var newFluids = this.splitFluids(this.plant[i]);
-	                    var nCell = new cell_1.Cell(this.dna, action.parameters.type, newFluids, this.grid, gI, gJ);
-	                    this.plant.push(nCell);
-	                    this.grid[gI][gJ] = nCell;
 	                    this.subtractFluids(this.plant[i].fluids, cost);
+	                    var newFluids = this.splitFluids(this.plant[i]);
+	                    var nCell = new cell_1.Cell(this.dna, action.parameters.type, newFluids, this.fluidsArray, gI, gJ);
+	                    this.plant.push(nCell);
+	                    this.fluidsArray[gI][gJ] = nCell;
 	                }
 	            }
 	        }
@@ -215,7 +308,7 @@
 	            // console.log('Killing cell at: ', cell.row, cell.col);
 	            var index = this.plant.indexOf(cell);
 	            this.plant.splice(index, 1);
-	            this.grid[cell.row][cell.col] = cell.fluids;
+	            this.fluidsArray[cell.row][cell.col] = cell.fluids;
 	        }
 	    };
 	    Automata.prototype.subtractFluids = function (a, b) {
@@ -247,7 +340,7 @@
 	                var ncol = cell.row + neighbs[j][1];
 	                if (ncol < 0 || nrow < 0 || ncol >= Automata.GRID_N_COLUMNS || nrow >= Automata.GRID_N_ROWS)
 	                    continue;
-	                var neighb = this.grid[nrow][ncol];
+	                var neighb = this.fluidsArray[nrow][ncol];
 	                if (neighb instanceof cell_1.Cell) {
 	                    var nsignals = neighb.signals.vector;
 	                    for (var k = 0; k < nsignals.length; k++) {
@@ -310,8 +403,8 @@
 	                    if (this.isAirCell(row, col) && this.isAirCell(neighbRow, neighbCol)) {
 	                        flowRate = 0.2;
 	                    }
-	                    var obj = this.grid[row][col];
-	                    var neighbFluids = this.grid[neighbRow][neighbCol];
+	                    var obj = this.fluidsArray[row][col];
+	                    var neighbFluids = this.fluidsArray[neighbRow][neighbCol];
 	                    var fluids = obj instanceof cell_1.Cell ? obj.fluids.vector : obj.vector;
 	                    neighbFluids = neighbFluids instanceof cell_1.Cell ? neighbFluids.fluids.vector : neighbFluids.vector;
 	                    for (var j = 0; j < fluids_1.Fluids.N_FLUIDS; ++j) {
@@ -328,7 +421,7 @@
 	        // Apply fluidsDiff to fluids
 	        for (var row = 0; row < Automata.GRID_N_ROWS; row++) {
 	            for (var col = 0; col < Automata.GRID_N_COLUMNS; col++) {
-	                var obj = this.grid[row][col];
+	                var obj = this.fluidsArray[row][col];
 	                var fluids = obj instanceof cell_1.Cell ? obj.fluids.vector : obj.vector;
 	                var fluidDiff = fluidsDiff[row][col];
 	                for (var i = 0; i < fluids_1.Fluids.N_FLUIDS; ++i) {
@@ -344,7 +437,7 @@
 	    Automata.prototype.isAirCell = function (row, col) {
 	        if (!this.isCellInGrid(row, col))
 	            return false;
-	        return row < 50 && !(this.grid[row][col] instanceof cell_1.Cell);
+	        return row < 50 && !(this.fluidsArray[row][col] instanceof cell_1.Cell);
 	    };
 	    Automata.prototype.countAirNeighbors = function (row, col) {
 	        var n = (this.isAirCell(row - 1, col) ? 1 : 0) +
@@ -357,7 +450,7 @@
 	    Returns fluid vector (actual array) at row,col
 	    */
 	    Automata.prototype.fluidsAt = function (row, col) {
-	        var obj = this.grid[row][col];
+	        var obj = this.fluidsArray[row][col];
 	        if (obj instanceof cell_1.Cell) {
 	            return obj.fluids.vector;
 	        }
@@ -371,7 +464,7 @@
 	        this.canvasCtx.fillRect(0, 0, 100, 100);
 	        for (var row = 0; row < Automata.GRID_N_ROWS; row++) {
 	            for (var col = 0; col < Automata.GRID_N_COLUMNS; col++) {
-	                var obj = this.grid[row][col];
+	                var obj = this.fluidsArray[row][col];
 	                var fluids = this.fluidsAt(row, col);
 	                var waterContent = Math.max(Math.min(Math.round(fluids[fluids_1.Fluids.WATER]), 255), 0);
 	                if (this.viewStyle === 'water') {
@@ -415,7 +508,7 @@
 	                        for (var i = 0; i < neighbs.length; ++i) {
 	                            var nrow = obj.row + neighbs[i][0];
 	                            var ncol = obj.col + neighbs[i][1];
-	                            if (this.isCellInGrid(nrow, ncol) && !(this.grid[nrow][ncol] instanceof cell_1.Cell)) {
+	                            if (this.isCellInGrid(nrow, ncol) && !(this.fluidsArray[nrow][ncol] instanceof cell_1.Cell)) {
 	                                this.canvasCtx.beginPath();
 	                                if (neighbs[i][0] == -1) {
 	                                    this.canvasCtx.moveTo(scale * col + 0.5, scale * row + 0.5);
@@ -460,17 +553,41 @@
 
 
 /***/ },
-/* 2 */
+/* 3 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var cell_1 = __webpack_require__(3);
-	var fluids_1 = __webpack_require__(5);
-	var automata_1 = __webpack_require__(1);
+	var cell_1 = __webpack_require__(4);
+	var fluids_1 = __webpack_require__(6);
+	var automata_1 = __webpack_require__(2);
 	var DNA = (function () {
 	    function DNA() {
-	        this.cellTypes = {
-	            'a1': {
+	        this.N_TYPES = 2;
+	        /*
+	      In nature, the gene controls the transcription product, and .
+	      
+	      Inputs of a cell:
+	      - Signals
+	      - Fluids
+	      
+	      Actions of a cell:
+	      - Produce signals
+	      - Duplicate
+	      - Specialize
+	      -
+	      
+	      Plant decisions are modeled as a markov chain.
+	      Each cell type is a node on the markov chain.
+	      Each cell type is also a 2 layer neural net.
+	      Each cell type has a list of potential actions, which may be paramaterized by neighbor states.
+	      The neural net's input is the fluid vector.
+	      
+	      Depending on the output of the neura
+	      Each object in cellTypes is a
+	      cellTypes is a markov chain. Each Markov state is a 2 layer neural net
+	        */
+	        this.cellTypes = [
+	            {
 	                cost: new fluids_1.Fluids(0, 20),
 	                /*
 	                (N_SIGNALS) x (N_SIGNALS+N_FLUIDS)
@@ -545,7 +662,7 @@
 	                    }
 	                ]
 	            },
-	            'a2': {
+	            {
 	                cost: new fluids_1.Fluids(0, 20),
 	                signalMatrix: [
 	                    [0.8, 0, 0, 0, 0, 0],
@@ -610,7 +727,7 @@
 	                    }
 	                ]
 	            },
-	            'b1': {
+	            {
 	                cost: new fluids_1.Fluids(0, 20),
 	                signalMatrix: [
 	                    [0.8, 0, 0, 0, 0, 0],
@@ -675,7 +792,7 @@
 	                    }
 	                ]
 	            },
-	            'b2': {
+	            {
 	                cost: new fluids_1.Fluids(0, 20),
 	                signalMatrix: [
 	                    [0.8, 0, 0, 0, 0, 0],
@@ -718,7 +835,7 @@
 	                    }
 	                ]
 	            },
-	            'l': {
+	            {
 	                cost: new fluids_1.Fluids(0, 30),
 	                signalMatrix: [
 	                    [0.8, 0, 0, 0, 0, 0],
@@ -761,7 +878,7 @@
 	                    }
 	                ]
 	            }
-	        };
+	        ];
 	        window['dna'] = this;
 	    }
 	    DNA.prototype.plantSeed = function (grid) {
@@ -770,6 +887,11 @@
 	        grid[c1.row][c1.col] = c1;
 	        grid[c2.row][c2.col] = c2;
 	        return seed;
+	    };
+	    DNA.prototype.serialize = function () {
+	        return {
+	            cellTypes: this.cellTypes
+	        };
 	    };
 	    DNA.prototype.l2norm = function (arr) {
 	        var n = 0;
@@ -828,11 +950,15 @@
 
 
 /***/ },
-/* 3 */
+/* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var signals_1 = __webpack_require__(4);
+	var signals_1 = __webpack_require__(5);
+	/*
+	Cell is a fleighweight object for the Grid. Systems.
+	Plus they also have context for fitting into the Grid.
+	*/
 	var Cell = (function () {
 	    function Cell(dna, type, fluids, grid, row, col) {
 	        this.grid = grid;
@@ -880,31 +1006,6 @@
 
 	    */
 	    Cell.prototype.getAction = function () {
-	        // if (Math.random() > 0.5) {
-	        //     return {
-	        //         name: 'grow',
-	        //         parameters: {
-	        //             direction: 'up',
-	        //             type: 'a1'
-	        //         }
-	        //     }
-	        // }
-	        // else if (Math.random() > 0.5) {
-	        //     return {
-	        //         name: 'grow',
-	        //         parameters: {
-	        //             direction: 'right',
-	        //             type: 'a2'
-	        //         }
-	        //     }
-	        // }
-	        // return {
-	        //     name: 'grow',
-	        //     parameters: {
-	        //         direction: 'left',
-	        //         type: 'a2'
-	        //     }
-	        // }
 	        return this.dna.chooseAction(this.signals, this.type);
 	    };
 	    return Cell;
@@ -913,7 +1014,7 @@
 
 
 /***/ },
-/* 4 */
+/* 5 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -938,7 +1039,7 @@
 
 
 /***/ },
-/* 5 */
+/* 6 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -957,10 +1058,15 @@
 	    return Fluids;
 	}());
 	exports.Fluids = Fluids;
+	var Reactions = (function () {
+	    function Reactions() {
+	    }
+	    return Reactions;
+	}());
+	exports.Reactions = Reactions;
 
 
 /***/ },
-/* 6 */,
 /* 7 */
 /***/ function(module, exports) {
 
@@ -1048,93 +1154,6 @@
 	    return Directions;
 	}());
 	exports.Directions = Directions;
-
-
-/***/ },
-/* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/*
-	app.ts
-	*/
-	"use strict";
-	var automata_1 = __webpack_require__(1);
-	var Simulation = (function () {
-	    function Simulation(drawCanvas) {
-	        this.FRAME_DELAY = 20;
-	        this.drawCanvas = drawCanvas;
-	        this.drawEnabled = true;
-	        this.automata = new automata_1.Automata('prototype', drawCanvas);
-	        this.startSimulation();
-	    }
-	    Simulation.prototype.runForNTicks = function (N) {
-	        // run sim for N ticks
-	        for (var n = 0; n < N; ++n) {
-	            this.automata.update();
-	        }
-	        this.automata.draw();
-	    };
-	    Simulation.prototype.startSimulation = function () {
-	        this.isSimulationRunning = true;
-	        this.updateStatus();
-	        var self = this;
-	        this.updateInterval = window.setInterval(function () {
-	            try {
-	                self.automata.update();
-	            }
-	            catch (e) {
-	                console.warn("Automata error! Stopping simulation...");
-	                self.stopSimulation();
-	                throw e;
-	            }
-	            if (self.drawEnabled) {
-	                self.automata.draw();
-	            }
-	        }, this.FRAME_DELAY);
-	    };
-	    Simulation.prototype.stopSimulation = function () {
-	        this.showStatusString('Simulation stopped.');
-	        window.clearInterval(this.updateInterval);
-	        this.isSimulationRunning = false;
-	    };
-	    Simulation.prototype.toggleSimulation = function () {
-	        if (this.isSimulationRunning)
-	            this.stopSimulation();
-	        else
-	            this.startSimulation();
-	    };
-	    Simulation.prototype.resetSimulation = function () {
-	        this.showStatusString('Resetting...');
-	        this.stopSimulation();
-	        this.automata = null;
-	        this.automata = new automata_1.Automata('prototype', this.drawCanvas);
-	        this.startSimulation();
-	    };
-	    Simulation.prototype.toggleDraw = function () {
-	        this.drawEnabled = !this.drawEnabled;
-	        this.updateStatus();
-	    };
-	    Simulation.prototype.viewStyle = function (style) {
-	        console.log('viewstyle', style);
-	        this.automata.viewStyle = style;
-	        this.automata.draw();
-	    };
-	    Simulation.prototype.updateStatus = function () {
-	        var status;
-	        if (this.isSimulationRunning)
-	            status = 'Simulation running. ';
-	        else
-	            status = 'Simulation stopped. ';
-	        if (!this.drawEnabled)
-	            status += '(Draw disabled.) ';
-	        this.showStatusString(status);
-	    };
-	    Simulation.prototype.showStatusString = function (status) {
-	        document.getElementById("status").innerHTML = status;
-	    };
-	    return Simulation;
-	}());
-	exports.Simulation = Simulation;
 
 
 /***/ }

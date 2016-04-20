@@ -1,8 +1,15 @@
 import {Signals} from "./signals";
 import {Fluids} from "./fluids";
 
+/*
+Cell is a fleighweight object for the Grid. Systems.
+Plus they also have context for fitting into the Grid.
+*/
+
 export class Cell {
+
     grid: Array<Array<Object>>;
+
     fluids: Fluids;
     row;
     col;
@@ -64,33 +71,6 @@ export class Cell {
 
     */
     getAction() {
-
-        // if (Math.random() > 0.5) {
-        //     return {
-        //         name: 'grow',
-        //         parameters: {
-        //             direction: 'up',
-        //             type: 'a1'
-        //         }
-        //     }
-        // }
-        // else if (Math.random() > 0.5) {
-        //     return {
-        //         name: 'grow',
-        //         parameters: {
-        //             direction: 'right',
-        //             type: 'a2'
-        //         }
-        //     }
-        // }
-        // return {
-        //     name: 'grow',
-        //     parameters: {
-        //         direction: 'left',
-        //         type: 'a2'
-        //     }
-        // }
-
         return this.dna.chooseAction(this.signals, this.type);
     }
 }

@@ -4,11 +4,12 @@ import {Grid} from "./grid";
 import {Automata} from "./automata";
 
 export class DNA {
+
   constructor() {
       window['dna'] = this;
   }
 
-  plantSeed(grid: Grid) {
+  plantSeed(grid: Array<Array<Object>>) {
       var c1 = new Cell(this, 'a1', new Fluids(1000,1000), grid, Automata.GRID_N_ROWS/2, Automata.GRID_N_COLUMNS/2 ),
           c2 = new Cell(this, 'b1', new Fluids(1000,1000), grid, Automata.GRID_N_ROWS/2 + 1, Automata.GRID_N_COLUMNS/2 );
       var seed = [c1, c2];
@@ -17,8 +18,32 @@ export class DNA {
       return seed;
   }
 
-  cellTypes = {
-    'a1': {
+  N_TYPES = 2;
+  /*
+In nature, the gene controls the transcription product, and .
+
+Inputs of a cell:
+- Signals
+- Fluids
+
+Actions of a cell:
+- Produce signals
+- Duplicate
+- Specialize
+-
+
+Plant decisions are modeled as a markov chain.
+Each cell type is a node on the markov chain.
+Each cell type is also a 2 layer neural net.
+Each cell type has a list of potential actions, which may be paramaterized by neighbor states.
+The neural net's input is the fluid vector.
+
+Depending on the output of the neura
+Each object in cellTypes is a
+cellTypes is a markov chain. Each Markov state is a 2 layer neural net
+  */
+  cellTypes = [
+    {
       cost: new Fluids(0, 20),
       /*
       (N_SIGNALS) x (N_SIGNALS+N_FLUIDS)
@@ -93,7 +118,7 @@ export class DNA {
         }
       ]
     },
-    'a2': {
+    {
       cost: new Fluids(0, 20),
       signalMatrix: [
         [0.8,0,0,0,0,0], // auxin production depends on resources
@@ -158,7 +183,7 @@ export class DNA {
         }
       ]
     },
-    'b1': {
+    {
       cost: new Fluids(0, 20),
       signalMatrix: [
         [0.8,0,0,0,0,0], // auxin production depends on resources
@@ -223,7 +248,7 @@ export class DNA {
         }
       ]
     },
-    'b2': {
+    {
       cost: new Fluids(0, 20),
       signalMatrix: [
         [0.8,0,0,0,0,0], // auxin production depends on resources
@@ -266,7 +291,7 @@ export class DNA {
         }
       ]
     },
-    'l': {
+    {
       cost: new Fluids(0, 30),
       signalMatrix: [
         [0.8,0,0,0,0,0], // auxin production depends on resources
@@ -308,7 +333,14 @@ export class DNA {
           }
         }
       ]
-    },
+    }
+  ]
+
+  serialize() {
+    return {
+      cellTypes: this.cellTypes,
+      // actions: this.actions
+    }
   }
 
   l2norm(arr) {
