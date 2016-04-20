@@ -97,7 +97,6 @@
 	            }
 	        }
 	        this.plant = dna.plantSeed(this.grid);
-	        console.log(this.grid[50][50]);
 	        // for (var i = 0; i < this.plant.length; i++) {
 	        //     this.grid[this.plant[i].y][this.plant[i].x] = this.plant[i];
 	        // }
@@ -292,16 +291,11 @@
 	                }
 	            }
 	        }
-	        if (typeof this['foo'] === 'undefined')
-	            this['foo'] = 0;
-	        console.log(this['foo']);
-	        this['foo']++;
 	        // photosynthesis. TODO this will be an action
 	        for (var i = 0; i < this.plant.length; i++) {
 	            var cell = this.plant[i];
 	            if (cell.type === "l") {
 	                var numAir = this.countAirNeighbors(cell.y, cell.x);
-	                console.log(typeof numAir);
 	                var dGlucose = Math.min(cell.fluids.vector[fluids_1.Fluids.WATER] / 4, 20 * numAir);
 	                // convert water to glucose
 	                fluidsDiff[cell.y][cell.x][fluids_1.Fluids.WATER] = -dGlucose;
@@ -323,9 +317,6 @@
 	                    }
 	                    var obj = this.grid[row][col];
 	                    var neighbFluids = this.grid[neighbRow][neighbCol];
-	                    if (typeof neighbFluids === 'undefined') {
-	                        console.log('neighbFluids is undefined at ', neighbRow, neighbCol);
-	                    }
 	                    var fluids = obj instanceof cell_1.Cell ? obj.fluids.vector : obj.vector;
 	                    neighbFluids = neighbFluids instanceof cell_1.Cell ? neighbFluids.fluids.vector : neighbFluids.vector;
 	                    for (var j = 0; j < fluids_1.Fluids.N_FLUIDS; ++j) {
@@ -339,7 +330,6 @@
 	            }
 	        }
 	        this.validateGridFluids();
-	        console.log(fluidsDiff[0][0]);
 	        // Apply fluidsDiff to fluids
 	        for (var row = 0; row < Automata.GRID_N_ROWS; row++) {
 	            for (var col = 0; col < Automata.GRID_N_COLUMNS; col++) {
@@ -548,21 +538,21 @@
 	            fluid[i] += dFluid[i];
 	        }
 	    };
-	    Automata.prototype.countAirNeighbors = function (i, j) {
-	        var count = 0;
-	        if (i < Automata.GRID_N_ROWS - 1 && !this.grid[i + 1][j]) {
-	            count++;
-	        }
-	        if (i > 0 && !this.grid[i - 1][j]) {
-	            count++;
-	        }
-	        if (j < Automata.GRID_N_COLUMNS - 1 && !this.grid[i][j + 1]) {
-	            count++;
-	        }
-	        if (j > 0 && !this.grid[i + 1][j - 1]) {
-	            count++;
-	        }
-	        return count;
+	    Automata.prototype.isCellInGrid = function (row, col) {
+	        return row >= 0 && col >= 0 &&
+	            row < Automata.GRID_N_ROWS && col < Automata.GRID_N_COLUMNS;
+	    };
+	    Automata.prototype.isAirCell = function (row, col) {
+	        if (!this.isCellInGrid(row, col))
+	            return false;
+	        return row < 50 && !(this.grid[row][col] instanceof cell_1.Cell);
+	    };
+	    Automata.prototype.countAirNeighbors = function (row, col) {
+	        var n = (this.isAirCell(row - 1, col) ? 1 : 0) +
+	            (this.isAirCell(row + 1, col) ? 1 : 0) +
+	            (this.isAirCell(row, col - 1) ? 1 : 0) +
+	            (this.isAirCell(row, col + 1) ? 1 : 0);
+	        return n;
 	    };
 	    Automata.prototype.draw = function () {
 	        var scale = Automata.CELL_SCALE_PIXELS;
