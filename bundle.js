@@ -54,8 +54,10 @@
 	    window['resetSimulation'] = sim.resetSimulation.bind(sim);
 	    window['toggleDraw'] = sim.toggleDraw.bind(sim);
 	    window['viewStyle'] = sim.viewStyle.bind(sim);
+	    // sim.runForNTicks(100);
 	    // DEBUG //
 	    window['automata'] = sim.automata;
+	    window['simulation'] = sim;
 	    window['Angle'] = angle_1.Angle;
 	});
 
@@ -210,7 +212,7 @@
 	        }
 	        for (var i = 0; i < toKill.length; ++i) {
 	            var cell = toKill[i];
-	            console.log('Killing cell at: ', cell.row, cell.col);
+	            // console.log('Killing cell at: ', cell.row, cell.col);
 	            var index = this.plant.indexOf(cell);
 	            this.plant.splice(index, 1);
 	            this.grid[cell.row][cell.col] = cell.fluids;
@@ -1059,20 +1061,29 @@
 	var automata_1 = __webpack_require__(1);
 	var Simulation = (function () {
 	    function Simulation(drawCanvas) {
-	        this.FRAME_DELAY = 100;
+	        this.FRAME_DELAY = 20;
 	        this.drawCanvas = drawCanvas;
 	        this.drawEnabled = true;
 	        this.automata = new automata_1.Automata('prototype', drawCanvas);
 	        this.startSimulation();
 	    }
+	    Simulation.prototype.runForNTicks = function (N) {
+	        // run sim for N ticks
+	        for (var n = 0; n < N; ++n) {
+	            this.automata.update();
+	        }
+	        this.automata.draw();
+	    };
 	    Simulation.prototype.startSimulation = function () {
+	        this.isSimulationRunning = true;
+	        this.updateStatus();
 	        var self = this;
 	        this.updateInterval = window.setInterval(function () {
 	            try {
 	                self.automata.update();
 	            }
 	            catch (e) {
-	                console.error("Automata error! Stopping simulation...");
+	                console.warn("Automata error! Stopping simulation...");
 	                self.stopSimulation();
 	                throw e;
 	            }
@@ -1080,9 +1091,9 @@
 	                self.automata.draw();
 	            }
 	        }, this.FRAME_DELAY);
-	        this.isSimulationRunning = true;
 	    };
 	    Simulation.prototype.stopSimulation = function () {
+	        this.showStatusString('Simulation stopped.');
 	        window.clearInterval(this.updateInterval);
 	        this.isSimulationRunning = false;
 	    };
@@ -1093,6 +1104,7 @@
 	            this.startSimulation();
 	    };
 	    Simulation.prototype.resetSimulation = function () {
+	        this.showStatusString('Resetting...');
 	        this.stopSimulation();
 	        this.automata = null;
 	        this.automata = new automata_1.Automata('prototype', this.drawCanvas);
@@ -1100,11 +1112,25 @@
 	    };
 	    Simulation.prototype.toggleDraw = function () {
 	        this.drawEnabled = !this.drawEnabled;
+	        this.updateStatus();
 	    };
 	    Simulation.prototype.viewStyle = function (style) {
 	        console.log('viewstyle', style);
 	        this.automata.viewStyle = style;
 	        this.automata.draw();
+	    };
+	    Simulation.prototype.updateStatus = function () {
+	        var status;
+	        if (this.isSimulationRunning)
+	            status = 'Simulation running. ';
+	        else
+	            status = 'Simulation stopped. ';
+	        if (!this.drawEnabled)
+	            status += '(Draw disabled.) ';
+	        this.showStatusString(status);
+	    };
+	    Simulation.prototype.showStatusString = function (status) {
+	        document.getElementById("status").innerHTML = status;
 	    };
 	    return Simulation;
 	}());

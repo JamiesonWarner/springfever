@@ -9,7 +9,10 @@ document.addEventListener("DOMContentLoaded", function(event) {
     window['toggleDraw'] = sim.toggleDraw.bind(sim);
     window['viewStyle'] = sim.viewStyle.bind(sim);
 
+    // sim.runForNTicks(100);
+
     // DEBUG //
     window['automata'] = sim.automata;
+    window['simulation'] = sim;
     window['Angle'] = Angle;
 });

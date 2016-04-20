@@ -176,7 +176,7 @@ export class Automata {
 
         for (var i = 0; i < toKill.length; ++i) {
             var cell = toKill[i];
-            console.log('Killing cell at: ', cell.row, cell.col);
+            // console.log('Killing cell at: ', cell.row, cell.col);
             var index = this.plant.indexOf(cell);
             this.plant.splice(index, 1);
             this.grid[cell.row][cell.col] = cell.fluids;

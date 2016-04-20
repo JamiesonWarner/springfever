@@ -5,7 +5,7 @@ app.ts
 import {Automata} from "./automata";
 
 export class Simulation {
-    FRAME_DELAY: number = 100;
+    FRAME_DELAY: number = 20;
 
     updateInterval: number;
     automata: Automata;
@@ -20,13 +20,24 @@ export class Simulation {
         this.startSimulation();
     }
 
+    runForNTicks(N) {
+        // run sim for N ticks
+        for (var n = 0; n < N; ++n) {
+            this.automata.update();
+        }
+        this.automata.draw();
+    }
+
     startSimulation() {
+        this.isSimulationRunning = true;
+        this.updateStatus();
+
         var self = this;
         this.updateInterval = window.setInterval(function() {
             try {
                 self.automata.update();
             } catch(e) {
-                console.error("Automata error! Stopping simulation...");
+                console.warn("Automata error! Stopping simulation...");
                 self.stopSimulation();
                 throw e;
             }
@@ -35,10 +46,10 @@ export class Simulation {
                 self.automata.draw();
             }
         }, this.FRAME_DELAY);
-        this.isSimulationRunning = true;
     }
 
     stopSimulation() {
+        this.showStatusString('Simulation stopped.');
         window.clearInterval(this.updateInterval);
         this.isSimulationRunning = false;
     }
@@ -51,6 +62,7 @@ export class Simulation {
     }
 
     resetSimulation() {
+        this.showStatusString('Resetting...');
         this.stopSimulation();
         this.automata = null;
         this.automata = new Automata('prototype', this.drawCanvas);
@@ -59,10 +71,27 @@ export class Simulation {
 
     toggleDraw() {
         this.drawEnabled = !this.drawEnabled;
+        this.updateStatus();
     }
+
     viewStyle(style) {
         console.log('viewstyle', style);
         this.automata.viewStyle = style;
         this.automata.draw();
+    }
+
+    updateStatus() {
+        let status;
+        if (this.isSimulationRunning)
+            status = 'Simulation running. ';
+        else
+            status = 'Simulation stopped. ';
+        if (!this.drawEnabled)
+            status += '(Draw disabled.) ';
+        this.showStatusString(status);
+    }
+
+    showStatusString(status) {
+        document.getElementById("status").innerHTML = status;
     }
 }
