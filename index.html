@@ -13,18 +13,26 @@
 <body>
     <canvas id="draw"></canvas>
     <div class="controls">
-        <div class="dropdown">
-          <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">View
-          <span class="caret"></span></button>
-          <button class="btn btn-primary" onclick="toggleSimulation()">Toggle Simulation</button>
-          <ul class="dropdown-menu">
-            <li><a href="#" onclick="viewStyle('types')">Cell Types</a></li>
-            <li><a href="#" onclick="viewStyle('water')">Water</a></li>
-            <li><a href="#" onclick="viewStyle('auxin')">Auxin</a></li>
-            <li><a href="#" onclick="viewStyle('glucose')">Glucose</a></li>
-          </ul>
-        </div>
-
+        <form action="">
+            <div class="form-group">
+                <div class="dropdown">
+                  <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">View
+                      <span class="caret"></span></button>
+                      <ul class="dropdown-menu">
+                        <li><a href="#" onclick="viewStyle('types')">Cell Types</a></li>
+                        <li><a href="#" onclick="viewStyle('water')">Water</a></li>
+                        <li><a href="#" onclick="viewStyle('auxin')">Auxin</a></li>
+                        <li><a href="#" onclick="viewStyle('glucose')">Glucose</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary" type="button" onclick="toggleSimulation()">Pause/Unpause Simulation</button>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary" type="button" onclick="resetSimulation()">Reset Simulation</button>
+            </div>
+        </form>
         <div id="bars">
             <div>
                 <span>Water</span><div class="bar" id="bar-water"></div>

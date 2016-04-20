@@ -11,6 +11,10 @@
 }
 
 .controls {
+    background-color: rgba(1,1,1,0.4);
+    border-radius: 2px;
+    padding: 8px;
     position: fixed;
+    min-width: 25%;
     right: 0;
 }

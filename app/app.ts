@@ -1,51 +1,14 @@
-/*
-app.ts
-*/
-
-var FRAME_DELAY = 100;
-
-import {Automata} from "./automata";
-
+import {Simulation} from "./simulation";
 import {Angle} from "./angle";
-window['Angle'] = Angle;
 
-var updateInterval;
-var automata;
-document.addEventListener('DOMContentLoaded', function() {
-    automata = new Automata("prototype");
-    window['automata'] = automata;
+document.addEventListener("DOMContentLoaded", function(event) {
+    var drawCanvas = document.getElementById("draw");
+    var sim = new Simulation(drawCanvas);
+    window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
+    window['resetSimulation'] = sim.viewStyle.bind(sim);
+    window['viewStyle'] = sim.viewStyle.bind(sim);
 
-    startSimulation();
-
-    document.getElementById("draw").addEventListener("mousemove", function(event) {
-        automata.showInfo(event.offsetX, event.offsetY);
-    })
-
-})
-
-var isSimulationRunning = false;
-window['toggleSimulation'] = function() {
-    if (isSimulationRunning)
-        stopSimulation();
-    else
-        startSimulation();
-}
-
-function startSimulation() {
-    updateInterval = window.setInterval(function() {
-        automata.update();
-        automata.draw();
-    }, FRAME_DELAY);
-    isSimulationRunning = true;
-}
-
-function stopSimulation() {
-    window.clearInterval(updateInterval);
-    isSimulationRunning = false;
-}
-
-window['viewStyle'] = function(style) {
-    console.log('viewstyle', style);
-    automata.viewStyle = style;
-    automata.draw();
-}
+    // DEBUG //
+    window['automata'] = sim.automata;
+    window['Angle'] = Angle;
+});

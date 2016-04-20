@@ -4,9 +4,9 @@ import {Dirt} from "./dirt";
 import {Fluids} from "./fluids";
 
 export class Automata {
-    static GRID_N_COLUMNS = 100;
+    static GRID_N_COLUMNS = 120;
     static GRID_N_ROWS = 100;
-    static CELL_SCALE_PIXELS = 10;
+    static CELL_SCALE_PIXELS = 8;
 
     canvas;
     canvasCtx: CanvasRenderingContext2D;
@@ -17,11 +17,11 @@ export class Automata {
 
     viewStyle: string;
 
-    constructor(runString: String) {
+    constructor(runString: String, drawCanvas: Element) {
         var dna = new DNA();
         this.dna = dna;
 
-        this.canvas = document.getElementById("draw");
+        this.canvas = drawCanvas;
         this.canvas.setAttribute('width', Automata.GRID_N_COLUMNS * Automata.CELL_SCALE_PIXELS);
         this.canvas.setAttribute('height', Automata.GRID_N_ROWS * Automata.CELL_SCALE_PIXELS);
         this.canvasCtx = this.canvas.getContext("2d");
@@ -36,6 +36,12 @@ export class Automata {
         }
 
         this.plant = dna.plantSeed(this.grid);
+
+        var self = this;
+        drawCanvas.addEventListener("mousemove", function(event: MouseEvent) {
+            self.showInfo(event.offsetX, event.offsetY);
+        })
+
     }
 
     printGridFluids() {

@@ -44,47 +44,19 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/*
-	app.ts
-	*/
 	"use strict";
-	var FRAME_DELAY = 100;
-	var automata_1 = __webpack_require__(1);
+	var simulation_1 = __webpack_require__(8);
 	var angle_1 = __webpack_require__(7);
-	window['Angle'] = angle_1.Angle;
-	var updateInterval;
-	var automata;
-	document.addEventListener('DOMContentLoaded', function () {
-	    automata = new automata_1.Automata("prototype");
-	    window['automata'] = automata;
-	    startSimulation();
-	    document.getElementById("draw").addEventListener("mousemove", function (event) {
-	        automata.showInfo(event.offsetX, event.offsetY);
-	    });
+	document.addEventListener("DOMContentLoaded", function (event) {
+	    var drawCanvas = document.getElementById("draw");
+	    var sim = new simulation_1.Simulation(drawCanvas);
+	    window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
+	    window['resetSimulation'] = sim.viewStyle.bind(sim);
+	    window['viewStyle'] = sim.viewStyle.bind(sim);
+	    // DEBUG //
+	    window['automata'] = sim.automata;
+	    window['Angle'] = angle_1.Angle;
 	});
-	var isSimulationRunning = false;
-	window['toggleSimulation'] = function () {
-	    if (isSimulationRunning)
-	        stopSimulation();
-	    else
-	        startSimulation();
-	};
-	function startSimulation() {
-	    updateInterval = window.setInterval(function () {
-	        automata.update();
-	        automata.draw();
-	    }, FRAME_DELAY);
-	    isSimulationRunning = true;
-	}
-	function stopSimulation() {
-	    window.clearInterval(updateInterval);
-	    isSimulationRunning = false;
-	}
-	window['viewStyle'] = function (style) {
-	    console.log('viewstyle', style);
-	    automata.viewStyle = style;
-	    automata.draw();
-	};
 
 
 /***/ },
@@ -96,11 +68,11 @@
 	var cell_1 = __webpack_require__(3);
 	var fluids_1 = __webpack_require__(5);
 	var Automata = (function () {
-	    function Automata(runString) {
+	    function Automata(runString, drawCanvas) {
 	        this.drawWater = false;
 	        var dna = new dna_1.DNA();
 	        this.dna = dna;
-	        this.canvas = document.getElementById("draw");
+	        this.canvas = drawCanvas;
 	        this.canvas.setAttribute('width', Automata.GRID_N_COLUMNS * Automata.CELL_SCALE_PIXELS);
 	        this.canvas.setAttribute('height', Automata.GRID_N_ROWS * Automata.CELL_SCALE_PIXELS);
 	        this.canvasCtx = this.canvas.getContext("2d");
@@ -113,6 +85,10 @@
 	            }
 	        }
 	        this.plant = dna.plantSeed(this.grid);
+	        var self = this;
+	        drawCanvas.addEventListener("mousemove", function (event) {
+	            self.showInfo(event.offsetX, event.offsetY);
+	        });
 	    }
 	    Automata.prototype.printGridFluids = function () {
 	        for (var row = 0; row < Automata.GRID_N_ROWS; ++row) {
@@ -465,9 +441,9 @@
 	        }
 	        return colorString;
 	    };
-	    Automata.GRID_N_COLUMNS = 100;
+	    Automata.GRID_N_COLUMNS = 120;
 	    Automata.GRID_N_ROWS = 100;
-	    Automata.CELL_SCALE_PIXELS = 10;
+	    Automata.CELL_SCALE_PIXELS = 8;
 	    return Automata;
 	}());
 	exports.Automata = Automata;
@@ -1062,6 +1038,51 @@
 	    return Directions;
 	}());
 	exports.Directions = Directions;
+
+
+/***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*
+	app.ts
+	*/
+	"use strict";
+	var automata_1 = __webpack_require__(1);
+	var Simulation = (function () {
+	    function Simulation(drawCanvas) {
+	        this.FRAME_DELAY = 100;
+	        this.automata = new automata_1.Automata('prototype', drawCanvas);
+	        this.startSimulation();
+	    }
+	    Simulation.prototype.startSimulation = function () {
+	        var self = this;
+	        this.updateInterval = window.setInterval(function () {
+	            self.automata.update();
+	            self.automata.draw();
+	        }, this.FRAME_DELAY);
+	        this.isSimulationRunning = true;
+	    };
+	    Simulation.prototype.stopSimulation = function () {
+	        window.clearInterval(this.updateInterval);
+	        this.isSimulationRunning = false;
+	    };
+	    Simulation.prototype.toggleSimulation = function () {
+	        if (this.isSimulationRunning)
+	            this.stopSimulation();
+	        else
+	            this.startSimulation();
+	    };
+	    Simulation.prototype.resetSimulation = function () {
+	    };
+	    Simulation.prototype.viewStyle = function (style) {
+	        console.log('viewstyle', style);
+	        this.automata.viewStyle = style;
+	        this.automata.draw();
+	    };
+	    return Simulation;
+	}());
+	exports.Simulation = Simulation;
 
 
 /***/ }
