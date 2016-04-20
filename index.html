@@ -11,12 +11,12 @@
 
 </head>
 <body>
-    <canvas id="draw" width="1000" height="1000"></canvas>
+    <canvas id="draw"></canvas>
     <div class="controls">
         <div class="dropdown">
           <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">View
           <span class="caret"></span></button>
-          <button onclick="stopSimulation()">Stop Simulation</button>
+          <button class="btn btn-primary" onclick="toggleSimulation()">Toggle Simulation</button>
           <ul class="dropdown-menu">
             <li><a href="#" onclick="viewStyle('types')">Cell Types</a></li>
             <li><a href="#" onclick="viewStyle('water')">Water</a></li>

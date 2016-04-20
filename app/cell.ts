@@ -4,17 +4,17 @@ import {Fluids} from "./fluids";
 export class Cell {
     grid: Array<Array<Object>>;
     fluids: Fluids;
-    x;
-    y;
+    row;
+    col;
     type;
     dna;
     angle;
     signals;
 
-    constructor(dna,type,fluids,grid,x,y) {
+    constructor(dna,type,fluids,grid,row,col) {
         this.grid = grid;
-        this.x = x;
-        this.y = y;
+        this.row = row;
+        this.col = col;
         this.fluids = fluids;
         this.type = type;
         this.dna = dna;

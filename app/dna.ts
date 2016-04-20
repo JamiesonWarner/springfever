@@ -1,6 +1,7 @@
 import {Cell} from "./cell";
 import {Fluids} from "./fluids";
 import {Grid} from "./grid";
+import {Automata} from "./automata";
 
 export class DNA {
   constructor() {
@@ -8,11 +9,11 @@ export class DNA {
   }
 
   plantSeed(grid: Grid) {
-      var c1 = new Cell(this, 'a1', new Fluids(100,10000), grid, 50, 50 ),
-          c2 = new Cell(this, 'b1', new Fluids(100,10000), grid, 50, 51 );
+      var c1 = new Cell(this, 'a1', new Fluids(100,100), grid, Automata.GRID_N_ROWS/2, Automata.GRID_N_COLUMNS/2 ),
+          c2 = new Cell(this, 'b1', new Fluids(100,100), grid, Automata.GRID_N_ROWS/2 + 1, Automata.GRID_N_COLUMNS/2 );
       var seed = [c1, c2];
-      grid[50][50] = c1;
-      grid[51][50] = c2;
+      grid[c1.row][c1.col] = c1;
+      grid[c2.row][c2.col] = c2;
       return seed;
   }
 
