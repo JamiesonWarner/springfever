@@ -46,7 +46,7 @@
 
 	"use strict";
 	var simulation_1 = __webpack_require__(1);
-	var angle_1 = __webpack_require__(7);
+	var angle_1 = __webpack_require__(6);
 	document.addEventListener("DOMContentLoaded", function (event) {
 	    var drawCanvas = document.getElementById("draw");
 	    var sim = new simulation_1.Simulation(drawCanvas);
@@ -158,7 +158,7 @@
 	"use strict";
 	var dna_1 = __webpack_require__(3);
 	var cell_1 = __webpack_require__(4);
-	var fluids_1 = __webpack_require__(6);
+	var fluids_1 = __webpack_require__(5);
 	/*
 	TODO turn Automata into systems model.
 	Automata just stores stuff like the fluidsArray, and its state is transformed by Systems.
@@ -189,14 +189,14 @@
 	    Automata.prototype.printGridFluids = function () {
 	        for (var row = 0; row < Automata.GRID_N_ROWS; ++row) {
 	            for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
-	                console.log(this.fluidsArray[row][col].vector || this.fluidsArray[row][col].fluids.vector);
+	                console.log(this.fluidsArray[row][col].vector);
 	            }
 	        }
 	    };
 	    Automata.prototype.validateGridFluids = function () {
 	        for (var row = 0; row < Automata.GRID_N_ROWS; ++row) {
 	            for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
-	                var f = this.fluidsArray[row][col].vector || this.fluidsArray[row][col].fluids.vector;
+	                var f = this.fluidsArray[row][col].vector;
 	                for (var k = 0; k < f.length; ++k) {
 	                    if (typeof f[k] !== 'number' || isNaN(f[k])) {
 	                        throw new Error('Error: Invalid fluid vector at: ' + row + ', ' + col);
@@ -212,17 +212,12 @@
 	    Automata.prototype.showInfo = function (x, y) {
 	        var tx = x / 10;
 	        var ty = y / 10;
-	        var obj = this.fluidsArray[Math.floor(ty)][Math.floor(tx)];
-	        if (obj instanceof cell_1.Cell) {
-	            document.getElementById('bar-water').style.width = obj.fluids.vector[0] + 'px';
-	            document.getElementById('bar-glucose').style.width = obj.fluids.vector[1] + 'px';
-	            document.getElementById('bar-auxin').style.width = (40 * obj.signals.vector[0]) + 'px';
-	        }
-	        else {
-	            document.getElementById('bar-water').style.width = obj.vector[0] + 'px';
-	            document.getElementById('bar-glucose').style.width = obj.vector[1] + 'px';
-	            document.getElementById('bar-auxin').style.width = 0 + 'px';
-	        }
+	        var row = Math.floor(ty);
+	        var col = Math.floor(tx);
+	        var fluids = this.fluidsArray[row][col];
+	        document.getElementById('bar-water').style.width = fluids.vector[fluids_1.Fluids.WATER] + 'px';
+	        document.getElementById('bar-glucose').style.width = fluids.vector[fluids_1.Fluids.GLUCOSE] + 'px';
+	        document.getElementById('bar-auxin').style.width = (40 * fluids.vector[fluids_1.Fluids.AUXIN]) + 'px';
 	    };
 	    Automata.prototype.update = function () {
 	        //console.log("tick");
@@ -272,13 +267,13 @@
 	                    // console.log("cannot make cell at " + gJ + ", " + gI);
 	                    continue;
 	                }
-	                if (!(this.fluidsArray[gI][gJ] instanceof cell_1.Cell)) {
+	                if (!(this.cellArray[gI][gJ])) {
 	                    // console.log("growing new cell...")
 	                    this.subtractFluids(this.plant[i].fluids, cost);
 	                    var newFluids = this.splitFluids(this.plant[i]);
 	                    var nCell = new cell_1.Cell(this.dna, action.parameters.type, newFluids, this.fluidsArray, gI, gJ);
 	                    this.plant.push(nCell);
-	                    this.fluidsArray[gI][gJ] = nCell;
+	                    this.cellArray[gI][gJ] = nCell;
 	                }
 	            }
 	        }
@@ -340,15 +335,15 @@
 	                var ncol = cell.row + neighbs[j][1];
 	                if (ncol < 0 || nrow < 0 || ncol >= Automata.GRID_N_COLUMNS || nrow >= Automata.GRID_N_ROWS)
 	                    continue;
-	                var neighb = this.fluidsArray[nrow][ncol];
-	                if (neighb instanceof cell_1.Cell) {
-	                    var nsignals = neighb.signals.vector;
-	                    for (var k = 0; k < nsignals.length; k++) {
-	                        if (cell.signals[k] < nsignals[k])
+	                var neighbFluids = this.fluidsArray[nrow][ncol];
+	                if (neighbFluids instanceof cell_1.Cell) {
+	                    var nsignals = neighbFluids.vector;
+	                    for (var k = fluids_1.Fluids.SIGNALS_START; k < fluids_1.Fluids.N_FLUIDS; k++) {
+	                        if (cell.fluids[k] < nsignals[k])
 	                            continue;
-	                        var amount = SPREAD_COEFF * cell.signals.vector[k];
+	                        var amount = SPREAD_COEFF * cell.fluids.vector[k];
 	                        nsignals[k] += amount;
-	                        cell.signals.vector[k] -= amount;
+	                        cell.fluids.vector[k] -= amount;
 	                    }
 	                }
 	            }
@@ -370,7 +365,7 @@
 	        var REACTION_FACTOR = 10; // expend 1 water to get 4 glucose
 	        for (var i = 0; i < this.plant.length; i++) {
 	            var cell = this.plant[i];
-	            if (cell.type === "l") {
+	            if (cell.dna.type.isLeaf) {
 	                var numAir = this.countAirNeighbors(cell.row, cell.col);
 	                var dGlucose = Math.min(cell.fluids.vector[fluids_1.Fluids.WATER] / 4, 100 * numAir);
 	                // convert water to glucose
@@ -403,10 +398,8 @@
 	                    if (this.isAirCell(row, col) && this.isAirCell(neighbRow, neighbCol)) {
 	                        flowRate = 0.2;
 	                    }
-	                    var obj = this.fluidsArray[row][col];
 	                    var neighbFluids = this.fluidsArray[neighbRow][neighbCol];
-	                    var fluids = obj instanceof cell_1.Cell ? obj.fluids.vector : obj.vector;
-	                    neighbFluids = neighbFluids instanceof cell_1.Cell ? neighbFluids.fluids.vector : neighbFluids.vector;
+	                    var fluids = this.fluidsArray[row][col];
 	                    for (var j = 0; j < fluids_1.Fluids.N_FLUIDS; ++j) {
 	                        if (fluids[j] > neighbFluids[j]) {
 	                            var diff = flowRate * (fluids[j] - neighbFluids[j]);
@@ -421,8 +414,7 @@
 	        // Apply fluidsDiff to fluids
 	        for (var row = 0; row < Automata.GRID_N_ROWS; row++) {
 	            for (var col = 0; col < Automata.GRID_N_COLUMNS; col++) {
-	                var obj = this.fluidsArray[row][col];
-	                var fluids = obj instanceof cell_1.Cell ? obj.fluids.vector : obj.vector;
+	                var fluids = this.fluidsArray[row][col];
 	                var fluidDiff = fluidsDiff[row][col];
 	                for (var i = 0; i < fluids_1.Fluids.N_FLUIDS; ++i) {
 	                    fluids[i] += fluidDiff[i];
@@ -430,12 +422,12 @@
 	            }
 	        }
 	    };
-	    Automata.prototype.isCellInGrid = function (row, col) {
+	    Automata.prototype.isPositionOnGrid = function (row, col) {
 	        return row >= 0 && col >= 0 &&
 	            row < Automata.GRID_N_ROWS && col < Automata.GRID_N_COLUMNS;
 	    };
 	    Automata.prototype.isAirCell = function (row, col) {
-	        if (!this.isCellInGrid(row, col))
+	        if (!this.isPositionOnGrid(row, col))
 	            return false;
 	        return row < 50 && !(this.fluidsArray[row][col] instanceof cell_1.Cell);
 	    };
@@ -446,16 +438,6 @@
 	            (this.isAirCell(row, col + 1) ? 1 : 0);
 	        return n;
 	    };
-	    /*
-	    Returns fluid vector (actual array) at row,col
-	    */
-	    Automata.prototype.fluidsAt = function (row, col) {
-	        var obj = this.fluidsArray[row][col];
-	        if (obj instanceof cell_1.Cell) {
-	            return obj.fluids.vector;
-	        }
-	        return obj.vector;
-	    };
 	    Automata.prototype.draw = function () {
 	        var scale = Automata.CELL_SCALE_PIXELS;
 	        this.canvasCtx.lineWidth = 3;
@@ -464,15 +446,14 @@
 	        this.canvasCtx.fillRect(0, 0, 100, 100);
 	        for (var row = 0; row < Automata.GRID_N_ROWS; row++) {
 	            for (var col = 0; col < Automata.GRID_N_COLUMNS; col++) {
-	                var obj = this.fluidsArray[row][col];
-	                var fluids = this.fluidsAt(row, col);
+	                var fluids = this.fluidsArray[row][col];
 	                var waterContent = Math.max(Math.min(Math.round(fluids[fluids_1.Fluids.WATER]), 255), 0);
 	                if (this.viewStyle === 'water') {
 	                    var colorString = "#" + "0064" + this.getColorHex(waterContent);
 	                    this.canvasCtx.fillStyle = colorString;
 	                }
 	                else if (this.viewStyle === 'glucose') {
-	                    if (obj instanceof cell_1.Cell) {
+	                    if (this.cellArray[row][col]) {
 	                        this.canvasCtx.fillStyle = "#" + this.getColorHex(Math.min(255, Math.ceil(fluids[fluids_1.Fluids.GLUCOSE]))) + "0000";
 	                    }
 	                    else {
@@ -480,16 +461,18 @@
 	                    }
 	                }
 	                else if (this.viewStyle === 'auxin') {
-	                    if (obj instanceof cell_1.Cell) {
-	                        this.canvasCtx.fillStyle = "#" + "0000" + this.getColorHex(Math.min(255, Math.ceil(255 * obj.signals.vector[0])));
+	                    var cell_2 = this.cellArray[row][col];
+	                    if (cell_2) {
+	                        this.canvasCtx.fillStyle = "#" + "0000" + this.getColorHex(Math.min(255, Math.ceil(255 * fluids[fluids_1.Fluids.SIGNALS_START].vector[0])));
 	                    }
 	                    else {
 	                        this.canvasCtx.fillStyle = "#000000";
 	                    }
 	                }
 	                else {
-	                    if (obj instanceof cell_1.Cell) {
-	                        this.canvasCtx.fillStyle = obj.dna.cellTypes[obj.type].color;
+	                    var cell_3 = this.cellArray[row][col];
+	                    if (cell_3) {
+	                        this.canvasCtx.fillStyle = this.cellArray[row][col].dna.cellType.color;
 	                    }
 	                    else if (row >= 50) {
 	                        var val = Math.floor(Math.max(0, Math.min(500, waterContent) / 4));
@@ -504,11 +487,12 @@
 	                if (this.viewStyle == 'water' || this.viewStyle == 'glucose' || this.viewStyle == 'auxin') {
 	                    this.canvasCtx.strokeStyle = "#009900";
 	                    var neighbs = [[-1, 0], [1, 0], [0, 1], [0, -1]];
-	                    if (obj instanceof cell_1.Cell) {
+	                    var cell = this.cellArray[row][col];
+	                    if (cell) {
 	                        for (var i = 0; i < neighbs.length; ++i) {
-	                            var nrow = obj.row + neighbs[i][0];
-	                            var ncol = obj.col + neighbs[i][1];
-	                            if (this.isCellInGrid(nrow, ncol) && !(this.fluidsArray[nrow][ncol] instanceof cell_1.Cell)) {
+	                            var nrow = row + neighbs[i][0];
+	                            var ncol = col + neighbs[i][1];
+	                            if (this.isPositionOnGrid(nrow, ncol) && !this.cellArray[nrow][ncol]) {
 	                                this.canvasCtx.beginPath();
 	                                if (neighbs[i][0] == -1) {
 	                                    this.canvasCtx.moveTo(scale * col + 0.5, scale * row + 0.5);
@@ -558,7 +542,7 @@
 
 	"use strict";
 	var cell_1 = __webpack_require__(4);
-	var fluids_1 = __webpack_require__(6);
+	var fluids_1 = __webpack_require__(5);
 	var automata_1 = __webpack_require__(2);
 	var DNA = (function () {
 	    function DNA() {
@@ -613,7 +597,7 @@
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'up',
-	                            type: 'a1'
+	                            type: 0
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -624,7 +608,7 @@
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'right',
-	                            type: 'a1'
+	                            type: 0
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -635,7 +619,7 @@
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'right',
-	                            type: 'a2'
+	                            type: 1
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -646,7 +630,7 @@
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'left',
-	                            type: 'a2'
+	                            type: 1
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -673,12 +657,13 @@
 	                signalB: [0.05, -0.5, 0.05, 0.05],
 	                signalInit: [0, 0, 0, 0],
 	                color: "#8F8F6E",
+	                isLeaf: true,
 	                actions: [
 	                    {
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'right',
-	                            type: 'a2'
+	                            type: 1
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -689,7 +674,7 @@
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'left',
-	                            type: 'a2'
+	                            type: 1
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -700,7 +685,7 @@
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'right',
-	                            type: 'l'
+	                            type: 4
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -711,7 +696,7 @@
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'left',
-	                            type: 'l'
+	                            type: 4
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -743,7 +728,7 @@
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'down',
-	                            type: 'b1'
+	                            type: 2
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -754,7 +739,7 @@
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'right',
-	                            type: 'b1'
+	                            type: 2
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -765,7 +750,7 @@
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'right',
-	                            type: 'b2'
+	                            type: 3
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -776,7 +761,7 @@
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'left',
-	                            type: 'b2'
+	                            type: 3
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -808,7 +793,7 @@
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'right',
-	                            type: 'b2'
+	                            type: 3
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -819,7 +804,7 @@
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'left',
-	                            type: 'b2'
+	                            type: 3
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -851,7 +836,7 @@
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'right',
-	                            type: 'l'
+	                            type: 4
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -862,7 +847,7 @@
 	                        name: 'grow',
 	                        parameters: {
 	                            direction: 'left',
-	                            type: 'l'
+	                            type: 4
 	                        },
 	                        activator: {
 	                            w: [20, 0, 0, 0],
@@ -882,7 +867,7 @@
 	        window['dna'] = this;
 	    }
 	    DNA.prototype.plantSeed = function (grid) {
-	        var c1 = new cell_1.Cell(this, 'a1', new fluids_1.Fluids(1000, 1000), grid, automata_1.Automata.GRID_N_ROWS / 2, automata_1.Automata.GRID_N_COLUMNS / 2), c2 = new cell_1.Cell(this, 'b1', new fluids_1.Fluids(1000, 1000), grid, automata_1.Automata.GRID_N_ROWS / 2 + 1, automata_1.Automata.GRID_N_COLUMNS / 2);
+	        var c1 = new cell_1.Cell(this, 0, new fluids_1.Fluids(1000, 1000), grid, automata_1.Automata.GRID_N_ROWS / 2, automata_1.Automata.GRID_N_COLUMNS / 2), c2 = new cell_1.Cell(this, 1, new fluids_1.Fluids(1000, 1000), grid, automata_1.Automata.GRID_N_ROWS / 2 + 1, automata_1.Automata.GRID_N_COLUMNS / 2);
 	        var seed = [c1, c2];
 	        grid[c1.row][c1.col] = c1;
 	        grid[c2.row][c2.col] = c2;
@@ -954,7 +939,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var signals_1 = __webpack_require__(5);
+	var fluids_1 = __webpack_require__(5);
 	/*
 	Cell is a fleighweight object for the Grid. Systems.
 	Plus they also have context for fitting into the Grid.
@@ -965,9 +950,16 @@
 	        this.row = row;
 	        this.col = col;
 	        this.fluids = fluids;
-	        this.type = type;
+	        if (typeof type === 'number') {
+	            this.type = dna.cellTypes[type];
+	        }
+	        else {
+	            this.type = type;
+	        }
 	        this.dna = dna;
-	        this.signals = new signals_1.Signals(dna.cellTypes[type].signalInit);
+	        for (var i = 0; i < fluids_1.Fluids.SIGNALS.length; ++i) {
+	            dna.fluids[fluids_1.Fluids.SIGNALS[i]] = dna.cellTypes[type].signalInit[i];
+	        }
 	    }
 	    Cell.prototype.updateSignals = function () {
 	        // multiply by matrix
@@ -1019,45 +1011,33 @@
 
 	"use strict";
 	var N_SIGNALS = 4;
-	var Signals = (function () {
-	    function Signals(start) {
-	        this.vector = new Array(N_SIGNALS);
-	        if (start) {
-	            for (var i = 0; i < N_SIGNALS; i++) {
-	                this.vector[i] = start[i];
-	            }
-	        }
-	        else {
-	            for (var i = 0; i < N_SIGNALS; i++) {
-	                this.vector[i] = 0;
-	            }
-	        }
-	    }
-	    return Signals;
-	}());
-	exports.Signals = Signals;
-
-
-/***/ },
-/* 6 */
-/***/ function(module, exports) {
-
-	"use strict";
-	var N_FLUIDS = 2;
+	var N_FLUIDS = 2 + N_SIGNALS;
 	var Fluids = (function () {
 	    function Fluids(water, glucose) {
 	        if (water === void 0) { water = 100; }
 	        if (glucose === void 0) { glucose = 0; }
 	        this.vector = new Array(Fluids.N_FLUIDS);
+	        for (var i = 0; i < N_FLUIDS; ++i) {
+	            this.vector[i] = 0;
+	        }
 	        this.vector[Fluids.WATER] = water;
 	        this.vector[Fluids.GLUCOSE] = glucose;
 	    }
 	    Fluids.N_FLUIDS = 2;
 	    Fluids.WATER = 0;
 	    Fluids.GLUCOSE = 1;
+	    Fluids.AUXIN = 2;
+	    Fluids.SIGNALS = [];
+	    Fluids.SIGNALS_START = 2;
 	    return Fluids;
 	}());
 	exports.Fluids = Fluids;
+	// Add signal pointers to signals array
+	// start at 2 to include Auxin (it's okay to have named signals)
+	var base = N_FLUIDS - N_SIGNALS;
+	for (var i = 0; i < N_SIGNALS; ++i) {
+	    Fluids.SIGNALS[i] = base + i;
+	}
 	var Reactions = (function () {
 	    function Reactions() {
 	    }
@@ -1067,7 +1047,7 @@
 
 
 /***/ },
-/* 7 */
+/* 6 */
 /***/ function(module, exports) {
 
 	"use strict";

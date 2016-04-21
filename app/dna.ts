@@ -10,8 +10,8 @@ export class DNA {
   }
 
   plantSeed(grid: Array<Array<Object>>) {
-      var c1 = new Cell(this, 'a1', new Fluids(1000,1000), grid, Automata.GRID_N_ROWS/2, Automata.GRID_N_COLUMNS/2 ),
-          c2 = new Cell(this, 'b1', new Fluids(1000,1000), grid, Automata.GRID_N_ROWS/2 + 1, Automata.GRID_N_COLUMNS/2 );
+      var c1 = new Cell(this, 0, new Fluids(1000,1000), grid, Automata.GRID_N_ROWS/2, Automata.GRID_N_COLUMNS/2 ),
+          c2 = new Cell(this, 1, new Fluids(1000,1000), grid, Automata.GRID_N_ROWS/2 + 1, Automata.GRID_N_COLUMNS/2 );
       var seed = [c1, c2];
       grid[c1.row][c1.col] = c1;
       grid[c2.row][c2.col] = c2;
@@ -69,7 +69,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
           name: 'grow',
           parameters: {
               direction: 'up',
-              type: 'a1'
+              type: 0
           },
           activator: {
             w: [20, 0, 0, 0],
@@ -80,7 +80,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
           name: 'grow',
           parameters: {
               direction: 'right',
-              type: 'a1'
+              type: 0
           },
           activator: {
             w: [20, 0, 0, 0],
@@ -91,7 +91,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
           name: 'grow',
           parameters: {
               direction: 'right',
-              type: 'a2'
+              type: 1
           },
           activator: {
             w: [20, 0, 0, 0],
@@ -102,7 +102,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
           name: 'grow',
           parameters: {
               direction: 'left',
-              type: 'a2'
+              type: 1
           },
           activator: {
             w: [20, 0, 0, 0],
@@ -129,12 +129,13 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
       signalB: [0.05,-0.5,0.05,0.05],
       signalInit: [0,0,0,0],
       color: "#8F8F6E",
+      isLeaf: true,
       actions: [
         {
           name: 'grow',
           parameters: {
               direction: 'right',
-              type: 'a2'
+              type: 1
           },
           activator: {
             w: [20, 0, 0, 0],
@@ -145,7 +146,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
           name: 'grow',
           parameters: {
               direction: 'left',
-              type: 'a2'
+              type: 1
           },
           activator: {
             w: [20, 0, 0, 0],
@@ -156,7 +157,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
           name: 'grow',
           parameters: {
               direction: 'right',
-              type: 'l'
+              type: 4
           },
           activator: {
             w: [20, 0, 0, 0],
@@ -167,7 +168,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
           name: 'grow',
           parameters: {
               direction: 'left',
-              type: 'l'
+              type: 4
           },
           activator: {
             w: [20, 0, 0, 0],
@@ -199,7 +200,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
           name: 'grow',
           parameters: {
               direction: 'down',
-              type: 'b1'
+              type: 2
           },
           activator: {
             w: [20, 0, 0, 0],
@@ -210,7 +211,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
           name: 'grow',
           parameters: {
               direction: 'right',
-              type: 'b1'
+              type: 2
           },
           activator: {
             w: [20, 0, 0, 0],
@@ -221,7 +222,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
           name: 'grow',
           parameters: {
               direction: 'right',
-              type: 'b2'
+              type: 3
           },
           activator: {
             w: [20, 0, 0, 0],
@@ -232,7 +233,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
           name: 'grow',
           parameters: {
               direction: 'left',
-              type: 'b2'
+              type: 3
           },
           activator: {
             w: [20, 0, 0, 0],
@@ -264,7 +265,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
           name: 'grow',
           parameters: {
               direction: 'right',
-              type: 'b2'
+              type: 3
           },
           activator: {
             w: [20, 0, 0, 0],
@@ -275,7 +276,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
           name: 'grow',
           parameters: {
               direction: 'left',
-              type: 'b2'
+              type: 3
           },
           activator: {
             w: [20, 0, 0, 0],
@@ -307,7 +308,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
           name: 'grow',
           parameters: {
               direction: 'right',
-              type: 'l'
+              type: 4
           },
           activator: {
             w: [20, 0, 0, 0],
@@ -318,7 +319,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
           name: 'grow',
           parameters: {
               direction: 'left',
-              type: 'l'
+              type: 4
           },
           activator: {
             w: [20, 0, 0, 0],

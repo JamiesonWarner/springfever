@@ -16,7 +16,7 @@ export class Automata {
     canvas;
     canvasCtx: CanvasRenderingContext2D;
     fluidsArray: Array<Array<Fluids>>;
-    cellBitmap: Array<Array<boolean>>;
+    cellArray: Array<Array<Cell>>; // undefined if there is no cell
     plant: Array<Cell>;
     dna;
     drawWater = false;
@@ -142,13 +142,13 @@ export class Automata {
                     continue;
                 }
 
-                if(! (this.cellBitmap[gI][gJ])){
+                if(! (this.cellArray[gI][gJ])){
                     // console.log("growing new cell...")
                     this.subtractFluids(this.plant[i].fluids, cost);
                     let newFluids = this.splitFluids(this.plant[i]);
                     var nCell = new Cell(this.dna, action.parameters.type, newFluids, this.fluidsArray, gI, gJ);
                     this.plant.push(nCell);
-                    this.cellBitmap[gI][gJ] = true;
+                    this.cellArray[gI][gJ] = nCell;
                 }
 
             }
@@ -178,7 +178,7 @@ export class Automata {
         }
 
         for (var i = 0; i < toKill.length; ++i) {
-            var cell = toKill[i];
+            var cell: Cell = toKill[i];
             // console.log('Killing cell at: ', cell.row, cell.col);
             var index = this.plant.indexOf(cell);
             this.plant.splice(index, 1);
@@ -219,15 +219,15 @@ export class Automata {
                 var ncol = cell.row + neighbs[j][1];
                 if (ncol < 0 || nrow < 0 || ncol >= Automata.GRID_N_COLUMNS || nrow >= Automata.GRID_N_ROWS)
                     continue;
-                var neighb = this.fluidsArray[nrow][ncol];
-                if (neighb instanceof Cell) {
-                    var nsignals = neighb.signals.vector;
-                    for (var k = 0; k < nsignals.length; k++) {
-                        if (cell.signals[k] < nsignals[k])
+                var neighbFluids = this.fluidsArray[nrow][ncol];
+                if (neighbFluids instanceof Cell) {
+                    var nsignals = neighbFluids.vector;
+                    for (var k = Fluids.SIGNALS_START; k < Fluids.N_FLUIDS; k++) {
+                        if (cell.fluids[k] < nsignals[k])
                             continue;
-                        let amount = SPREAD_COEFF * cell.signals.vector[k];
+                        let amount = SPREAD_COEFF * cell.fluids.vector[k];
                         nsignals[k] += amount;
-                        cell.signals.vector[k] -= amount;
+                        cell.fluids.vector[k] -= amount;
                     }
                 }
             }
@@ -251,7 +251,7 @@ export class Automata {
         var REACTION_FACTOR = 10; // expend 1 water to get 4 glucose
         for (var i = 0; i < this.plant.length; i++) {
             let cell = this.plant[i];
-            if (cell.type === "l") {
+            if (cell.dna.type.isLeaf) {
                 let numAir = this.countAirNeighbors(cell.row, cell.col);
                 let dGlucose = Math.min(cell.fluids.vector[Fluids.WATER]/4, 100 * numAir);
                 // convert water to glucose
@@ -289,10 +289,8 @@ export class Automata {
                         flowRate = 0.2;
                     }
 
-                    let obj = this.fluidsArray[row][col];
                     let neighbFluids = this.fluidsArray[neighbRow][neighbCol];
-                    let fluids = obj instanceof Cell ? obj.fluids.vector : obj.vector;
-                    neighbFluids = neighbFluids instanceof Cell ? neighbFluids.fluids.vector : neighbFluids.vector;
+                    let fluids = this.fluidsArray[row][col];
                     for (var j = 0; j < Fluids.N_FLUIDS; ++j) {
                         if (fluids[j] > neighbFluids[j]) {
                             let diff = flowRate * (fluids[j] - neighbFluids[j]);
@@ -309,8 +307,7 @@ export class Automata {
         // Apply fluidsDiff to fluids
         for (var row = 0; row < Automata.GRID_N_ROWS; row ++){
             for (var col = 0; col < Automata.GRID_N_COLUMNS; col ++ ){
-                let obj = this.fluidsArray[row][col];
-                let fluids = obj instanceof Cell ? obj.fluids.vector : obj.vector;
+                let fluids = this.fluidsArray[row][col];
                 let fluidDiff = fluidsDiff[row][col];
                 for (var i = 0; i < Fluids.N_FLUIDS; ++i) {
                     fluids[i] += fluidDiff[i];
@@ -319,13 +316,13 @@ export class Automata {
         }
     }
 
-    isCellInGrid(row, col) {
+    isPositionOnGrid(row, col) {
         return row >= 0 && col >= 0 &&
             row < Automata.GRID_N_ROWS && col < Automata.GRID_N_COLUMNS;
     }
 
     isAirCell(row, col) {
-        if (!this.isCellInGrid(row, col)) return false;
+        if (!this.isPositionOnGrid(row, col)) return false;
         return row < 50 && !(this.fluidsArray[row][col] instanceof Cell);
     }
 
@@ -335,17 +332,6 @@ export class Automata {
                 (this.isAirCell(row, col - 1)?1:0) +
                 (this.isAirCell(row, col + 1)?1:0);
         return n;
-    }
-
-    /*
-    Returns fluid vector (actual array) at row,col
-    */
-    fluidsAt(row, col) {
-        var obj = this.fluidsArray[row][col];
-        if (obj instanceof Cell) {
-            return obj.fluids.vector;
-        }
-        return obj.vector;
     }
 
     draw() {
@@ -358,8 +344,7 @@ export class Automata {
 
         for (var row = 0; row < Automata.GRID_N_ROWS; row ++){
             for (var col = 0; col < Automata.GRID_N_COLUMNS; col ++){
-                var obj = this.fluidsArray[row][col];
-                let fluids = this.fluidsAt(row,col);
+                var fluids = this.fluidsArray[row][col];
                 let waterContent = Math.max(Math.min(Math.round(fluids[Fluids.WATER]),255),0);
 
                 if (this.viewStyle === 'water') {
@@ -367,7 +352,7 @@ export class Automata {
                     this.canvasCtx.fillStyle = colorString;
                 }
                 else if(this.viewStyle === 'glucose'){
-                    if (obj instanceof Cell) {
+                    if (this.cellArray[row][col]) {
                         this.canvasCtx.fillStyle = "#" + this.getColorHex(Math.min(255,Math.ceil(fluids[Fluids.GLUCOSE]))) + "0000";
                     }
                     else {
@@ -375,16 +360,18 @@ export class Automata {
                     }
                 }
                 else if (this.viewStyle === 'auxin') {
-                    if (obj instanceof Cell) {
-                        this.canvasCtx.fillStyle = "#" + "0000" + this.getColorHex(Math.min(255,Math.ceil(255*obj.signals.vector[0])));
+                    let cell = this.cellArray[row][col];
+                    if (cell) {
+                        this.canvasCtx.fillStyle = "#" + "0000" + this.getColorHex(Math.min(255,Math.ceil(255*fluids[Fluids.SIGNALS_START].vector[0])));
                     }
                     else {
                         this.canvasCtx.fillStyle = "#000000";
                     }
                 }
                 else {
-                    if (obj instanceof Cell) {
-                        this.canvasCtx.fillStyle = obj.dna.cellTypes[obj.type].color;
+                    let cell = this.cellArray[row][col];
+                    if (cell) {
+                        this.canvasCtx.fillStyle = this.cellArray[row][col].dna.cellType.color;
                     }
                     else if(row >= 50){
                         var val = Math.floor(Math.max(0,Math.min(500,waterContent)/4));
@@ -400,11 +387,13 @@ export class Automata {
                 if (this.viewStyle == 'water' || this.viewStyle == 'glucose' || this.viewStyle == 'auxin') {
                     this.canvasCtx.strokeStyle = "#009900";
                     var neighbs = [[-1, 0], [1, 0], [0, 1], [0, -1]];
-                    if (obj instanceof Cell) {
+
+                    var cell = this.cellArray[row][col];
+                    if (cell) {
                         for (var i = 0; i < neighbs.length; ++i) {
-                            var nrow = obj.row + neighbs[i][0];
-                            var ncol = obj.col + neighbs[i][1];
-                            if (this.isCellInGrid(nrow,ncol) && !(this.fluidsArray[nrow][ncol] instanceof Cell) ) {
+                            var nrow = row + neighbs[i][0];
+                            var ncol = col + neighbs[i][1];
+                            if (this.isPositionOnGrid(nrow,ncol) && !this.cellArray[nrow][ncol] ) {
                                 this.canvasCtx.beginPath();
                                 if (neighbs[i][0] == -1) {
                                     this.canvasCtx.moveTo(scale*col + 0.5, scale*row + 0.5);

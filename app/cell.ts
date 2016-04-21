@@ -1,4 +1,3 @@
-import {Signals} from "./signals";
 import {Fluids} from "./fluids";
 
 /*
@@ -23,9 +22,18 @@ export class Cell {
         this.row = row;
         this.col = col;
         this.fluids = fluids;
-        this.type = type;
+
+        if (typeof type === 'number') {
+            this.type = dna.cellTypes[type];
+        }
+        else {
+            this.type = type;
+        }
         this.dna = dna;
-        this.signals = new Signals(dna.cellTypes[type].signalInit);
+
+        for (var i = 0; i < Fluids.SIGNALS.length; ++i) {
+            dna.fluids[Fluids.SIGNALS[i]] = dna.cellTypes[type].signalInit[i];
+        }
     }
 
     updateSignals() {
