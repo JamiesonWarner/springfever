@@ -10,8 +10,8 @@ export class DNA {
   }
 
   plantSeed(grid: Array<Array<Object>>) {
-      var c1 = new Cell(this, 0, new Fluids(1000,1000), grid, Automata.GRID_N_ROWS/2, Automata.GRID_N_COLUMNS/2 ),
-          c2 = new Cell(this, 1, new Fluids(1000,1000), grid, Automata.GRID_N_ROWS/2 + 1, Automata.GRID_N_COLUMNS/2 );
+      var c1 = new Cell(this, 0, new Fluids(1000,1000), Automata.GRID_N_ROWS/2, Automata.GRID_N_COLUMNS/2 ),
+          c2 = new Cell(this, 1, new Fluids(1000,1000), Automata.GRID_N_ROWS/2 + 1, Automata.GRID_N_COLUMNS/2 );
       var seed = [c1, c2];
       grid[c1.row][c1.col] = c1;
       grid[c2.row][c2.col] = c2;
@@ -393,7 +393,7 @@ cellTypes is a markov chain. Each Markov state is a 2 layer neural net
   }
 
   chooseAction(signals, cellType) {
-    var actions = this.cellTypes[cellType].actions;
+    var actions = cellType.actions;
     var activators = new Array(actions.length)
     for (var i = 0; i < activators.length; ++i) {
         activators[i] = this.activatorFunction(this.distanceToActivator(signals, actions[i].activator));

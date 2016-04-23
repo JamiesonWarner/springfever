@@ -7,18 +7,17 @@ Plus they also have context for fitting into the Grid.
 
 export class Cell {
 
-    grid: Array<Array<Object>>;
+    // grid: Array<Array<Object>>;
 
     fluids: Fluids;
     row;
     col;
-    type;
+    type; // coresponds to types in DNA
     dna;
     angle;
     signals;
 
-    constructor(dna,type,fluids,grid,row,col) {
-        this.grid = grid;
+    constructor(dna,type,fluids,row,col) {
         this.row = row;
         this.col = col;
         this.fluids = fluids;
@@ -31,37 +30,37 @@ export class Cell {
         }
         this.dna = dna;
 
-        for (var i = 0; i < Fluids.SIGNALS.length; ++i) {
-            dna.fluids[Fluids.SIGNALS[i]] = dna.cellTypes[type].signalInit[i];
+        for (var i = 0; i < Fluids.N_SIGNALS; ++i) {
+            this.fluids[Fluids.SIGNALS_START + i] = this.type.signalInit[i];
         }
     }
 
     updateSignals() {
         // multiply by matrix
-        var newSignals = new Array(this.signals.vector.length);
-        for (var i = 0; i < newSignals.length; ++i) {
-            newSignals[i] = 0;
-        }
+        // var newSignals = new Array(Fluids.N_SIGNALS);
+        // for (var i = 0; i < newSignals.length; ++i) {
+        //     newSignals[i] = 0;
+        // }
 
-        var mtx = this.dna.cellTypes[this.type].signalMatrix;
-        for (var i = 0; i < newSignals.length; i++) {
-            for (var j = 0; j < this.signals.vector.length; j++) {
-                newSignals[i] += this.signals.vector[j] * mtx[i][j];
-            }
-            for (j = 0; j < this.fluids.vector.length; ++j) {
-                newSignals[i] += this.fluids.vector[j] * mtx[i][j+this.signals.vector.length];
-            }
-        }
+        // var mtx = this.type.signalMatrix;
+        // for (var i = 0; i < newSignals.length; i++) {
+        //     for (var j = 0; j < Fluids.N_SIGNALS; j++) { // first SIGNALS columns of matrix...
+        //         newSignals[i] += this.fluids.vector[j+Fluids.SIGNALS_START] * mtx[i][j];
+        //     }
+        //     for (j = 0; j < this.fluids.vector.length; ++j) {
+        //         newSignals[i] += this.fluids.vector[j] * mtx[i][j+this.signals.vector.length];
+        //     }
+        // }
 
-        var vec = this.dna.cellTypes[this.type].signalB;
-        // console.log('signals', newSignals, 'mtx', mtx, 'vec', vec);
-        for (var i = 0; i < vec.length; i++) {
-            newSignals[i] += vec[i];
-        }
+        // var vec = this.dna.cellTypes[this.type].signalB;
+        // // console.log('signals', newSignals, 'mtx', mtx, 'vec', vec);
+        // for (var i = 0; i < vec.length; i++) {
+        //     newSignals[i] += vec[i];
+        // }
 
-        for (var i = 0; i < newSignals.length; i++) {
-            this.signals.vector[i] = Math.max(0, Math.min(1, newSignals[i]));
-        }
+        // for (var i = 0; i < newSignals.length; i++) {
+        //     this.signals.vector[i] = Math.max(0, Math.min(1, newSignals[i]));
+        // }
     }
 
     update() {

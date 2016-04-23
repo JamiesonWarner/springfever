@@ -43,7 +43,17 @@ export class Automata {
             }
         }
 
-        this.plant = dna.plantSeed(this.fluidsArray);
+        this.cellArray = new Array(Automata.GRID_N_ROWS);
+        for (var row = 0; row < Automata.GRID_N_ROWS; row++) {
+            this.cellArray[row] = new Array(Automata.GRID_N_COLUMNS);
+            for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
+                var water = this.isAirCell(row, col) ? 100 * Math.random() : 500 * Math.random();
+                this.cellArray[row][col] = undefined;
+            }
+        }
+
+
+        this.plant = dna.plantSeed(this.cellArray);
 
         var self = this;
         drawCanvas.addEventListener("mousemove", function(event: MouseEvent) {
@@ -60,10 +70,11 @@ export class Automata {
         }
     }
 
-    validateGridFluids() {
+    validateFluidsArray() {
         for (var row = 0; row < Automata.GRID_N_ROWS; ++row) {
             for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
                 var f = this.fluidsArray[row][col].vector;
+                if (typeof f === 'undefined') console.log('row,col are: ', row, col);
                 for (var k = 0; k < f.length; ++k) {
                     if (typeof f[k] !== 'number' || isNaN(f[k])) {
                         throw new Error('Error: Invalid fluid vector at: ' + row+', '+col);
@@ -146,7 +157,7 @@ export class Automata {
                     // console.log("growing new cell...")
                     this.subtractFluids(this.plant[i].fluids, cost);
                     let newFluids = this.splitFluids(this.plant[i]);
-                    var nCell = new Cell(this.dna, action.parameters.type, newFluids, this.fluidsArray, gI, gJ);
+                    var nCell = new Cell(this.dna, action.parameters.type, newFluids, gI, gJ);
                     this.plant.push(nCell);
                     this.cellArray[gI][gJ] = nCell;
                 }
@@ -182,7 +193,8 @@ export class Automata {
             // console.log('Killing cell at: ', cell.row, cell.col);
             var index = this.plant.indexOf(cell);
             this.plant.splice(index, 1);
-            this.fluidsArray[cell.row][cell.col] = cell.fluids;
+            // this.fluidsArray[cell.row][cell.col] = cell.fluids;
+            this.cellArray[cell.row][cell.col] = undefined;
         }
     }
 
@@ -251,7 +263,7 @@ export class Automata {
         var REACTION_FACTOR = 10; // expend 1 water to get 4 glucose
         for (var i = 0; i < this.plant.length; i++) {
             let cell = this.plant[i];
-            if (cell.dna.type.isLeaf) {
+            if (cell.type.isLeaf) {
                 let numAir = this.countAirNeighbors(cell.row, cell.col);
                 let dGlucose = Math.min(cell.fluids.vector[Fluids.WATER]/4, 100 * numAir);
                 // convert water to glucose
@@ -302,7 +314,7 @@ export class Automata {
             }
         }
 
-        this.validateGridFluids();
+        this.validateFluidsArray();
 
         // Apply fluidsDiff to fluids
         for (var row = 0; row < Automata.GRID_N_ROWS; row ++){
@@ -335,6 +347,10 @@ export class Automata {
     }
 
     draw() {
+        if (this.validateFluidsArray()) {
+            console.log('error in fluids, skipping draw');
+            return;
+        }
 
         let scale = Automata.CELL_SCALE_PIXELS;
         this.canvasCtx.lineWidth = 3;
@@ -342,9 +358,10 @@ export class Automata {
         this.canvasCtx.fillRect(0,0, Automata.GRID_N_COLUMNS* scale, scale* Automata.GRID_N_ROWS)
         this.canvasCtx.fillRect(0, 0, 100, 100);
 
+
         for (var row = 0; row < Automata.GRID_N_ROWS; row ++){
             for (var col = 0; col < Automata.GRID_N_COLUMNS; col ++){
-                var fluids = this.fluidsArray[row][col];
+                var fluids = this.fluidsArray[row][col].vector;
                 let waterContent = Math.max(Math.min(Math.round(fluids[Fluids.WATER]),255),0);
 
                 if (this.viewStyle === 'water') {
@@ -371,11 +388,12 @@ export class Automata {
                 else {
                     let cell = this.cellArray[row][col];
                     if (cell) {
-                        this.canvasCtx.fillStyle = this.cellArray[row][col].dna.cellType.color;
+                        this.canvasCtx.fillStyle = this.cellArray[row][col].type.color;
                     }
                     else if(row >= 50){
-                        var val = Math.floor(Math.max(0,Math.min(500,waterContent)/4));
-                        this.canvasCtx.fillStyle = "#3311" + this.getColorHex(val);
+                        var cval = Math.ceil(waterContent/4);
+                        // console.log(waterContent);
+                        this.canvasCtx.fillStyle = "#3311" + this.getColorHex(cval);
                     }
                     else {
                         this.canvasCtx.fillStyle = "#7EC0DD";
