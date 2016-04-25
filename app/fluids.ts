@@ -1,4 +1,4 @@
-
+import {Automata} from "./automata";
 
 export class Fluids {
     static WATER = 0;
@@ -11,7 +11,7 @@ export class Fluids {
 
     vector;
 
-    constructor(water = 100, glucose = 0) {
+    constructor(water = Automata.MATERIAL_WATER_WATER_MEAN, glucose = 0) {
 
         this.vector = new Array(Fluids.N_FLUIDS);
         for (var i = 0; i < Fluids.N_FLUIDS; ++i) {

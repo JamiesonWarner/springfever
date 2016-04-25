@@ -6,12 +6,17 @@ import {ISystem} from "./system";
 
 /*
 TODO turn Automata into systems model.
+Automata is a place for shared state.
 Automata just stores stuff like the fluidsArray, and its state is transformed by Systems.
 */
 export class Automata {
     static GRID_N_COLUMNS = 120;
     static GRID_N_ROWS = 100;
     static CELL_SCALE_PIXELS = 8;
+
+    static MATERIAL_WATER_WATER_MEAN = 1.0; // used to estimate turgidity. Wolfram Alpha: mass of 1cm^3 water
+    static MATERIAL_DIRT_WATER_MEAN = 0.21; // Wolfram Alpha: mass of 1 cm^3 moist soil - Wolfram Alpha: mass of 1cm^3 dry soil;
+    static MATERIAL_AIR_WATER_MEAN = 1.519e-5; // Wolfram Alpha: mass of water vapor in 1 cubic centimer air;
 
     canvas;
     canvasCtx: CanvasRenderingContext2D;
@@ -26,9 +31,6 @@ export class Automata {
     systems: Array<ISystem>;
 
     constructor(runString: String, drawCanvas: Element) {
-        var dna = new DNA();
-        this.dna = dna;
-
         this.canvas = drawCanvas;
         this.canvas.setAttribute('width', Automata.GRID_N_COLUMNS * Automata.CELL_SCALE_PIXELS);
         this.canvas.setAttribute('height', Automata.GRID_N_ROWS * Automata.CELL_SCALE_PIXELS);
@@ -38,7 +40,13 @@ export class Automata {
         for (var row = 0; row < Automata.GRID_N_ROWS; row++) {
             this.fluidsArray[row] = new Array(Automata.GRID_N_COLUMNS);
             for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
-                var water = this.isAirCell(row, col) ? 100 * Math.random() : 500 * Math.random();
+
+                // create fluid for each location in the fluids array
+                var water;
+                if (this.isDirtCell(row, col))
+                    water = Math.random() * 2 * Automata.MATERIAL_DIRT_WATER_MEAN;
+                else
+                    water = Math.random() * 2 * Automata.MATERIAL_AIR_WATER_MEAN;
                 this.fluidsArray[row][col] = new Fluids(water, 0);
             }
         }
@@ -46,20 +54,33 @@ export class Automata {
         this.cellArray = new Array(Automata.GRID_N_ROWS);
         for (var row = 0; row < Automata.GRID_N_ROWS; row++) {
             this.cellArray[row] = new Array(Automata.GRID_N_COLUMNS);
-            for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
-                var water = this.isAirCell(row, col) ? 100 * Math.random() : 500 * Math.random();
-                this.cellArray[row][col] = undefined;
-            }
+            // for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
+            //     this.cellArray[row][col] == undefined;
+            // }
         }
-
-
-        this.plant = dna.plantSeed(this.cellArray);
 
         var self = this;
         drawCanvas.addEventListener("mousemove", function(event: MouseEvent) {
             self.showInfo(event.offsetX, event.offsetY);
         })
+    }
 
+    plantSeed(seed:DNA) {
+        // remove all existing plants and add the specified seed
+        for (var row = 0; row < Automata.GRID_N_ROWS; ++row) {
+            for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
+                this.cellArray[row][col] = undefined;
+            }
+        }
+        this.plant = seed.plantSeed(this.cellArray);
+        this.dna = seed;
+    }
+
+    isAirCell(row,col) {
+        return row < 50;
+    }
+    isDirtCell(row,col) {
+        return row >= 50;
     }
 
     printGridFluids() {
@@ -100,6 +121,8 @@ export class Automata {
     }
 
     update() {
+        console.log('cell fluids', this.plant[0].fluids.vector);
+
         //console.log("tick");
         // Calc actions on this frame
         var actions = new Array(this.plant.length);
@@ -175,8 +198,8 @@ export class Automata {
     Kill all cells who don't have enough resources to live
     */
     cellDeath() {
-        let MIN_WATER = 10;
-        let MIN_GLUCOSE = 10;
+        let MIN_WATER = 0.1 * Automata.MATERIAL_WATER_WATER_MEAN;
+        let MIN_GLUCOSE = 0.001;
         let toKill = [];
         for (var i = 0; i < this.plant.length; ++i) {
             var cell = this.plant[i];
@@ -297,7 +320,7 @@ export class Automata {
 
                     let flowRate = 0.02;
                     // air to air is very fast
-                    if (this.isAirCell(row,col) && this.isAirCell(neighbRow,neighbCol)) {
+                    if (this.isAirNotCell(row,col) && this.isAirNotCell(neighbRow,neighbCol)) {
                         flowRate = 0.2;
                     }
 
@@ -333,16 +356,17 @@ export class Automata {
             row < Automata.GRID_N_ROWS && col < Automata.GRID_N_COLUMNS;
     }
 
-    isAirCell(row, col) {
+    isAirNotCell(row, col) {
         if (!this.isPositionOnGrid(row, col)) return false;
+        // return
         return row < 50 && !(this.fluidsArray[row][col] instanceof Cell);
     }
 
     countAirNeighbors(row, col){
-        var n = (this.isAirCell(row - 1, col)?1:0) +
-                (this.isAirCell(row + 1, col)?1:0) +
-                (this.isAirCell(row, col - 1)?1:0) +
-                (this.isAirCell(row, col + 1)?1:0);
+        var n = (this.isAirNotCell(row - 1, col)?1:0) +
+                (this.isAirNotCell(row + 1, col)?1:0) +
+                (this.isAirNotCell(row, col - 1)?1:0) +
+                (this.isAirNotCell(row, col + 1)?1:0);
         return n;
     }
 
@@ -365,7 +389,9 @@ export class Automata {
                 let waterContent = Math.max(Math.min(Math.round(fluids[Fluids.WATER]),255),0);
 
                 if (this.viewStyle === 'water') {
-                    let colorString = "#" + "0064" + this.getColorHex(waterContent);
+                    let waterConcentration = fluids[Fluids.WATER] / (2 * Automata.MATERIAL_DIRT_WATER_MEAN);
+                    let waterColor = Math.max(Math.min(Math.round(255*waterConcentration),255),0);
+                    let colorString = "#" + "0064" + this.getColorHex(waterColor);
                     this.canvasCtx.fillStyle = colorString;
                 }
                 else if(this.viewStyle === 'glucose'){

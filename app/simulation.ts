@@ -3,9 +3,10 @@ app.ts
 */
 
 import {Automata} from "./automata";
+import {DNA} from "./dna";
 
 export class Simulation {
-    FRAME_DELAY: number = 20;
+    FRAME_DELAY: number = 1000;
 
     updateInterval: number;
     automata: Automata;
@@ -17,7 +18,7 @@ export class Simulation {
         this.drawCanvas = drawCanvas;
         this.drawEnabled = true;
         this.automata = new Automata('prototype', drawCanvas);
-        this.startSimulation();
+        this.automata.plantSeed(new DNA());
     }
 
     runForNTicks(N) {
@@ -68,7 +69,6 @@ export class Simulation {
         this.automata = null;
         this.automata = new Automata('prototype', this.drawCanvas);
         this.automata.viewStyle = view;
-        this.startSimulation();
     }
 
     toggleDraw() {

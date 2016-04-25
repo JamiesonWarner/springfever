@@ -19,7 +19,11 @@
   },
   "homepage": "https://github.com/JamiesonWarner/springfever#readme",
   "dependencies": {
+    "synaptic": "^1.0.2",
     "ts-loader": "^0.8.2",
     "typescript": "^1.8.10"
+  },
+  "devDependencies": {
+    "jasmine-core": "2.4.1"
   }
 }

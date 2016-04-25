@@ -2,340 +2,384 @@ import {Cell} from "./cell";
 import {Fluids} from "./fluids";
 import {Grid} from "./grid";
 import {Automata} from "./automata";
+import {IAction, DivideAction, PumpAction, ReactAction, SpecializeAction} from "./action";
+import {Perceptron} from "./perceptron";
 
 export class DNA {
+  static N_CELL_TYPES: number = 2;
+
+  actions: Array<IAction>;
+  cellTypes;
 
   constructor() {
-      window['dna'] = this;
+    window['dna'] = this;
+
+    this.actions = [
+      new DivideAction({ fluidGradient: [0,0,-1,0,0,0] }),
+      new PumpAction({ fluidGradient: [-1,0,0.1,0,0,0] }),
+      new ReactAction({ reaction: [-0.2,0.8,0.1,0,0,0] }), //photosynth
+      new ReactAction({ reaction: [0,0,0.1,0,0,0] }), // free auxin
+      new ReactAction({ reaction: [0,0,0,0.1,0,0] }), // free misc hormones
+      new ReactAction({ reaction: [0,0,0,0,0.1,0] }), // free misc hormones
+      new ReactAction({ reaction: [0,0,0,0,0,0.1] }), // free misc hormones
+      new ReactAction({ reaction: [0,0,0,-0.1,0,0] }), // free misc hormones
+      new ReactAction({ reaction: [0,0,0,0,-0.1,0] }), // free misc hormones
+      new ReactAction({ reaction: [0,0,0,0,0,-0.1] }), // free misc hormones
+      new SpecializeAction({ toType: 0 }),
+      new SpecializeAction({ toType: 1 })
+    ];
+
+    // cell types
+    this.cellTypes = new Array(DNA.N_CELL_TYPES);
+    for (var i = 0; i < DNA.N_CELL_TYPES; ++i) {
+      var actions = [];
+      for (var j = 0; j < this.actions.length; ++j) {
+        actions[j] = new Perceptron(Fluids.N_FLUIDS);
+      }
+      this.cellTypes[i] = {
+        isLeaf: i==1,
+        cost: new Fluids(0.2,0.2),
+        actions: actions
+      };
+    }
+  }
+
+  copyAndMutate(): DNA {
+      return new DNA();
   }
 
   plantSeed(grid: Array<Array<Object>>) {
-      var c1 = new Cell(this, 0, new Fluids(1000,1000), Automata.GRID_N_ROWS/2, Automata.GRID_N_COLUMNS/2 ),
-          c2 = new Cell(this, 1, new Fluids(1000,1000), Automata.GRID_N_ROWS/2 + 1, Automata.GRID_N_COLUMNS/2 );
+    let waterInitial = 1.75 * Automata.MATERIAL_WATER_WATER_MEAN;
+    let glucoseInitial = 4.0;
+      var c1 = new Cell(this, 0, new Fluids(waterInitial,glucoseInitial), Automata.GRID_N_ROWS/2+2, Automata.GRID_N_COLUMNS/2 ),
+          c2 = new Cell(this, 1, new Fluids(waterInitial,glucoseInitial), Automata.GRID_N_ROWS/2 + 3, Automata.GRID_N_COLUMNS/2 );
       var seed = [c1, c2];
       grid[c1.row][c1.col] = c1;
       grid[c2.row][c2.col] = c2;
       return seed;
   }
 
-  N_TYPES = 2;
+
+
   /*
 In nature, the gene controls the transcription product, and .
 
+
 Inputs of a cell:
-- Signals
 - Fluids
+- Fluids gradient...
 
 Actions of a cell:
-- Produce signals
-- Duplicate
+
+DNA is a list of potential actions:
+- Reproduce (directional), direction specified as vector multiplier of fluids
+- Pump fluids (directional), direction specified as vector multiplier of fluids
+- Reactions
 - Specialize
--
 
-Plant decisions are modeled as a markov chain.
-Each cell type is a node on the markov chain.
-Each cell type is also a 2 layer neural net.
+CellType is the controller of DNA and determines when gene products are made.
+Each cell type is also a 2 layer neural net, which takes as input the fluid vector.
 Each cell type has a list of potential actions, which may be paramaterized by neighbor states.
-The neural net's input is the fluid vector.
-
-Depending on the output of the neura
-Each object in cellTypes is a
-cellTypes is a markov chain. Each Markov state is a 2 layer neural net
+Transitions between cell types can be modeled as a markov chain, though some states are unreachable once left.
   */
-  cellTypes = [
-    {
-      cost: new Fluids(0, 20),
-      /*
-      (N_SIGNALS) x (N_SIGNALS+N_FLUIDS)
-      */
-      signalMatrix: [
-        [1,0,0,0,0.2,0.2], // auxin production depends on resources
-        [0,1,1,1,0,0], // new apical contender (force apical)
-        [0,0,1,0,0,0], // old apical (starts 0, goes to 1)
-        [0,0,0,1,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
-      ],
-      signalB: [-0.3,-0.5,0.05,-0.05],
-      signalInit: [0,0,0,1],
-      color: "#ededbe",
-      actions: [
-        {
-          name: 'demote',
-          activator: {
-            w: [0,10,0,0],
-            b: 0
-          }
-        },
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'up',
-              type: 0
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 60,
-          }
-        },
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'right',
-              type: 0
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 2,
-          }
-        },
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'right',
-              type: 1
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 2,
-          }
-        },
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'left',
-              type: 1
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 2,
-          }
-        },
-        {
-          name: 'nothing',
-          activator: {
-            w: [-2, 0, 0, 0],
-            b: 2,
-          }
-        }
-      ]
-    },
-    {
-      cost: new Fluids(0, 20),
-      signalMatrix: [
-        [0.8,0,0,0,0,0], // auxin production depends on resources
-        [0,1,0,0,0,0], // new apical contender (force apical)
-        [0,0,1,0,0,0], // old apical (starts 0, goes to 1)
-        [0,0,0,1,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
-      ],
-      signalB: [0.05,-0.5,0.05,0.05],
-      signalInit: [0,0,0,0],
-      color: "#8F8F6E",
-      isLeaf: true,
-      actions: [
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'right',
-              type: 1
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 2,
-          }
-        },
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'left',
-              type: 1
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 2,
-          }
-        },
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'right',
-              type: 4
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 4,
-          }
-        },
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'left',
-              type: 4
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 2,
-          }
-        },
-        {
-          name: 'nothing',
-          activator: {
-            w: [-2, 0, 0, 0],
-            b: 2,
-          }
-        }
-      ]
-    },
-    {
-      cost: new Fluids(0, 20),
-      signalMatrix: [
-        [0.8,0,0,0,0,0], // auxin production depends on resources
-        [0,1,0,0,0,0], // new apical contender (force apical)
-        [0,0,1,0,0,0], // old apical (starts 0, goes to 1)
-        [0,0,0,1,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
-      ],
-      signalB: [0.05,-0.5,0.05,0.05],
-      signalInit: [0,0,0,0],
-      color: "#6E6E8F",
-      actions: [
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'down',
-              type: 2
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 2,
-          }
-        },
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'right',
-              type: 2
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 2,
-          }
-        },
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'right',
-              type: 3
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 2,
-          }
-        },
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'left',
-              type: 3
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 2,
-          }
-        },
-        {
-          name: 'nothing',
-          activator: {
-            w: [-2, 0, 0, 0],
-            b: 2,
-          }
-        }
-      ]
-    },
-    {
-      cost: new Fluids(0, 20),
-      signalMatrix: [
-        [0.8,0,0,0,0,0], // auxin production depends on resources
-        [0,1,0,0,0,0], // new apical contender (force apical)
-        [0,0,1,0,0,0], // old apical (starts 0, goes to 1)
-        [0,0,0,1,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
-      ],
-      signalB: [0.05,-0.5,0.05,0.05],
-      signalInit: [0,0,0,0],
-      color: "#8F6E7F",
-      actions: [
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'right',
-              type: 3
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 2,
-          }
-        },
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'left',
-              type: 3
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 2,
-          }
-        },
-        {
-          name: 'nothing',
-          activator: {
-            w: [-2, 0, 0, 0],
-            b: 2,
-          }
-        }
-      ]
-    },
-    {
-      cost: new Fluids(0, 30),
-      signalMatrix: [
-        [0.8,0,0,0,0,0], // auxin production depends on resources
-        [0,1,0,0,0,0], // new apical contender (force apical)
-        [0,0,1,0,0,0], // old apical (starts 0, goes to 1)
-        [0,0,0,1,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
-      ],
-      signalB: [0.05,-0.5,0.05,0.05],
-      signalInit: [0,0,0,0],
-      color: "#80C4A1",
-      actions: [
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'right',
-              type: 4
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 2,
-          }
-        },
-        {
-          name: 'grow',
-          parameters: {
-              direction: 'left',
-              type: 4
-          },
-          activator: {
-            w: [20, 0, 0, 0],
-            b: 2,
-          }
-        },
-        {
-          name: 'nothing',
-          activator: {
-            w: [-2, 0, 0, 0],
-            b: 2,
-          }
-        }
-      ]
-    }
-  ]
+
+  /*
+  For every action, celltypes has a neural net
+  */
+  // cellTypes = [
+  //   {
+  //     cost: new Fluids(0.2, 0.2),
+  //     /*
+  //     (N_SIGNALS) x (N_SIGNALS+N_FLUIDS)
+  //     */
+  //     signalMatrix: [
+  //       [1,0,0,0,0.2,0.2], // auxin production depends on resources
+  //       [0,1,1,1,0,0], // new apical contender (force apical)
+  //       [0,0,1,0,0,0], // old apical (starts 0, goes to 1)
+  //       [0,0,0,1,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
+  //     ],
+  //     signalB: [-0.3,-0.5,0.05,-0.05],
+  //     signalInit: [0,0,0,1],
+  //     color: "#ededbe",
+  //     actions: [
+  //       {
+  //         name: 'demote',
+  //         activator: {
+  //           w: [0,10,0,0],
+  //           b: 0
+  //         }
+  //       },
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'up',
+  //             type: 0
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 60,
+  //         }
+  //       },
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'right',
+  //             type: 0
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       },
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'right',
+  //             type: 1
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       },
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'left',
+  //             type: 1
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       },
+  //       {
+  //         name: 'nothing',
+  //         activator: {
+  //           w: [-2, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       }
+  //     ]
+  //   },
+  //   {
+  //     cost: new Fluids(0, 0.2),
+  //     signalMatrix: [
+  //       [0.8,0,0,0,0,0], // auxin production depends on resources
+  //       [0,1,0,0,0,0], // new apical contender (force apical)
+  //       [0,0,1,0,0,0], // old apical (starts 0, goes to 1)
+  //       [0,0,0,1,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
+  //     ],
+  //     signalB: [0.05,-0.5,0.05,0.05],
+  //     signalInit: [0,0,0,0],
+  //     color: "#8F8F6E",
+  //     isLeaf: true,
+  //     actions: [
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'right',
+  //             type: 1
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       },
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'left',
+  //             type: 1
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       },
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'right',
+  //             type: 4
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 4,
+  //         }
+  //       },
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'left',
+  //             type: 4
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       },
+  //       {
+  //         name: 'nothing',
+  //         activator: {
+  //           w: [-2, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       }
+  //     ]
+  //   },
+  //   {
+  //     cost: new Fluids(0, 0.2),
+  //     signalMatrix: [
+  //       [0.8,0,0,0,0,0], // auxin production depends on resources
+  //       [0,1,0,0,0,0], // new apical contender (force apical)
+  //       [0,0,1,0,0,0], // old apical (starts 0, goes to 1)
+  //       [0,0,0,1,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
+  //     ],
+  //     signalB: [0.05,-0.5,0.05,0.05],
+  //     signalInit: [0,0,0,0],
+  //     color: "#6E6E8F",
+  //     actions: [
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'down',
+  //             type: 2
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       },
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'right',
+  //             type: 2
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       },
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'right',
+  //             type: 3
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       },
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'left',
+  //             type: 3
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       },
+  //       {
+  //         name: 'nothing',
+  //         activator: {
+  //           w: [-2, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       }
+  //     ]
+  //   },
+  //   {
+  //     cost: new Fluids(0, 0.2),
+  //     signalMatrix: [
+  //       [0.8,0,0,0,0,0], // auxin production depends on resources
+  //       [0,1,0,0,0,0], // new apical contender (force apical)
+  //       [0,0,1,0,0,0], // old apical (starts 0, goes to 1)
+  //       [0,0,0,1,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
+  //     ],
+  //     signalB: [0.05,-0.5,0.05,0.05],
+  //     signalInit: [0,0,0,0],
+  //     color: "#8F6E7F",
+  //     actions: [
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'right',
+  //             type: 3
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       },
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'left',
+  //             type: 3
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       },
+  //       {
+  //         name: 'nothing',
+  //         activator: {
+  //           w: [-2, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       }
+  //     ]
+  //   },
+  //   { // leafs
+  //     cost: new Fluids(0, 0.4),
+  //     signalMatrix: [
+  //       [0.8,0,0,0,0,0], // auxin production depends on resources
+  //       [0,1,0,0,0,0], // new apical contender (force apical)
+  //       [0,0,1,0,0,0], // old apical (starts 0, goes to 1)
+  //       [0,0,0,1,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
+  //     ],
+  //     signalB: [0.05,-0.5,0.05,0.05],
+  //     signalInit: [0,0,0,0],
+  //     color: "#80C4A1",
+  //     actions: [
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'right',
+  //             type: 4
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       },
+  //       {
+  //         name: 'grow',
+  //         parameters: {
+  //             direction: 'left',
+  //             type: 4
+  //         },
+  //         activator: {
+  //           w: [20, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       },
+  //       {
+  //         name: 'nothing',
+  //         activator: {
+  //           w: [-2, 0, 0, 0],
+  //           b: 2,
+  //         }
+  //       }
+  //     ]
+  //   }
+  // ]
 
   serialize() {
     return {

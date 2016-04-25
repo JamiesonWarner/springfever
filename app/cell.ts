@@ -31,7 +31,7 @@ export class Cell {
         this.dna = dna;
 
         for (var i = 0; i < Fluids.N_SIGNALS; ++i) {
-            this.fluids[Fluids.SIGNALS_START + i] = this.type.signalInit[i];
+            this.fluids.vector[Fluids.SIGNALS_START + i] = this.type.signalInit[i];
         }
     }
 
