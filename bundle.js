@@ -253,7 +253,7 @@
 	        for (var i = 0; i < this.plant.length; i++) {
 	            var cell = this.plant[i];
 	            cell.update();
-	            actions[i] = cell.getAction();
+	            actions[i] = cell.chooseAction();
 	        }
 	        // Apply actions on this frame
 	        for (var i = 0; i < actions.length; i++) {
@@ -581,6 +581,7 @@
 
 	"use strict";
 	var fluids_1 = __webpack_require__(4);
+	var utils_1 = __webpack_require__(9);
 	/*
 	Cell is a fleighweight object for the Grid. Systems.
 	Plus they also have context for fitting into the Grid.
@@ -627,18 +628,25 @@
 	    };
 	    Cell.prototype.update = function () {
 	    };
-	    /*
-	    returns -
-	        {
-	            type: 'grow'
-	            parameters: {
-	                'up', 'right', 'down', 'left'
-	            }
+	    Cell.prototype.getActionPotential = function (action) {
+	        return 0;
+	    };
+	    Cell.prototype.chooseAction = function () {
+	        var signals = this.signals, cellType = this.type;
+	        // var perceptron = this.type.
+	        // Calculate which actions have high potential values
+	        var actions = this.type.actions;
+	        var potentials = new Array(actions.length);
+	        for (var i = 0; i < actions.length; ++i) {
+	            potentials[i] = this.type.actionPerceptrons[i].activate(this.fluids); // this.getActionPotential(actions[i]);
 	        }
-	
-	    */
-	    Cell.prototype.getAction = function () {
-	        return this.dna.chooseAction(this.signals, this.type);
+	        var bestIndex = utils_1.Utils.argmax(potentials);
+	        return actions[bestIndex];
+	        // for (var i = 0; i < activators.length; ++i) {
+	        //     activators[i] = this.activatorFunction(this.distanceToActivator(signals, actions[i].activator));
+	        // }
+	        // // console.log('activators', activators, 'actions', actions);
+	        // return this.weightedChoose(actions, activators);
 	    };
 	    return Cell;
 	}());
@@ -709,14 +717,14 @@
 	        // cell types
 	        this.cellTypes = new Array(DNA.N_CELL_TYPES);
 	        for (var i = 0; i < DNA.N_CELL_TYPES; ++i) {
-	            var actions = [];
-	            for (var j = 0; j < this.actions.length; ++j) {
-	                actions[j] = new perceptron_1.Perceptron(fluids_1.Fluids.N_FLUIDS);
+	            var actionPerceptrons = [];
+	            for (var j = 0; j < actionPerceptrons.length; ++j) {
+	                actionPerceptrons[j] = new perceptron_1.Perceptron(fluids_1.Fluids.N_FLUIDS, 8, this.actions.length);
 	            }
 	            this.cellTypes[i] = {
 	                isLeaf: i == 1,
 	                cost: new fluids_1.Fluids(0.2, 0.2),
-	                actions: actions
+	                actionPerceptrons: actionPerceptrons
 	            };
 	        }
 	    }
@@ -1166,121 +1174,117 @@
 /***/ function(module, exports) {
 
 	"use strict";
-	var Perceptron = (function () {
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var Perceptron = (function (_super) {
+	    __extends(Perceptron, _super);
 	    function Perceptron() {
-	        var args = [];
+	        var nnodes = [];
 	        for (var _i = 0; _i < arguments.length; _i++) {
-	            args[_i - 0] = arguments[_i];
+	            nnodes[_i - 0] = arguments[_i];
 	        }
-	        var nlayers = args.length;
-	        this.weights = new Array(nlayers - 1);
-	        for (var i = 1; i < nlayers; ++i) {
-	            var nnodes = args[i], prevNodes = args[i - 1];
-	            this.weights[i - 1] = new Array(nnodes);
-	            for (var j = 0; j < nnodes; ++j) {
-	                this.weights[i - 1][j] = new Array(prevNodes + 1); // input + constant
-	                for (var k = 0; k < prevNodes + 1; ++k) {
-	                    this.weights[i - 1][j][k] = 0;
-	                }
-	            }
-	        }
-	        this.netValues = new Array(nlayers - 1);
-	        for (var i = 1; i < nlayers; ++i) {
-	            this.netValues[i - 1] = new Array(args[i]);
-	        }
+	        _super.apply(this, nnodes);
 	    }
-	    Perceptron.prototype.clone = function () {
-	        // assume weight equivilancy
-	        var p = new (Function.prototype.bind.apply(Perceptron, this.nlayers));
-	        for (var i = 0; i < this.weights.length; ++i) {
-	            for (var j = 0; j < this.weights[i].length; ++j) {
-	                for (var k = 0; k < this.weights[i][j].length; ++k) {
-	                    p.weights[i][j][k] = this.weights[i][j][k];
-	                }
-	            }
-	        }
-	        return p;
-	    };
 	    Perceptron.prototype.perturb = function (amount) {
 	        if (amount === void 0) { amount = 1.0; }
 	        // perturb every weight by ~amount
-	        for (var i = 0; i < this.weights.length; ++i) {
-	            for (var j = 0; j < this.weights[i].length; ++j) {
-	                for (var k = 0; k < this.weights[i][j].length; ++k) {
-	                    this.weights[i][j][k] += 2 * Math.random() * amount - amount;
-	                }
-	            }
-	        }
-	    };
-	    Perceptron.prototype.net = function (input) {
-	        // var mtx = this.type.signalMatrix;
-	        // for (var i = 0; i < newSignals.length; i++) {
-	        //     for (var j = 0; j < Fluids.N_SIGNALS; j++) { // first SIGNALS columns of matrix...
-	        //         newSignals[i] += this.fluids.vector[j+Fluids.SIGNALS_START] * mtx[i][j];
-	        //     }
-	        //     for (j = 0; j < this.fluids.vector.length; ++j) {
-	        //         newSignals[i] += this.fluids.vector[j] * mtx[i][j+this.signals.vector.length];
+	        // for (var i = 0; i < this.weights.length; ++i) {
+	        //     for (var j = 0; j < this.weights[i].length; ++j) {
+	        //         for (var k = 0; k < this.weights[i][j].length; ++k) {
+	        //             this.weights[i][j][k] += 2 * Math.random() * amount - amount;
+	        //         }
 	        //     }
 	        // }
-	        // iterate through each layer of weights
-	        var inlayer = input;
-	        var outlayer;
-	        for (var i = 0; i < this.netValues.length; ++i) {
-	            outlayer = this.netValues[i];
-	            var layerWeights = this.weights[i];
-	            for (var j = 0; j < layerWeights.length; ++j) {
-	                // weights for the node
-	                var weights = layerWeights[j];
-	                var sum = weights[0];
-	                for (var k = 0; k < inlayer.length; ++k) {
-	                    sum += inlayer[k] * weights[k + 1];
-	                }
-	                outlayer[j] = sum; // VectorUtils.activatorFunction(sum);
-	            }
-	            inlayer = this.netValues[i];
-	        }
-	        console.log('computing net funciton', this.netValues, this.weights, outlayer);
-	        return outlayer.slice();
 	    };
 	    return Perceptron;
-	}());
+	}(Architect.Perceptron));
 	exports.Perceptron = Perceptron;
-	var VectorUtils = (function () {
-	    function VectorUtils() {
-	    }
-	    VectorUtils.l2norm = function (arr) {
-	        var n = 0;
-	        for (var i = 0; i < arr.length; ++i) {
-	            n += arr[i] * arr[i];
-	        }
-	        return Math.sqrt(n);
-	    };
-	    VectorUtils.l1norm = function (arr) {
-	        var n = 0;
-	        for (var i = 0; i < arr.length; ++i) {
-	            n += arr[i];
-	        }
-	        return n;
-	    };
-	    VectorUtils.distanceToPlane = function (fluids, activator) {
-	        var normW = this.l2norm(activator.w);
-	        var d = 0;
-	        for (var i = 0; i < length; ++i) {
-	            d += fluids[i] * activator[i];
-	        }
-	        d += activator.b;
-	        return d / normW;
-	    };
-	    /*
-	    Sigmoid activator.
-	    Returns value from 0 to 1 given f from -inf to inf.
-	    */
-	    VectorUtils.activatorFunction = function (v) {
-	        return 1 / (1 + Math.exp(-v));
-	    };
-	    return VectorUtils;
-	}());
-	exports.VectorUtils = VectorUtils;
+	// export class Perceptron {
+	//     // perceptron is a list of layers.
+	//     // each layer is a list of nodes, each node (k+1) weight values, where k is the # nodes in the previous layer
+	//     // layers array will have #layers - 1 values because the input layer has no weights
+	//     // [
+	//     //     [[0,0],[0,0]], // hidden 1
+	//     //     [[0,0,0]]  // output
+	//     // ]
+	//     weights: Array<Array<Array<number>>>;
+	//     nlayers: Array<number>; // array of the # nodes in each layer, INCLUDING the input layer.
+	//     netValues: Array<Array<number>>;
+	//     constructor(...args: number[]) {
+	//         var nlayers = args.length;
+	//         this.weights = new Array(nlayers-1);
+	//         for (var i = 1; i < nlayers; ++i) {
+	//             var nnodes = args[i],
+	//                 prevNodes = args[i - 1];
+	//             this.weights[i-1] = new Array(nnodes);
+	//             for (var j = 0; j < nnodes; ++j) {
+	//                 this.weights[i-1][j] = new Array(prevNodes + 1); // input + constant
+	//                 for (var k = 0; k < prevNodes + 1; ++k) {
+	//                     this.weights[i-1][j][k] = 0;
+	//                 }
+	//             }
+	//         }
+	//         this.netValues = new Array(nlayers - 1);
+	//         for (var i = 1; i < nlayers; ++i) {
+	//             this.netValues[i-1] = new Array(args[i]);
+	//         }
+	//     }
+	//     clone(): Perceptron {
+	//         // assume weight equivilancy
+	//         var p = new (Function.prototype.bind.apply(Perceptron, this.nlayers));
+	//         for (var i = 0; i < this.weights.length; ++i) {
+	//             for (var j = 0; j < this.weights[i].length; ++j) {
+	//                 for (var k = 0; k < this.weights[i][j].length; ++k) {
+	//                     p.weights[i][j][k] = this.weights[i][j][k];
+	//                 }
+	//             }
+	//         }
+	//         return p;
+	//     }
+	//     perturb(amount: number = 1.0) {
+	//         // perturb every weight by ~amount
+	//         for (var i = 0; i < this.weights.length; ++i) {
+	//             for (var j = 0; j < this.weights[i].length; ++j) {
+	//                 for (var k = 0; k < this.weights[i][j].length; ++k) {
+	//                     this.weights[i][j][k] += 2 * Math.random() * amount - amount;
+	//                 }
+	//             }
+	//         }
+	//     }
+	//     net(input: Array<number>): number {
+	//         // var mtx = this.type.signalMatrix;
+	//         // for (var i = 0; i < newSignals.length; i++) {
+	//         //     for (var j = 0; j < Fluids.N_SIGNALS; j++) { // first SIGNALS columns of matrix...
+	//         //         newSignals[i] += this.fluids.vector[j+Fluids.SIGNALS_START] * mtx[i][j];
+	//         //     }
+	//         //     for (j = 0; j < this.fluids.vector.length; ++j) {
+	//         //         newSignals[i] += this.fluids.vector[j] * mtx[i][j+this.signals.vector.length];
+	//         //     }
+	//         // }
+	//         // iterate through each layer of weights
+	//         var inlayer = input;
+	//         var outlayer;
+	//         for (var i = 0; i < this.netValues.length; ++i) {
+	//             outlayer = this.netValues[i];
+	//             var layerWeights = this.weights[i];
+	//             for (var j = 0; j < layerWeights.length; ++j) {
+	//                 // weights for the node
+	//                 var weights = layerWeights[j];
+	//                 var sum = weights[0];
+	//                 for (var k = 0; k < inlayer.length; ++k) {
+	//                     sum += inlayer[k] * weights[k+1];
+	//                 }
+	//                 outlayer[j] = sum; // VectorUtils.activatorFunction(sum);
+	//             }
+	//             inlayer = this.netValues[i];
+	//         }
+	//         console.log('computing net funciton', this.netValues, this.weights, outlayer);
+	//         return outlayer.slice();
+	//     }
+	// }
 
 
 /***/ },
@@ -1371,6 +1375,62 @@
 	    return Directions;
 	}());
 	exports.Directions = Directions;
+
+
+/***/ },
+/* 9 */
+/***/ function(module, exports) {
+
+	"use strict";
+	var Utils = (function () {
+	    function Utils() {
+	    }
+	    Utils.l2norm = function (arr) {
+	        var n = 0;
+	        for (var i = 0; i < arr.length; ++i) {
+	            n += arr[i] * arr[i];
+	        }
+	        return Math.sqrt(n);
+	    };
+	    Utils.l1norm = function (arr) {
+	        var n = 0;
+	        for (var i = 0; i < arr.length; ++i) {
+	            n += arr[i];
+	        }
+	        return n;
+	    };
+	    Utils.distanceToPlane = function (fluids, activator) {
+	        var normW = Utils.l2norm(activator.w);
+	        var d = 0;
+	        for (var i = 0; i < length; ++i) {
+	            d += fluids[i] * activator[i];
+	        }
+	        d += activator.b;
+	        return d / normW;
+	    };
+	    /*
+	    Sigmoid activator.
+	    Returns value from 0 to 1 given f from -inf to inf.
+	    */
+	    Utils.activatorFunction = function (v) {
+	        return 1 / (1 + Math.exp(-v));
+	    };
+	    Utils.argmax = function (arr) {
+	        if (!arr.length)
+	            return undefined;
+	        var max = arr[0];
+	        var argmax = 0;
+	        for (var i = 1; i < arr.length; ++i) {
+	            if (arr[i] > max) {
+	                argmax = i;
+	                max = arr[i];
+	            }
+	        }
+	        return argmax;
+	    };
+	    return Utils;
+	}());
+	exports.Utils = Utils;
 
 
 /***/ }

@@ -129,7 +129,7 @@ export class Automata {
         for (var i = 0; i < this.plant.length; i++) {
             var cell = this.plant[i];
             cell.update();
-            actions[i] = cell.getAction();
+            actions[i] = cell.chooseAction();
         }
 
         // Apply actions on this frame

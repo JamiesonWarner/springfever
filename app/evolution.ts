@@ -1,5 +1,6 @@
 import {DNA} from "./dna";
 import {Simulation} from "./simulation";
+import {Cell} from "./cell";
 
 export class Evolution extends Simulation {
     drawCanvas: Element;
@@ -36,10 +37,11 @@ export class Evolution extends Simulation {
             this.resetSimulation();
             this.automata.plantSeed(children[i]);
             this.runForNTicks(growtime);
-            fitness[i] = this.evalFitness();
+            fitness[i] = this.evalFitness(this.automata.plant);
         }
 
-        var maxFitness = - Infinity;
+        // return the child with the best fitness
+        var maxFitness = -Infinity;
         var bestChild = null;
         for (var i = 0; i < children.length; ++i) {
             if (fitness[i] > maxFitness) {
@@ -51,7 +53,7 @@ export class Evolution extends Simulation {
         return bestChild;
     }
 
-    evalFitness(): number {
-        return this.automata.plant.length;
+    evalFitness(plant: Array<Cell>): number {
+        return plant.length;
     }
 }

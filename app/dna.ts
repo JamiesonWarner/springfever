@@ -32,14 +32,14 @@ export class DNA {
     // cell types
     this.cellTypes = new Array(DNA.N_CELL_TYPES);
     for (var i = 0; i < DNA.N_CELL_TYPES; ++i) {
-      var actions = [];
-      for (var j = 0; j < this.actions.length; ++j) {
-        actions[j] = new Perceptron(Fluids.N_FLUIDS);
+      var actionPerceptrons = [];
+      for (var j = 0; j < actionPerceptrons.length; ++j) {
+        actionPerceptrons[j] = new Perceptron(Fluids.N_FLUIDS, 8, this.actions.length);
       }
       this.cellTypes[i] = {
         isLeaf: i==1,
         cost: new Fluids(0.2,0.2),
-        actions: actions
+        actionPerceptrons: actionPerceptrons
       };
     }
   }
