@@ -120,7 +120,8 @@ export class Automata {
     }
 
     update() {
-        console.log('cell fluids', this.plant[0].fluids.vector);
+        if (this.plant.length)
+            console.log('cell fluids', this.plant[0].fluids.vector);
 
         //console.log("tick");
         // Calc actions on this frame
@@ -378,7 +379,7 @@ export class Automata {
         let scale = Automata.CELL_SCALE_PIXELS;
         this.canvasCtx.lineWidth = 3;
         this.canvasCtx.fillStyle = "#7EC0DD";
-        this.canvasCtx.fillRect(0,0, Automata.GRID_N_COLUMNS* scale, scale* Automata.GRID_N_ROWS)
+        this.canvasCtx.fillRect(0,0, Automata.GRID_N_COLUMNS * scale, scale * Automata.GRID_N_ROWS)
         this.canvasCtx.fillRect(0, 0, 100, 100);
 
 

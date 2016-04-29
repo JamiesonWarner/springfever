@@ -7,6 +7,7 @@ import {Perceptron} from "./perceptron";
 
 export class DNA {
   static N_CELL_TYPES: number = 2;
+  static COLOR_HEX_ARRAY = ["#ededbe", "#8F8F6E", "#6E6E8F", "#8F6E7F", "#80C4A1"];
 
   actions: Array<IAction>;
   cellTypes;
@@ -37,6 +38,7 @@ export class DNA {
         actionPerceptrons[j] = new Perceptron(Fluids.N_FLUIDS, 8, 1);
       }
       this.cellTypes[i] = {
+        color: DNA.COLOR_HEX_ARRAY[i%DNA.COLOR_HEX_ARRAY.length],
         isLeaf: i==1,
         cost: new Fluids(0.2,0.2),
         actionPerceptrons: actionPerceptrons

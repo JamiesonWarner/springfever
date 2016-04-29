@@ -245,7 +245,8 @@
 	        document.getElementById('bar-auxin').style.width = (40 * fluids.vector[fluids_1.Fluids.AUXIN]) + 'px';
 	    };
 	    Automata.prototype.update = function () {
-	        console.log('cell fluids', this.plant[0].fluids.vector);
+	        if (this.plant.length)
+	            console.log('cell fluids', this.plant[0].fluids.vector);
 	        //console.log("tick");
 	        // Calc actions on this frame
 	        var actions = new Array(this.plant.length);
@@ -802,6 +803,7 @@
 	                actionPerceptrons[j] = new perceptron_1.Perceptron(fluids_1.Fluids.N_FLUIDS, 8, 1);
 	            }
 	            this.cellTypes[i] = {
+	                color: DNA.COLOR_HEX_ARRAY[i % DNA.COLOR_HEX_ARRAY.length],
 	                isLeaf: i == 1,
 	                cost: new fluids_1.Fluids(0.2, 0.2),
 	                actionPerceptrons: actionPerceptrons
@@ -1196,6 +1198,7 @@
 	        return this.weightedChoose(actions, activators);
 	    };
 	    DNA.N_CELL_TYPES = 2;
+	    DNA.COLOR_HEX_ARRAY = ["#ededbe", "#8F8F6E", "#6E6E8F", "#8F6E7F", "#80C4A1"];
 	    return DNA;
 	}());
 	exports.DNA = DNA;
