@@ -46,7 +46,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var perceptron_1 = __webpack_require__(7);
+	var perceptron_1 = __webpack_require__(8);
 	describe("perceptron", function () {
 	    it("initializes to expected values", function () {
 	        var p = new perceptron_1.Perceptron(4, 2, 4);
@@ -99,7 +99,7 @@
 
 /***/ },
 
-/***/ 7:
+/***/ 8:
 /***/ function(module, exports) {
 
 	"use strict";

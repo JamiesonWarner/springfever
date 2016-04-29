@@ -21,10 +21,47 @@ export class Fluids {
         this.vector[Fluids.WATER] = water;
         this.vector[Fluids.GLUCOSE] = glucose;
     }
+
+    sumFluids(): number {
+        var s = 0;
+        for (var i = 0; i < this.vector.length; ++i) {
+            s += this.vector[i];
+        }
+        return s;
+    }
+
+    getPressureInArea(area: number): number {
+        return this.sumFluids() / area;
+    }
+
+
+
+    /*
+    Goal:  q
+    */
+
+    /*
+    Returns the quantity of a given fluid, which is the amount of a substance per unit volume.
+    divided by the total fluid.
+
+    */
+
+    /*
+
+    */
+    getFluidConcentration(fluidId, area) {
+
+    }
+
+    /*
+    Diffusive flux is rate of flow per unit area. Positive value means outward flow.
+
+    Fick's law of diffusion: J = -D (d phi)/(d x)
+    J is diffusive flux
+    D is diffusion coefficient
+    phi is amount of
+    x is position
+    */
+    getDiffusiveFlux(toFluid, area1, area2){}
 }
 
-
-export class Reactions {
-    constructor() {}
-
-}

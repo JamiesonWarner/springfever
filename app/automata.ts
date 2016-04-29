@@ -24,7 +24,6 @@ export class Automata {
     cellArray: Array<Array<Cell>>; // undefined if there is no cell
     plant: Array<Cell>;
     dna;
-    drawWater = false;
 
     viewStyle: string;
 
@@ -179,7 +178,7 @@ export class Automata {
                 if(! (this.cellArray[gI][gJ])){
                     // console.log("growing new cell...")
                     this.subtractFluids(this.plant[i].fluids, cost);
-                    let newFluids = this.splitFluids(this.plant[i]);
+                    let newFluids = this.splitFluids(this.plant[i].fluids);
                     var nCell = new Cell(this.dna, action.parameters.type, newFluids, gI, gJ);
                     this.plant.push(nCell);
                     this.cellArray[gI][gJ] = nCell;
@@ -227,11 +226,11 @@ export class Automata {
         }
     }
 
-    splitFluids(cell){
-        let newFluids = new Fluids(0);
-        for (var i = 0; i < cell.fluids.vector.length; i ++){
-            cell.fluids.vector[i] /= 2;
-            newFluids.vector[i] = cell.fluids.vector[i];
+    splitFluids(fluids){
+        let newFluids = new Fluids();
+        for (var i = 0; i < fluids.vector.length; i ++){
+            fluids.vector[i] /= 2;
+            newFluids.vector[i] = fluids.vector[i];
         }
         return newFluids;
     }

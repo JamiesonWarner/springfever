@@ -5,6 +5,7 @@ import {Utils} from "./utils";
 /*
 Cell is a fleighweight object for the Grid. Systems.
 Plus they also have context for fitting into the Grid.
+It can also be thought of as a DNA controller.
 */
 
 export class Cell {
@@ -31,10 +32,6 @@ export class Cell {
             this.type = type;
         }
         this.dna = dna;
-
-        for (var i = 0; i < Fluids.N_SIGNALS; ++i) {
-            this.fluids.vector[Fluids.SIGNALS_START + i] = this.type.signalInit[i];
-        }
     }
 
     updateSignals() {
@@ -74,16 +71,16 @@ export class Cell {
     }
 
     chooseAction():IAction {
-        var signals = this.signals,
-            cellType = this.type;
+        // var signals = this.signals,
+        //     cellType = this.type;
 
         // var perceptron = this.type.
 
         // Calculate which actions have high potential values
-        var actions = this.type.actions;
+        var actions = this.dna.actions;
         var potentials = new Array(actions.length);
         for (var i = 0; i < actions.length; ++i) {
-            potentials[i] = this.type.actionPerceptrons[i].activate(this.fluids); // this.getActionPotential(actions[i]);
+            potentials[i] = this.type.actionPerceptrons[i].activate(this.fluids.vector)[0]; // this.getActionPotential(actions[i]);
         }
 
         var bestIndex: number = Utils.argmax(potentials);

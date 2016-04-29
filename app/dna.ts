@@ -33,8 +33,8 @@ export class DNA {
     this.cellTypes = new Array(DNA.N_CELL_TYPES);
     for (var i = 0; i < DNA.N_CELL_TYPES; ++i) {
       var actionPerceptrons = [];
-      for (var j = 0; j < actionPerceptrons.length; ++j) {
-        actionPerceptrons[j] = new Perceptron(Fluids.N_FLUIDS, 8, this.actions.length);
+      for (var j = 0; j < this.actions.length; ++j) {
+        actionPerceptrons[j] = new Perceptron(Fluids.N_FLUIDS, 8, 1);
       }
       this.cellTypes[i] = {
         isLeaf: i==1,
@@ -48,15 +48,22 @@ export class DNA {
       return new DNA();
   }
 
-  plantSeed(grid: Array<Array<Object>>) {
-    let waterInitial = 1.75 * Automata.MATERIAL_WATER_WATER_MEAN;
-    let glucoseInitial = 4.0;
-      var c1 = new Cell(this, 0, new Fluids(waterInitial,glucoseInitial), Automata.GRID_N_ROWS/2+2, Automata.GRID_N_COLUMNS/2 ),
-          c2 = new Cell(this, 1, new Fluids(waterInitial,glucoseInitial), Automata.GRID_N_ROWS/2 + 3, Automata.GRID_N_COLUMNS/2 );
-      var seed = [c1, c2];
-      grid[c1.row][c1.col] = c1;
-      grid[c2.row][c2.col] = c2;
-      return seed;
+  plantSeed(grid: Array<Array<Cell>>) {
+    var waterInitial = 1.75 * Automata.MATERIAL_WATER_WATER_MEAN;
+    var glucoseInitial = 4.0;
+    var rowCenter = Math.floor(Automata.GRID_N_ROWS / 2),
+        colCenter = Math.floor(Automata.GRID_N_COLUMNS / 2),
+        row1 = rowCenter + 2,
+        row2 = rowCenter + 3,
+        col1 = colCenter,
+        col2 = colCenter;
+
+    var c1 = new Cell(this, 0, new Fluids(waterInitial,glucoseInitial), row1, col1),
+        c2 = new Cell(this, 1, new Fluids(waterInitial,glucoseInitial), row2, col2);
+    var seed = [c1, c2];
+    grid[c1.row][c1.col] = c1;
+    grid[c2.row][c2.col] = c2;
+    return seed;
   }
 
 

@@ -46,7 +46,7 @@
 
 	"use strict";
 	var simulation_1 = __webpack_require__(1);
-	var angle_1 = __webpack_require__(8);
+	var angle_1 = __webpack_require__(9);
 	document.addEventListener("DOMContentLoaded", function (event) {
 	    var drawCanvas = document.getElementById("draw");
 	    var sim = new simulation_1.Simulation(drawCanvas);
@@ -73,7 +73,7 @@
 	*/
 	"use strict";
 	var automata_1 = __webpack_require__(2);
-	var dna_1 = __webpack_require__(5);
+	var dna_1 = __webpack_require__(6);
 	var Simulation = (function () {
 	    function Simulation(drawCanvas) {
 	        this.FRAME_DELAY = 1000;
@@ -167,7 +167,6 @@
 	*/
 	var Automata = (function () {
 	    function Automata(runString, drawCanvas) {
-	        this.drawWater = false;
 	        this.canvas = drawCanvas;
 	        this.canvas.setAttribute('width', Automata.GRID_N_COLUMNS * Automata.CELL_SCALE_PIXELS);
 	        this.canvas.setAttribute('height', Automata.GRID_N_ROWS * Automata.CELL_SCALE_PIXELS);
@@ -297,7 +296,7 @@
 	                if (!(this.cellArray[gI][gJ])) {
 	                    // console.log("growing new cell...")
 	                    this.subtractFluids(this.plant[i].fluids, cost);
-	                    var newFluids = this.splitFluids(this.plant[i]);
+	                    var newFluids = this.splitFluids(this.plant[i].fluids);
 	                    var nCell = new cell_1.Cell(this.dna, action.parameters.type, newFluids, gI, gJ);
 	                    this.plant.push(nCell);
 	                    this.cellArray[gI][gJ] = nCell;
@@ -339,11 +338,11 @@
 	            a.vector[i] -= b.vector[i];
 	        }
 	    };
-	    Automata.prototype.splitFluids = function (cell) {
-	        var newFluids = new fluids_1.Fluids(0);
-	        for (var i = 0; i < cell.fluids.vector.length; i++) {
-	            cell.fluids.vector[i] /= 2;
-	            newFluids.vector[i] = cell.fluids.vector[i];
+	    Automata.prototype.splitFluids = function (fluids) {
+	        var newFluids = new fluids_1.Fluids();
+	        for (var i = 0; i < fluids.vector.length; i++) {
+	            fluids.vector[i] /= 2;
+	            newFluids.vector[i] = fluids.vector[i];
 	        }
 	        return newFluids;
 	    };
@@ -580,11 +579,11 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var fluids_1 = __webpack_require__(4);
-	var utils_1 = __webpack_require__(9);
+	var utils_1 = __webpack_require__(5);
 	/*
 	Cell is a fleighweight object for the Grid. Systems.
 	Plus they also have context for fitting into the Grid.
+	It can also be thought of as a DNA controller.
 	*/
 	var Cell = (function () {
 	    function Cell(dna, type, fluids, row, col) {
@@ -598,9 +597,6 @@
 	            this.type = type;
 	        }
 	        this.dna = dna;
-	        for (var i = 0; i < fluids_1.Fluids.N_SIGNALS; ++i) {
-	            this.fluids.vector[fluids_1.Fluids.SIGNALS_START + i] = this.type.signalInit[i];
-	        }
 	    }
 	    Cell.prototype.updateSignals = function () {
 	        // multiply by matrix
@@ -632,13 +628,14 @@
 	        return 0;
 	    };
 	    Cell.prototype.chooseAction = function () {
-	        var signals = this.signals, cellType = this.type;
+	        // var signals = this.signals,
+	        //     cellType = this.type;
 	        // var perceptron = this.type.
 	        // Calculate which actions have high potential values
-	        var actions = this.type.actions;
+	        var actions = this.dna.actions;
 	        var potentials = new Array(actions.length);
 	        for (var i = 0; i < actions.length; ++i) {
-	            potentials[i] = this.type.actionPerceptrons[i].activate(this.fluids); // this.getActionPotential(actions[i]);
+	            potentials[i] = this.type.actionPerceptrons[i].activate(this.fluids.vector)[0]; // this.getActionPotential(actions[i]);
 	        }
 	        var bestIndex = utils_1.Utils.argmax(potentials);
 	        return actions[bestIndex];
@@ -670,6 +667,39 @@
 	        this.vector[Fluids.WATER] = water;
 	        this.vector[Fluids.GLUCOSE] = glucose;
 	    }
+	    Fluids.prototype.sumFluids = function () {
+	        var s = 0;
+	        for (var i = 0; i < this.vector.length; ++i) {
+	            s += this.vector[i];
+	        }
+	        return s;
+	    };
+	    Fluids.prototype.getPressureInArea = function (area) {
+	        return this.sumFluids() / area;
+	    };
+	    /*
+	    Goal:  q
+	    */
+	    /*
+	    Returns the quantity of a given fluid, which is the amount of a substance per unit volume.
+	    divided by the total fluid.
+	
+	    */
+	    /*
+	
+	    */
+	    Fluids.prototype.getFluidConcentration = function (fluidId, area) {
+	    };
+	    /*
+	    Diffusive flux is rate of flow per unit area. Positive value means outward flow.
+	
+	    Fick's law of diffusion: J = -D (d phi)/(d x)
+	    J is diffusive flux
+	    D is diffusion coefficient
+	    phi is amount of
+	    x is position
+	    */
+	    Fluids.prototype.getDiffusiveFlux = function (toFluid, area1, area2) { };
 	    Fluids.WATER = 0;
 	    Fluids.GLUCOSE = 1;
 	    Fluids.AUXIN = 2;
@@ -679,24 +709,74 @@
 	    return Fluids;
 	}());
 	exports.Fluids = Fluids;
-	var Reactions = (function () {
-	    function Reactions() {
-	    }
-	    return Reactions;
-	}());
-	exports.Reactions = Reactions;
 
 
 /***/ },
 /* 5 */
+/***/ function(module, exports) {
+
+	"use strict";
+	var Utils = (function () {
+	    function Utils() {
+	    }
+	    Utils.l2norm = function (arr) {
+	        var n = 0;
+	        for (var i = 0; i < arr.length; ++i) {
+	            n += arr[i] * arr[i];
+	        }
+	        return Math.sqrt(n);
+	    };
+	    Utils.l1norm = function (arr) {
+	        var n = 0;
+	        for (var i = 0; i < arr.length; ++i) {
+	            n += arr[i];
+	        }
+	        return n;
+	    };
+	    Utils.distanceToPlane = function (fluids, activator) {
+	        var normW = Utils.l2norm(activator.w);
+	        var d = 0;
+	        for (var i = 0; i < length; ++i) {
+	            d += fluids[i] * activator[i];
+	        }
+	        d += activator.b;
+	        return d / normW;
+	    };
+	    /*
+	    Sigmoid activator.
+	    Returns value from 0 to 1 given f from -inf to inf.
+	    */
+	    Utils.activatorFunction = function (v) {
+	        return 1 / (1 + Math.exp(-v));
+	    };
+	    Utils.argmax = function (arr) {
+	        if (!arr.length)
+	            return undefined;
+	        var max = arr[0];
+	        var argmax = 0;
+	        for (var i = 1; i < arr.length; ++i) {
+	            if (arr[i] > max) {
+	                argmax = i;
+	                max = arr[i];
+	            }
+	        }
+	        return argmax;
+	    };
+	    return Utils;
+	}());
+	exports.Utils = Utils;
+
+
+/***/ },
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
 	var cell_1 = __webpack_require__(3);
 	var fluids_1 = __webpack_require__(4);
 	var automata_1 = __webpack_require__(2);
-	var action_1 = __webpack_require__(6);
-	var perceptron_1 = __webpack_require__(7);
+	var action_1 = __webpack_require__(7);
+	var perceptron_1 = __webpack_require__(8);
 	var DNA = (function () {
 	    function DNA() {
 	        window['dna'] = this;
@@ -718,8 +798,8 @@
 	        this.cellTypes = new Array(DNA.N_CELL_TYPES);
 	        for (var i = 0; i < DNA.N_CELL_TYPES; ++i) {
 	            var actionPerceptrons = [];
-	            for (var j = 0; j < actionPerceptrons.length; ++j) {
-	                actionPerceptrons[j] = new perceptron_1.Perceptron(fluids_1.Fluids.N_FLUIDS, 8, this.actions.length);
+	            for (var j = 0; j < this.actions.length; ++j) {
+	                actionPerceptrons[j] = new perceptron_1.Perceptron(fluids_1.Fluids.N_FLUIDS, 8, 1);
 	            }
 	            this.cellTypes[i] = {
 	                isLeaf: i == 1,
@@ -734,7 +814,8 @@
 	    DNA.prototype.plantSeed = function (grid) {
 	        var waterInitial = 1.75 * automata_1.Automata.MATERIAL_WATER_WATER_MEAN;
 	        var glucoseInitial = 4.0;
-	        var c1 = new cell_1.Cell(this, 0, new fluids_1.Fluids(waterInitial, glucoseInitial), automata_1.Automata.GRID_N_ROWS / 2 + 2, automata_1.Automata.GRID_N_COLUMNS / 2), c2 = new cell_1.Cell(this, 1, new fluids_1.Fluids(waterInitial, glucoseInitial), automata_1.Automata.GRID_N_ROWS / 2 + 3, automata_1.Automata.GRID_N_COLUMNS / 2);
+	        var rowCenter = Math.floor(automata_1.Automata.GRID_N_ROWS / 2), colCenter = Math.floor(automata_1.Automata.GRID_N_COLUMNS / 2), row1 = rowCenter + 2, row2 = rowCenter + 3, col1 = colCenter, col2 = colCenter;
+	        var c1 = new cell_1.Cell(this, 0, new fluids_1.Fluids(waterInitial, glucoseInitial), row1, col1), c2 = new cell_1.Cell(this, 1, new fluids_1.Fluids(waterInitial, glucoseInitial), row2, col2);
 	        var seed = [c1, c2];
 	        grid[c1.row][c1.col] = c1;
 	        grid[c2.row][c2.col] = c2;
@@ -1121,7 +1202,7 @@
 
 
 /***/ },
-/* 6 */
+/* 7 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -1170,7 +1251,7 @@
 
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -1288,7 +1369,7 @@
 
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -1375,62 +1456,6 @@
 	    return Directions;
 	}());
 	exports.Directions = Directions;
-
-
-/***/ },
-/* 9 */
-/***/ function(module, exports) {
-
-	"use strict";
-	var Utils = (function () {
-	    function Utils() {
-	    }
-	    Utils.l2norm = function (arr) {
-	        var n = 0;
-	        for (var i = 0; i < arr.length; ++i) {
-	            n += arr[i] * arr[i];
-	        }
-	        return Math.sqrt(n);
-	    };
-	    Utils.l1norm = function (arr) {
-	        var n = 0;
-	        for (var i = 0; i < arr.length; ++i) {
-	            n += arr[i];
-	        }
-	        return n;
-	    };
-	    Utils.distanceToPlane = function (fluids, activator) {
-	        var normW = Utils.l2norm(activator.w);
-	        var d = 0;
-	        for (var i = 0; i < length; ++i) {
-	            d += fluids[i] * activator[i];
-	        }
-	        d += activator.b;
-	        return d / normW;
-	    };
-	    /*
-	    Sigmoid activator.
-	    Returns value from 0 to 1 given f from -inf to inf.
-	    */
-	    Utils.activatorFunction = function (v) {
-	        return 1 / (1 + Math.exp(-v));
-	    };
-	    Utils.argmax = function (arr) {
-	        if (!arr.length)
-	            return undefined;
-	        var max = arr[0];
-	        var argmax = 0;
-	        for (var i = 1; i < arr.length; ++i) {
-	            if (arr[i] > max) {
-	                argmax = i;
-	                max = arr[i];
-	            }
-	        }
-	        return argmax;
-	    };
-	    return Utils;
-	}());
-	exports.Utils = Utils;
 
 
 /***/ }
