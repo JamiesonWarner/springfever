@@ -62,10 +62,6 @@ export class Cell {
         // }
     }
 
-    update() {
-
-    }
-
     getActionPotential(action: IAction): number {
         return 0;
     }
@@ -84,6 +80,8 @@ export class Cell {
         }
 
         var bestIndex: number = Utils.argmax(potentials);
+
+        console.log('choosing action, ', actions[bestIndex]);
         return actions[bestIndex];
 
 

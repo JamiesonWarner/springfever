@@ -8,7 +8,10 @@ document.addEventListener("DOMContentLoaded", function(event) {
     sim.startSimulation();
     // sim.doEvolution();
     window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
-    window['resetSimulation'] = sim.resetSimulation.bind(sim);
+    window['resetSimulation'] = function() {
+        sim.resetSimulation(); //.bind(sim);
+        sim.startSimulation();
+    }
     window['toggleDraw'] = sim.toggleDraw.bind(sim);
     window['viewStyle'] = sim.viewStyle.bind(sim);
 

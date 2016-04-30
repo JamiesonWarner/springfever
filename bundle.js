@@ -53,7 +53,10 @@
 	    sim.startSimulation();
 	    // sim.doEvolution();
 	    window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
-	    window['resetSimulation'] = sim.resetSimulation.bind(sim);
+	    window['resetSimulation'] = function () {
+	        sim.resetSimulation(); //.bind(sim);
+	        sim.startSimulation();
+	    };
 	    window['toggleDraw'] = sim.toggleDraw.bind(sim);
 	    window['viewStyle'] = sim.viewStyle.bind(sim);
 	    // sim.runForNTicks(100);
@@ -160,6 +163,8 @@
 	"use strict";
 	var cell_1 = __webpack_require__(3);
 	var fluids_1 = __webpack_require__(4);
+	var action_1 = __webpack_require__(7);
+	var angle_1 = __webpack_require__(9);
 	/*
 	TODO turn Automata into systems model.
 	Automata is a place for shared state.
@@ -245,14 +250,14 @@
 	        document.getElementById('bar-auxin').style.width = (40 * fluids.vector[fluids_1.Fluids.AUXIN]) + 'px';
 	    };
 	    Automata.prototype.update = function () {
+	        //console.log("tick");
 	        if (this.plant.length)
 	            console.log('cell fluids', this.plant[0].fluids.vector);
-	        //console.log("tick");
 	        // Calc actions on this frame
 	        var actions = new Array(this.plant.length);
+	        var cell;
 	        for (var i = 0; i < this.plant.length; i++) {
-	            var cell = this.plant[i];
-	            cell.update();
+	            cell = this.plant[i];
 	            actions[i] = cell.chooseAction();
 	        }
 	        // Apply actions on this frame
@@ -260,25 +265,21 @@
 	            if (!actions[i])
 	                continue;
 	            var action = actions[i];
-	            if (action.name === "grow") {
+	            if (action instanceof action_1.DivideAction) {
 	                // console.log("cell wants to grow...")
-	                var drow = 0;
-	                var dcol = 0;
-	                if (action.parameters.direction === "up") {
-	                    drow = -1;
-	                }
-	                else if (action.parameters.direction === "down") {
-	                    drow = 1;
-	                }
-	                else if (action.parameters.direction === "right") {
-	                    dcol = 1;
-	                }
-	                else if (action.parameters.direction === "left") {
-	                    dcol = -1;
-	                }
+	                var daction = action;
+	                // calculate direction of this action
+	                var neighborUp = this.fluidsArray[cell.row - 1][cell.col];
+	                var neighborRight = this.fluidsArray[cell.row][cell.col + 1];
+	                var neighborDown = this.fluidsArray[cell.row + 1][cell.col];
+	                var neighborLeft = this.fluidsArray[cell.row][cell.col - 1];
+	                var angle = daction.getActionDirection(neighborUp, neighborRight, neighborDown, neighborLeft);
+	                var direction = angle_1.Angle.sampleDirection(angle);
+	                var drow = angle_1.Angle.directionDeltaRow(direction);
+	                var dcol = angle_1.Angle.directionDeltaCol(direction);
 	                var gI = this.plant[i].row + drow;
 	                var gJ = this.plant[i].col + dcol;
-	                var cost = this.dna.cellTypes[action.parameters.type].cost;
+	                var cost = cell.type.cost;
 	                var canAfford = true;
 	                for (var j = 0; j < cost.vector.length; j++) {
 	                    if (!(this.plant[i].fluids.vector[j] >= cost.vector[j])) {
@@ -296,9 +297,9 @@
 	                }
 	                if (!(this.cellArray[gI][gJ])) {
 	                    // console.log("growing new cell...")
-	                    this.subtractFluids(this.plant[i].fluids, cost);
-	                    var newFluids = this.splitFluids(this.plant[i].fluids);
-	                    var nCell = new cell_1.Cell(this.dna, action.parameters.type, newFluids, gI, gJ);
+	                    this.subtractFluids(cell.fluids, cost);
+	                    var newFluids = this.splitFluids(cell.fluids);
+	                    var nCell = new cell_1.Cell(this.dna, cell.type, newFluids, gI, gJ);
 	                    this.plant.push(nCell);
 	                    this.cellArray[gI][gJ] = nCell;
 	                }
@@ -623,8 +624,6 @@
 	        //     this.signals.vector[i] = Math.max(0, Math.min(1, newSignals[i]));
 	        // }
 	    };
-	    Cell.prototype.update = function () {
-	    };
 	    Cell.prototype.getActionPotential = function (action) {
 	        return 0;
 	    };
@@ -639,6 +638,7 @@
 	            potentials[i] = this.type.actionPerceptrons[i].activate(this.fluids.vector)[0]; // this.getActionPotential(actions[i]);
 	        }
 	        var bestIndex = utils_1.Utils.argmax(potentials);
+	        console.log('choosing action, ', actions[bestIndex]);
 	        return actions[bestIndex];
 	        // for (var i = 0; i < activators.length; ++i) {
 	        //     activators[i] = this.activatorFunction(this.distanceToActivator(signals, actions[i].activator));
@@ -720,6 +720,14 @@
 	var Utils = (function () {
 	    function Utils() {
 	    }
+	    Utils.crossProduct = function (arr1, arr2) {
+	        var sum = 0;
+	        var length = Math.min(arr1.length, arr2.length);
+	        for (var i = 0; i < length; ++i) {
+	            sum += arr1[i] * arr2[i];
+	        }
+	        return sum;
+	    };
 	    Utils.l2norm = function (arr) {
 	        var n = 0;
 	        for (var i = 0; i < arr.length; ++i) {
@@ -783,17 +791,6 @@
 	        window['dna'] = this;
 	        this.actions = [
 	            new action_1.DivideAction({ fluidGradient: [0, 0, -1, 0, 0, 0] }),
-	            new action_1.PumpAction({ fluidGradient: [-1, 0, 0.1, 0, 0, 0] }),
-	            new action_1.ReactAction({ reaction: [-0.2, 0.8, 0.1, 0, 0, 0] }),
-	            new action_1.ReactAction({ reaction: [0, 0, 0.1, 0, 0, 0] }),
-	            new action_1.ReactAction({ reaction: [0, 0, 0, 0.1, 0, 0] }),
-	            new action_1.ReactAction({ reaction: [0, 0, 0, 0, 0.1, 0] }),
-	            new action_1.ReactAction({ reaction: [0, 0, 0, 0, 0, 0.1] }),
-	            new action_1.ReactAction({ reaction: [0, 0, 0, -0.1, 0, 0] }),
-	            new action_1.ReactAction({ reaction: [0, 0, 0, 0, -0.1, 0] }),
-	            new action_1.ReactAction({ reaction: [0, 0, 0, 0, 0, -0.1] }),
-	            new action_1.SpecializeAction({ toType: 0 }),
-	            new action_1.SpecializeAction({ toType: 1 })
 	        ];
 	        // cell types
 	        this.cellTypes = new Array(DNA.N_CELL_TYPES);
@@ -1188,15 +1185,6 @@
 	            }
 	        }
 	    };
-	    DNA.prototype.chooseAction = function (signals, cellType) {
-	        var actions = cellType.actions;
-	        var activators = new Array(actions.length);
-	        for (var i = 0; i < activators.length; ++i) {
-	            activators[i] = this.activatorFunction(this.distanceToActivator(signals, actions[i].activator));
-	        }
-	        // console.log('activators', activators, 'actions', actions);
-	        return this.weightedChoose(actions, activators);
-	    };
 	    DNA.N_CELL_TYPES = 2;
 	    DNA.COLOR_HEX_ARRAY = ["#ededbe", "#8F8F6E", "#6E6E8F", "#8F6E7F", "#80C4A1"];
 	    return DNA;
@@ -1206,7 +1194,7 @@
 
 /***/ },
 /* 7 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
 	var __extends = (this && this.__extends) || function (d, b) {
@@ -1214,10 +1202,23 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
+	var utils_1 = __webpack_require__(5);
 	var DirectionalAction = (function () {
 	    function DirectionalAction(args) {
 	        this.fluidGradient = args['fluidGradient'];
 	    }
+	    DirectionalAction.prototype.getActionDirection = function (upFluids, rightFluids, downFluids, leftFluids) {
+	        var upContribution = utils_1.Utils.crossProduct(upFluids, this.fluidGradient);
+	        var rightContribution = utils_1.Utils.crossProduct(rightFluids, this.fluidGradient);
+	        var downContribution = utils_1.Utils.crossProduct(downFluids, this.fluidGradient);
+	        var leftContribution = utils_1.Utils.crossProduct(leftFluids, this.fluidGradient);
+	        return Math.atan2(upContribution - downContribution, rightContribution - leftContribution);
+	    };
+	    /*
+	    Calculate the angle that this action points to
+	    */
+	    DirectionalAction.prototype.getGradientToFluids = function () {
+	    };
 	    return DirectionalAction;
 	}());
 	exports.DirectionalAction = DirectionalAction;
@@ -1382,6 +1383,24 @@
 	var Angle = (function () {
 	    function Angle() {
 	    }
+	    Angle.directionDeltaRow = function (direction) {
+	        if (direction == Direction.up) {
+	            return -1;
+	        }
+	        else if (direction == Direction.down) {
+	            return 1;
+	        }
+	        return 0;
+	    };
+	    Angle.directionDeltaCol = function (direction) {
+	        if (direction == Direction.left) {
+	            return -1;
+	        }
+	        else if (direction == Direction.right) {
+	            return 1;
+	        }
+	        return 0;
+	    };
 	    /*
 	    Return a random Direction enum based on the angle.
 	    sampleDirection(0) returns Direction.RIGHT.
@@ -1390,30 +1409,30 @@
 	    Angle.sampleDirection = function (angle) {
 	        angle = Angle.canonical(angle);
 	        if (angle == Angle.RIGHT)
-	            return Directions.RIGHT;
+	            return Direction.right;
 	        if (angle == Angle.UP)
-	            return Directions.UP;
+	            return Direction.up;
 	        if (angle == Angle.LEFT)
-	            return Directions.LEFT;
+	            return Direction.left;
 	        if (angle == Angle.DOWN)
-	            return Directions.DOWN;
+	            return Direction.down;
 	        // d1, d2 specify the quadrant
 	        var d1, d2;
 	        if (angle > Angle.RIGHT && angle < Angle.UP) {
-	            d1 = Directions.RIGHT;
-	            d2 = Directions.UP;
+	            d1 = Direction.right;
+	            d2 = Direction.up;
 	        }
 	        else if (angle > Angle.UP && angle < Angle.LEFT) {
-	            d1 = Directions.UP;
-	            d2 = Directions.LEFT;
+	            d1 = Direction.up;
+	            d2 = Direction.left;
 	        }
 	        else if (angle > Angle.LEFT && angle < Angle.DOWN) {
-	            d1 = Directions.LEFT;
-	            d2 = Directions.DOWN;
+	            d1 = Direction.left;
+	            d2 = Direction.down;
 	        }
 	        else {
-	            d1 = Directions.DOWN;
-	            d2 = Directions.RIGHT;
+	            d1 = Direction.down;
+	            d2 = Direction.right;
 	        }
 	        // determine how much the angle is pointing toward d1
 	        angle = angle % (Math.PI / 2);
@@ -1449,16 +1468,13 @@
 	/*
 	Cardinal direction enums
 	*/
-	var Directions = (function () {
-	    function Directions() {
-	    }
-	    Directions.RIGHT = 0;
-	    Directions.UP = 1;
-	    Directions.LEFT = 2;
-	    Directions.DOWN = 3;
-	    return Directions;
-	}());
-	exports.Directions = Directions;
+	var Direction;
+	(function (Direction) {
+	    Direction[Direction["right"] = 0] = "right";
+	    Direction[Direction["up"] = 1] = "up";
+	    Direction[Direction["left"] = 2] = "left";
+	    Direction[Direction["down"] = 3] = "down";
+	})(Direction || (Direction = {}));
 
 
 /***/ }

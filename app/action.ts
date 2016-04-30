@@ -1,3 +1,5 @@
+import {Angle} from "./angle";
+import {Utils} from "./utils";
 
 export interface IAction {
 }
@@ -9,6 +11,22 @@ export class DirectionalAction implements IAction {
 
     constructor(args){
         this.fluidGradient = args['fluidGradient']
+    }
+
+    getActionDirection(upFluids, rightFluids, downFluids, leftFluids): number {
+        var upContribution = Utils.crossProduct(upFluids, this.fluidGradient);
+        var rightContribution = Utils.crossProduct(rightFluids, this.fluidGradient);
+        var downContribution = Utils.crossProduct(downFluids, this.fluidGradient);
+        var leftContribution = Utils.crossProduct(leftFluids, this.fluidGradient);
+
+        return Math.atan2(upContribution - downContribution, rightContribution - leftContribution);
+    }
+
+    /*
+    Calculate the angle that this action points to
+    */
+    getGradientToFluids() {
+
     }
 }
 

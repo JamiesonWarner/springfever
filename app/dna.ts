@@ -17,17 +17,17 @@ export class DNA {
 
     this.actions = [
       new DivideAction({ fluidGradient: [0,0,-1,0,0,0] }),
-      new PumpAction({ fluidGradient: [-1,0,0.1,0,0,0] }),
-      new ReactAction({ reaction: [-0.2,0.8,0.1,0,0,0] }), //photosynth
-      new ReactAction({ reaction: [0,0,0.1,0,0,0] }), // free auxin
-      new ReactAction({ reaction: [0,0,0,0.1,0,0] }), // free misc hormones
-      new ReactAction({ reaction: [0,0,0,0,0.1,0] }), // free misc hormones
-      new ReactAction({ reaction: [0,0,0,0,0,0.1] }), // free misc hormones
-      new ReactAction({ reaction: [0,0,0,-0.1,0,0] }), // free misc hormones
-      new ReactAction({ reaction: [0,0,0,0,-0.1,0] }), // free misc hormones
-      new ReactAction({ reaction: [0,0,0,0,0,-0.1] }), // free misc hormones
-      new SpecializeAction({ toType: 0 }),
-      new SpecializeAction({ toType: 1 })
+      // new PumpAction({ fluidGradient: [-1,0,0.1,0,0,0] }),
+      // new ReactAction({ reaction: [-0.2,0.8,0.1,0,0,0] }), //photosynth
+      // new ReactAction({ reaction: [0,0,0.1,0,0,0] }), // free auxin
+      // new ReactAction({ reaction: [0,0,0,0.1,0,0] }), // free misc hormones
+      // new ReactAction({ reaction: [0,0,0,0,0.1,0] }), // free misc hormones
+      // new ReactAction({ reaction: [0,0,0,0,0,0.1] }), // free misc hormones
+      // new ReactAction({ reaction: [0,0,0,-0.1,0,0] }), // free misc hormones
+      // new ReactAction({ reaction: [0,0,0,0,-0.1,0] }), // free misc hormones
+      // new ReactAction({ reaction: [0,0,0,0,0,-0.1] }), // free misc hormones
+      // new SpecializeAction({ toType: 0 }),
+      // new SpecializeAction({ toType: 1 })
     ];
 
     // cell types
@@ -40,7 +40,7 @@ export class DNA {
       this.cellTypes[i] = {
         color: DNA.COLOR_HEX_ARRAY[i%DNA.COLOR_HEX_ARRAY.length],
         isLeaf: i==1,
-        cost: new Fluids(0.2,0.2),
+        cost: new Fluids(0.2, 0.2),
         actionPerceptrons: actionPerceptrons
       };
     }
@@ -445,13 +445,13 @@ Transitions between cell types can be modeled as a markov chain, though some sta
     }
   }
 
-  chooseAction(signals, cellType) {
-    var actions = cellType.actions;
-    var activators = new Array(actions.length)
-    for (var i = 0; i < activators.length; ++i) {
-        activators[i] = this.activatorFunction(this.distanceToActivator(signals, actions[i].activator));
-    }
-    // console.log('activators', activators, 'actions', actions);
-    return this.weightedChoose(actions, activators);
-  }
+  // chooseAction(signals, cellType) {
+  //   var actions = cellType.actions;
+  //   var activators = new Array(actions.length)
+  //   for (var i = 0; i < activators.length; ++i) {
+  //       activators[i] = this.activatorFunction(this.distanceToActivator(signals, actions[i].activator));
+  //   }
+  //   // console.log('activators', activators, 'actions', actions);
+  //   return this.weightedChoose(actions, activators);
+  // }
 }

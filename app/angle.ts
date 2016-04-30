@@ -7,6 +7,25 @@ export class Angle {
     static LEFT: number = Math.PI;
     static DOWN: number = 3*Math.PI / 2;
 
+    static directionDeltaRow(direction: Direction) {
+        if (direction == Direction.up) {
+            return -1;
+        }
+        else if (direction == Direction.down) {
+            return 1;
+        }
+        return 0;
+    }
+    static directionDeltaCol(direction: Direction) {
+        if (direction == Direction.left) {
+            return -1;
+        }
+        else if (direction == Direction.right) {
+            return 1;
+        }
+        return 0;
+    }
+
     /*
     Return a random Direction enum based on the angle.
     sampleDirection(0) returns Direction.RIGHT.
@@ -14,28 +33,28 @@ export class Angle {
     */
     static sampleDirection(angle:number) {
         angle = Angle.canonical(angle);
-        if (angle == Angle.RIGHT) return Directions.RIGHT;
-        if (angle == Angle.UP) return Directions.UP;
-        if (angle == Angle.LEFT) return Directions.LEFT;
-        if (angle == Angle.DOWN) return Directions.DOWN;
+        if (angle == Angle.RIGHT) return Direction.right;
+        if (angle == Angle.UP) return Direction.up;
+        if (angle == Angle.LEFT) return Direction.left;
+        if (angle == Angle.DOWN) return Direction.down;
 
         // d1, d2 specify the quadrant
         var d1, d2;
         if (angle>Angle.RIGHT && angle<Angle.UP) {
-            d1 = Directions.RIGHT;
-            d2 = Directions.UP;
+            d1 = Direction.right;
+            d2 = Direction.up;
         }
         else if (angle>Angle.UP && angle<Angle.LEFT) {
-            d1 = Directions.UP;
-            d2 = Directions.LEFT;
+            d1 = Direction.up;
+            d2 = Direction.left;
         }
         else if (angle>Angle.LEFT && angle<Angle.DOWN) {
-            d1 = Directions.LEFT;
-            d2 = Directions.DOWN;
+            d1 = Direction.left;
+            d2 = Direction.down;
         }
         else {
-            d1 = Directions.DOWN;
-            d2 = Directions.RIGHT;
+            d1 = Direction.down;
+            d2 = Direction.right;
         }
 
         // determine how much the angle is pointing toward d1
@@ -72,9 +91,10 @@ export class Angle {
 /*
 Cardinal direction enums
 */
-export class Directions {
-    static RIGHT:number = 0;
-    static UP:number = 1;
-    static LEFT:number = 2;
-    static DOWN:number = 3;
+
+enum Direction {
+    right,
+    up,
+    left,
+    down
 }

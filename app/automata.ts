@@ -3,6 +3,8 @@ import {Cell} from "./cell"
 import {Dirt} from "./dirt";
 import {Fluids} from "./fluids";
 import {ISystem} from "./system";
+import {IAction, DivideAction} from "./action";
+import {Angle} from "./angle";
 
 /*
 TODO turn Automata into systems model.
@@ -120,52 +122,50 @@ export class Automata {
     }
 
     update() {
+        //console.log("tick");
         if (this.plant.length)
             console.log('cell fluids', this.plant[0].fluids.vector);
 
-        //console.log("tick");
         // Calc actions on this frame
         var actions = new Array(this.plant.length);
+        var cell: Cell;
         for (var i = 0; i < this.plant.length; i++) {
-            var cell = this.plant[i];
-            cell.update();
+            cell = this.plant[i];
             actions[i] = cell.chooseAction();
         }
 
         // Apply actions on this frame
         for (var i = 0; i < actions.length; i++) {
             if (!actions[i]) continue;
-            let action = actions[i];
-            if(action.name === "grow"){
+            var action = actions[i];
+            if(action instanceof DivideAction){
                 // console.log("cell wants to grow...")
-                var drow = 0;
-                var dcol = 0;
-                if(action.parameters.direction === "up"){
-                    drow = -1;
-                }
-                else if(action.parameters.direction === "down"){
-                    drow = 1;
-                }
-                else if(action.parameters.direction === "right"){
-                    dcol = 1;
-                }
-                else if(action.parameters.direction === "left"){
-                    dcol = -1;
-                }
+                var daction: DivideAction = action;
+
+                // calculate direction of this action
+
+                var neighborUp = this.fluidsArray[cell.row - 1][cell.col];
+                var neighborRight = this.fluidsArray[cell.row][cell.col + 1];
+                var neighborDown = this.fluidsArray[cell.row + 1][cell.col];
+                var neighborLeft = this.fluidsArray[cell.row][cell.col - 1];
+                var angle: number = daction.getActionDirection(neighborUp, neighborRight, neighborDown, neighborLeft);
+
+                var direction = Angle.sampleDirection(angle);
+                var drow = Angle.directionDeltaRow(direction);
+                var dcol = Angle.directionDeltaCol(direction);
+
                 var gI = this.plant[i].row + drow;
                 var gJ = this.plant[i].col + dcol;
 
-                let cost = this.dna.cellTypes[action.parameters.type].cost;
+                var cost = cell.type.cost;
 
-                let canAfford = true;
-
+                var canAfford = true;
                 for (var j = 0; j < cost.vector.length; j++){
                     if(!(this.plant[i].fluids.vector[j] >= cost.vector[j])){
                         canAfford = false;
                         break;
                     }
                 }
-
                 if (!canAfford) {
                     // console.log("cell can't afford...")
                     continue;
@@ -178,9 +178,9 @@ export class Automata {
 
                 if(! (this.cellArray[gI][gJ])){
                     // console.log("growing new cell...")
-                    this.subtractFluids(this.plant[i].fluids, cost);
-                    let newFluids = this.splitFluids(this.plant[i].fluids);
-                    var nCell = new Cell(this.dna, action.parameters.type, newFluids, gI, gJ);
+                    this.subtractFluids(cell.fluids, cost);
+                    var newFluids = this.splitFluids(cell.fluids);
+                    var nCell = new Cell(this.dna, cell.type, newFluids, gI, gJ);
                     this.plant.push(nCell);
                     this.cellArray[gI][gJ] = nCell;
                 }
