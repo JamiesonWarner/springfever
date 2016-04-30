@@ -62,12 +62,16 @@ export class Simulation {
             this.startSimulation();
     }
 
-    resetSimulation() {
+    setupSimulation(dna: DNA) {
+        if (!dna) {
+            dna = new DNA();
+        }
         this.showStatusString('Resetting...');
         let view = this.automata.viewStyle;
         this.stopSimulation();
         this.automata = null;
         this.automata = new Automata('prototype', this.drawCanvas);
+        this.automata.plantSeed(dna);
         this.automata.viewStyle = view;
     }
 

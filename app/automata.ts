@@ -123,8 +123,8 @@ export class Automata {
 
     update() {
         //console.log("tick");
-        if (this.plant.length)
-            console.log('cell fluids', this.plant[0].fluids.vector);
+        // if (this.plant.length)
+        //     console.log('cell fluids', this.plant[0].fluids.vector);
 
         // Calc actions on this frame
         var actions = new Array(this.plant.length);

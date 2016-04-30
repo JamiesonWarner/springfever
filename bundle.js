@@ -45,16 +45,17 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var simulation_1 = __webpack_require__(1);
+	var evolution_1 = __webpack_require__(10);
 	var angle_1 = __webpack_require__(9);
 	document.addEventListener("DOMContentLoaded", function (event) {
 	    var drawCanvas = document.getElementById("draw");
-	    var sim = new simulation_1.Simulation(drawCanvas);
-	    sim.startSimulation();
-	    // sim.doEvolution();
+	    // var sim = new Simulation(drawCanvas);
+	    // sim.startSimulation();
+	    var sim = new evolution_1.Evolution(drawCanvas);
+	    var best = sim.doEvolution(0);
 	    window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
 	    window['resetSimulation'] = function () {
-	        sim.resetSimulation(); //.bind(sim);
+	        sim.setupSimulation(null); //.bind(sim);
 	        sim.startSimulation();
 	    };
 	    window['toggleDraw'] = sim.toggleDraw.bind(sim);
@@ -121,12 +122,16 @@
 	        else
 	            this.startSimulation();
 	    };
-	    Simulation.prototype.resetSimulation = function () {
+	    Simulation.prototype.setupSimulation = function (dna) {
+	        if (!dna) {
+	            dna = new dna_1.DNA();
+	        }
 	        this.showStatusString('Resetting...');
 	        var view = this.automata.viewStyle;
 	        this.stopSimulation();
 	        this.automata = null;
 	        this.automata = new automata_1.Automata('prototype', this.drawCanvas);
+	        this.automata.plantSeed(dna);
 	        this.automata.viewStyle = view;
 	    };
 	    Simulation.prototype.toggleDraw = function () {
@@ -251,8 +256,8 @@
 	    };
 	    Automata.prototype.update = function () {
 	        //console.log("tick");
-	        if (this.plant.length)
-	            console.log('cell fluids', this.plant[0].fluids.vector);
+	        // if (this.plant.length)
+	        //     console.log('cell fluids', this.plant[0].fluids.vector);
 	        // Calc actions on this frame
 	        var actions = new Array(this.plant.length);
 	        var cell;
@@ -638,7 +643,7 @@
 	            potentials[i] = this.type.actionPerceptrons[i].activate(this.fluids.vector)[0]; // this.getActionPotential(actions[i]);
 	        }
 	        var bestIndex = utils_1.Utils.argmax(potentials);
-	        console.log('choosing action, ', actions[bestIndex]);
+	        // console.log('choosing action, ', actions[bestIndex]);
 	        return actions[bestIndex];
 	        // for (var i = 0; i < activators.length; ++i) {
 	        //     activators[i] = this.activatorFunction(this.distanceToActivator(signals, actions[i].activator));
@@ -1274,8 +1279,22 @@
 	        _super.apply(this, nnodes);
 	    }
 	    Perceptron.prototype.perturb = function (amount) {
-	        if (amount === void 0) { amount = 1.0; }
 	        // perturb every weight by ~amount
+	        if (amount === void 0) { amount = 1.0; }
+	        // iterate through layers connections
+	        var connections = this.layers.input.connectedTo[0].list
+	            .concat(connections = this.layers.hidden[0].connectedTo[0].list);
+	        for (var i = 0; i < connections.length; ++i) {
+	            var connection = connections[i];
+	            connection.weight += 2 * Math.random() * amount - amount;
+	        }
+	        // iterate through neurons
+	        var neurons = this.layers.input.list
+	            .concat(this.layers.hidden[0].list)
+	            .concat(this.layers.output.list);
+	        for (var i = 0; i < neurons.length; ++i) {
+	            neurons[i].bias += 2 * Math.random() * amount - amount;
+	        }
 	        // for (var i = 0; i < this.weights.length; ++i) {
 	        //     for (var j = 0; j < this.weights[i].length; ++j) {
 	        //         for (var k = 0; k < this.weights[i][j].length; ++k) {
@@ -1475,6 +1494,72 @@
 	    Direction[Direction["left"] = 2] = "left";
 	    Direction[Direction["down"] = 3] = "down";
 	})(Direction || (Direction = {}));
+
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var dna_1 = __webpack_require__(6);
+	var simulation_1 = __webpack_require__(1);
+	var Evolution = (function (_super) {
+	    __extends(Evolution, _super);
+	    function Evolution(drawCanvas) {
+	        _super.call(this, drawCanvas);
+	    }
+	    Evolution.prototype.doEvolution = function (ngenerations, seed) {
+	        if (ngenerations === void 0) { ngenerations = 4; }
+	        if (!seed) {
+	            seed = new dna_1.DNA();
+	        }
+	        var best = seed;
+	        for (var i = 0; i < ngenerations; ++i) {
+	            best = this.runGenerationSelectBest(10, best, 40);
+	        }
+	        return best;
+	    };
+	    Evolution.prototype.growSeed = function (seed, grownCallback) {
+	        requestAnimationFrame(grownCallback);
+	    };
+	    Evolution.prototype.runGenerationSelectBest = function (nchildren, seed, growtime) {
+	        // grow the seed for growtime iterations, then eval its fitness
+	        if (growtime === void 0) { growtime = 40; }
+	        // generate random children
+	        var children = new Array(nchildren);
+	        // make n copies of the dna
+	        for (var i = 0; i < nchildren; ++i) {
+	            children[i] = seed.copyAndMutate();
+	        }
+	        // evaluate each one's fitness
+	        var fitness = new Array(nchildren);
+	        for (var i = 0; i < children.length; ++i) {
+	            this.setupSimulation(children[i]);
+	            this.runForNTicks(growtime);
+	            fitness[i] = this.evalFitness(this.automata.plant);
+	        }
+	        // return the child with the best fitness
+	        var maxFitness = -Infinity;
+	        var bestChild = null;
+	        for (var i = 0; i < children.length; ++i) {
+	            if (fitness[i] > maxFitness) {
+	                maxFitness = fitness[i];
+	                bestChild = children[i];
+	            }
+	        }
+	        return bestChild;
+	    };
+	    Evolution.prototype.evalFitness = function (plant) {
+	        return plant.length;
+	    };
+	    return Evolution;
+	}(simulation_1.Simulation));
+	exports.Evolution = Evolution;
 
 
 /***/ }

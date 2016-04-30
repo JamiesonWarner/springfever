@@ -20,6 +20,10 @@ export class Evolution extends Simulation {
         return best;
     }
 
+    growSeed(seed: DNA, grownCallback) {
+        requestAnimationFrame(grownCallback);
+    }
+
     runGenerationSelectBest(nchildren:number, seed:DNA, growtime: number = 40): DNA {
         // grow the seed for growtime iterations, then eval its fitness
 
@@ -34,8 +38,7 @@ export class Evolution extends Simulation {
         // evaluate each one's fitness
         var fitness = new Array(nchildren);
         for (var i = 0; i < children.length; ++i) {
-            this.resetSimulation();
-            this.automata.plantSeed(children[i]);
+            this.setupSimulation(children[i]);
             this.runForNTicks(growtime);
             fitness[i] = this.evalFitness(this.automata.plant);
         }

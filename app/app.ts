@@ -4,12 +4,14 @@ import {Angle} from "./angle";
 
 document.addEventListener("DOMContentLoaded", function(event) {
     var drawCanvas = document.getElementById("draw");
-    var sim = new Simulation(drawCanvas);
-    sim.startSimulation();
-    // sim.doEvolution();
+    // var sim = new Simulation(drawCanvas);
+    // sim.startSimulation();
+    var sim = new Evolution(drawCanvas);
+    var best = sim.doEvolution(0);
+
     window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
     window['resetSimulation'] = function() {
-        sim.resetSimulation(); //.bind(sim);
+        sim.setupSimulation(null); //.bind(sim);
         sim.startSimulation();
     }
     window['toggleDraw'] = sim.toggleDraw.bind(sim);
