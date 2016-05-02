@@ -47,6 +47,8 @@ export class Simulation {
                 self.automata.draw();
             }
         }, this.FRAME_DELAY);
+
+        this.automata.draw();
     }
 
     stopSimulation() {

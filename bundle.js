@@ -110,6 +110,7 @@
 	                self.automata.draw();
 	            }
 	        }, this.FRAME_DELAY);
+	        this.automata.draw();
 	    };
 	    Simulation.prototype.stopSimulation = function () {
 	        this.showStatusString('Simulation stopped.');
@@ -398,13 +399,13 @@
 	        // photosynthesis. TODO this will be an action
 	        var REACTION_FACTOR = 10; // expend 1 water to get 4 glucose
 	        for (var i = 0; i < this.plant.length; i++) {
-	            var cell = this.plant[i];
-	            if (cell.type.isLeaf) {
-	                var numAir = this.countAirNeighbors(cell.row, cell.col);
-	                var dGlucose = Math.min(cell.fluids.vector[fluids_1.Fluids.WATER] / 4, 100 * numAir);
+	            var cell_2 = this.plant[i];
+	            if (cell_2.type.isLeaf) {
+	                var numAir = this.countAirNeighbors(cell_2.row, cell_2.col);
+	                var dGlucose = Math.min(cell_2.fluids.vector[fluids_1.Fluids.WATER] / 4, 100 * numAir);
 	                // convert water to glucose
-	                fluidsDiff[cell.row][cell.col][fluids_1.Fluids.WATER] -= dGlucose;
-	                fluidsDiff[cell.row][cell.col][fluids_1.Fluids.GLUCOSE] += REACTION_FACTOR * dGlucose;
+	                fluidsDiff[cell_2.row][cell_2.col][fluids_1.Fluids.WATER] -= dGlucose;
+	                fluidsDiff[cell_2.row][cell_2.col][fluids_1.Fluids.GLUCOSE] += REACTION_FACTOR * dGlucose;
 	            }
 	        }
 	        // respiration. this is needed for stuff
@@ -415,16 +416,14 @@
 	            cell.fluids.vector[fluids_1.Fluids.GLUCOSE] -= RESPIRATION_AMOUNT;
 	        }
 	        // Passive transport / diffusion. Give nutrients to neighbors.
+	        // console.log(fluidsDiff);
 	        var neighbs = [[-1, 0], [1, 0], [0, 1], [0, -1]];
 	        for (var row = 0; row < Automata.GRID_N_ROWS; ++row) {
 	            for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
 	                for (var i = 0; i < neighbs.length; ++i) {
 	                    var neighbRow = row + neighbs[i][0];
 	                    var neighbCol = col + neighbs[i][1];
-	                    if (neighbRow < 0
-	                        || neighbCol < 0
-	                        || neighbRow >= Automata.GRID_N_ROWS
-	                        || neighbCol >= Automata.GRID_N_COLUMNS) {
+	                    if (!this.isPositionOnGrid(neighbRow, neighbCol)) {
 	                        continue;
 	                    }
 	                    var flowRate = 0.02;
@@ -432,8 +431,8 @@
 	                    if (this.isAirNotCell(row, col) && this.isAirNotCell(neighbRow, neighbCol)) {
 	                        flowRate = 0.2;
 	                    }
-	                    var neighbFluids = this.fluidsArray[neighbRow][neighbCol];
-	                    var fluids = this.fluidsArray[row][col];
+	                    var neighbFluids = this.fluidsArray[neighbRow][neighbCol].vector;
+	                    var fluids = this.fluidsArray[row][col].vector;
 	                    for (var j = 0; j < fluids_1.Fluids.N_FLUIDS; ++j) {
 	                        if (fluids[j] > neighbFluids[j]) {
 	                            var diff = flowRate * (fluids[j] - neighbFluids[j]);
@@ -448,7 +447,7 @@
 	        // Apply fluidsDiff to fluids
 	        for (var row = 0; row < Automata.GRID_N_ROWS; row++) {
 	            for (var col = 0; col < Automata.GRID_N_COLUMNS; col++) {
-	                var fluids = this.fluidsArray[row][col];
+	                var fluids = this.fluidsArray[row][col].vector;
 	                var fluidDiff = fluidsDiff[row][col];
 	                for (var i = 0; i < fluids_1.Fluids.N_FLUIDS; ++i) {
 	                    fluids[i] += fluidDiff[i];
@@ -461,10 +460,10 @@
 	            row < Automata.GRID_N_ROWS && col < Automata.GRID_N_COLUMNS;
 	    };
 	    Automata.prototype.isAirNotCell = function (row, col) {
+	        // cell is dead and cell is air cell
 	        if (!this.isPositionOnGrid(row, col))
 	            return false;
-	        // return
-	        return row < 50 && !(this.fluidsArray[row][col] instanceof cell_1.Cell);
+	        return row < 50 && !this.cellArray[row][col];
 	    };
 	    Automata.prototype.countAirNeighbors = function (row, col) {
 	        var n = (this.isAirNotCell(row - 1, col) ? 1 : 0) +
@@ -502,8 +501,8 @@
 	                    }
 	                }
 	                else if (this.viewStyle === 'auxin') {
-	                    var cell_2 = this.cellArray[row][col];
-	                    if (cell_2) {
+	                    var cell_3 = this.cellArray[row][col];
+	                    if (cell_3) {
 	                        this.canvasCtx.fillStyle = "#" + "0000" + this.getColorHex(Math.min(255, Math.ceil(255 * fluids[fluids_1.Fluids.SIGNALS_START].vector[0])));
 	                    }
 	                    else {
@@ -511,8 +510,8 @@
 	                    }
 	                }
 	                else {
-	                    var cell_3 = this.cellArray[row][col];
-	                    if (cell_3) {
+	                    var cell_4 = this.cellArray[row][col];
+	                    if (cell_4) {
 	                        this.canvasCtx.fillStyle = this.cellArray[row][col].type.color;
 	                    }
 	                    else if (row >= 50) {
@@ -795,7 +794,9 @@
 	    function DNA() {
 	        window['dna'] = this;
 	        this.actions = [
-	            new action_1.DivideAction({ fluidGradient: [0, 0, -1, 0, 0, 0] }),
+	            // new DivideAction({ fluidGradient: [0,0,-1,0,0,0], gravityGradient: 2 }),
+	            new action_1.DivideAction({ fluidGradient: [0, 0, 0, 0, 0, 0], gravityGradient: 2 }),
+	            new action_1.DivideAction({ fluidGradient: [0, 0, 0, 0, 0, 0], gravityGradient: -2 }),
 	        ];
 	        // cell types
 	        this.cellTypes = new Array(DNA.N_CELL_TYPES);
@@ -812,7 +813,8 @@
 	            };
 	        }
 	    }
-	    DNA.prototype.copyAndMutate = function () {
+	    DNA.prototype.copyAndMutate = function (amount) {
+	        if (amount === void 0) { amount = 1; }
 	        return new DNA();
 	    };
 	    DNA.prototype.plantSeed = function (grid) {
@@ -849,346 +851,11 @@
 	    /*
 	    For every action, celltypes has a neural net
 	    */
-	    // cellTypes = [
-	    //   {
-	    //     cost: new Fluids(0.2, 0.2),
-	    //     /*
-	    //     (N_SIGNALS) x (N_SIGNALS+N_FLUIDS)
-	    //     */
-	    //     signalMatrix: [
-	    //       [1,0,0,0,0.2,0.2], // auxin production depends on resources
-	    //       [0,1,1,1,0,0], // new apical contender (force apical)
-	    //       [0,0,1,0,0,0], // old apical (starts 0, goes to 1)
-	    //       [0,0,0,1,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
-	    //     ],
-	    //     signalB: [-0.3,-0.5,0.05,-0.05],
-	    //     signalInit: [0,0,0,1],
-	    //     color: "#ededbe",
-	    //     actions: [
-	    //       {
-	    //         name: 'demote',
-	    //         activator: {
-	    //           w: [0,10,0,0],
-	    //           b: 0
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'up',
-	    //             type: 0
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 60,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'right',
-	    //             type: 0
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'right',
-	    //             type: 1
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'left',
-	    //             type: 1
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'nothing',
-	    //         activator: {
-	    //           w: [-2, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       }
-	    //     ]
-	    //   },
-	    //   {
-	    //     cost: new Fluids(0, 0.2),
-	    //     signalMatrix: [
-	    //       [0.8,0,0,0,0,0], // auxin production depends on resources
-	    //       [0,1,0,0,0,0], // new apical contender (force apical)
-	    //       [0,0,1,0,0,0], // old apical (starts 0, goes to 1)
-	    //       [0,0,0,1,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
-	    //     ],
-	    //     signalB: [0.05,-0.5,0.05,0.05],
-	    //     signalInit: [0,0,0,0],
-	    //     color: "#8F8F6E",
-	    //     isLeaf: true,
-	    //     actions: [
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'right',
-	    //             type: 1
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'left',
-	    //             type: 1
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'right',
-	    //             type: 4
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 4,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'left',
-	    //             type: 4
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'nothing',
-	    //         activator: {
-	    //           w: [-2, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       }
-	    //     ]
-	    //   },
-	    //   {
-	    //     cost: new Fluids(0, 0.2),
-	    //     signalMatrix: [
-	    //       [0.8,0,0,0,0,0], // auxin production depends on resources
-	    //       [0,1,0,0,0,0], // new apical contender (force apical)
-	    //       [0,0,1,0,0,0], // old apical (starts 0, goes to 1)
-	    //       [0,0,0,1,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
-	    //     ],
-	    //     signalB: [0.05,-0.5,0.05,0.05],
-	    //     signalInit: [0,0,0,0],
-	    //     color: "#6E6E8F",
-	    //     actions: [
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'down',
-	    //             type: 2
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'right',
-	    //             type: 2
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'right',
-	    //             type: 3
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'left',
-	    //             type: 3
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'nothing',
-	    //         activator: {
-	    //           w: [-2, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       }
-	    //     ]
-	    //   },
-	    //   {
-	    //     cost: new Fluids(0, 0.2),
-	    //     signalMatrix: [
-	    //       [0.8,0,0,0,0,0], // auxin production depends on resources
-	    //       [0,1,0,0,0,0], // new apical contender (force apical)
-	    //       [0,0,1,0,0,0], // old apical (starts 0, goes to 1)
-	    //       [0,0,0,1,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
-	    //     ],
-	    //     signalB: [0.05,-0.5,0.05,0.05],
-	    //     signalInit: [0,0,0,0],
-	    //     color: "#8F6E7F",
-	    //     actions: [
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'right',
-	    //             type: 3
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'left',
-	    //             type: 3
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'nothing',
-	    //         activator: {
-	    //           w: [-2, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       }
-	    //     ]
-	    //   },
-	    //   { // leafs
-	    //     cost: new Fluids(0, 0.4),
-	    //     signalMatrix: [
-	    //       [0.8,0,0,0,0,0], // auxin production depends on resources
-	    //       [0,1,0,0,0,0], // new apical contender (force apical)
-	    //       [0,0,1,0,0,0], // old apical (starts 0, goes to 1)
-	    //       [0,0,0,1,0,0], // starts 1, goes 0. Will be >0 when old if there's young.
-	    //     ],
-	    //     signalB: [0.05,-0.5,0.05,0.05],
-	    //     signalInit: [0,0,0,0],
-	    //     color: "#80C4A1",
-	    //     actions: [
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'right',
-	    //             type: 4
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'grow',
-	    //         parameters: {
-	    //             direction: 'left',
-	    //             type: 4
-	    //         },
-	    //         activator: {
-	    //           w: [20, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       },
-	    //       {
-	    //         name: 'nothing',
-	    //         activator: {
-	    //           w: [-2, 0, 0, 0],
-	    //           b: 2,
-	    //         }
-	    //       }
-	    //     ]
-	    //   }
-	    // ]
 	    DNA.prototype.serialize = function () {
 	        return {
-	            cellTypes: this.cellTypes
+	            cellTypes: this.cellTypes,
+	            actions: this.actions
 	        };
-	    };
-	    DNA.prototype.l2norm = function (arr) {
-	        var n = 0;
-	        for (var i = 0; i < arr.length; ++i) {
-	            n += arr[i] * arr[i];
-	        }
-	        return Math.sqrt(n);
-	    };
-	    DNA.prototype.l1norm = function (arr) {
-	        var n = 0;
-	        for (var i = 0; i < arr.length; ++i) {
-	            n += arr[i];
-	        }
-	        return n;
-	    };
-	    DNA.prototype.distanceToActivator = function (fluids, activator) {
-	        var normW = this.l2norm(activator.w);
-	        var d = 0;
-	        for (var i = 0; i < length; ++i) {
-	            d += fluids[i] * activator[i];
-	        }
-	        d += activator.b;
-	        return d / normW;
-	    };
-	    /*
-	    Sigmoid activator.
-	    Returns value from 0 to 1 given f from -inf to inf.
-	    */
-	    DNA.prototype.activatorFunction = function (v) {
-	        return 1 / (1 + Math.exp(-v));
-	    };
-	    DNA.prototype.weightedChoose = function (values, weights) {
-	        var norm = this.l1norm(weights);
-	        var rand = Math.random();
-	        var prob = 0;
-	        for (var i = 0; i < values.length; ++i) {
-	            var w = weights[i] / norm;
-	            prob += w;
-	            if (rand <= prob) {
-	                return values[i];
-	            }
-	        }
 	    };
 	    DNA.N_CELL_TYPES = 2;
 	    DNA.COLOR_HEX_ARRAY = ["#ededbe", "#8F8F6E", "#6E6E8F", "#8F6E7F", "#80C4A1"];
@@ -1211,13 +878,20 @@
 	var DirectionalAction = (function () {
 	    function DirectionalAction(args) {
 	        this.fluidGradient = args['fluidGradient'];
+	        this.gravityGradient = args['gravityGradient'];
+	        this.sunGradient = args['sunGradient'];
 	    }
 	    DirectionalAction.prototype.getActionDirection = function (upFluids, rightFluids, downFluids, leftFluids) {
 	        var upContribution = utils_1.Utils.crossProduct(upFluids, this.fluidGradient);
 	        var rightContribution = utils_1.Utils.crossProduct(rightFluids, this.fluidGradient);
 	        var downContribution = utils_1.Utils.crossProduct(downFluids, this.fluidGradient);
 	        var leftContribution = utils_1.Utils.crossProduct(leftFluids, this.fluidGradient);
-	        return Math.atan2(upContribution - downContribution, rightContribution - leftContribution);
+	        if (this.gravityGradient) {
+	            downContribution += this.gravityGradient;
+	        }
+	        var direction = Math.atan2(upContribution - downContribution, rightContribution - leftContribution);
+	        console.log('calculated action direction is ', direction, upContribution, downContribution);
+	        return direction;
 	    };
 	    /*
 	    Calculate the angle that this action points to
@@ -1306,89 +980,6 @@
 	    return Perceptron;
 	}(Architect.Perceptron));
 	exports.Perceptron = Perceptron;
-	// export class Perceptron {
-	//     // perceptron is a list of layers.
-	//     // each layer is a list of nodes, each node (k+1) weight values, where k is the # nodes in the previous layer
-	//     // layers array will have #layers - 1 values because the input layer has no weights
-	//     // [
-	//     //     [[0,0],[0,0]], // hidden 1
-	//     //     [[0,0,0]]  // output
-	//     // ]
-	//     weights: Array<Array<Array<number>>>;
-	//     nlayers: Array<number>; // array of the # nodes in each layer, INCLUDING the input layer.
-	//     netValues: Array<Array<number>>;
-	//     constructor(...args: number[]) {
-	//         var nlayers = args.length;
-	//         this.weights = new Array(nlayers-1);
-	//         for (var i = 1; i < nlayers; ++i) {
-	//             var nnodes = args[i],
-	//                 prevNodes = args[i - 1];
-	//             this.weights[i-1] = new Array(nnodes);
-	//             for (var j = 0; j < nnodes; ++j) {
-	//                 this.weights[i-1][j] = new Array(prevNodes + 1); // input + constant
-	//                 for (var k = 0; k < prevNodes + 1; ++k) {
-	//                     this.weights[i-1][j][k] = 0;
-	//                 }
-	//             }
-	//         }
-	//         this.netValues = new Array(nlayers - 1);
-	//         for (var i = 1; i < nlayers; ++i) {
-	//             this.netValues[i-1] = new Array(args[i]);
-	//         }
-	//     }
-	//     clone(): Perceptron {
-	//         // assume weight equivilancy
-	//         var p = new (Function.prototype.bind.apply(Perceptron, this.nlayers));
-	//         for (var i = 0; i < this.weights.length; ++i) {
-	//             for (var j = 0; j < this.weights[i].length; ++j) {
-	//                 for (var k = 0; k < this.weights[i][j].length; ++k) {
-	//                     p.weights[i][j][k] = this.weights[i][j][k];
-	//                 }
-	//             }
-	//         }
-	//         return p;
-	//     }
-	//     perturb(amount: number = 1.0) {
-	//         // perturb every weight by ~amount
-	//         for (var i = 0; i < this.weights.length; ++i) {
-	//             for (var j = 0; j < this.weights[i].length; ++j) {
-	//                 for (var k = 0; k < this.weights[i][j].length; ++k) {
-	//                     this.weights[i][j][k] += 2 * Math.random() * amount - amount;
-	//                 }
-	//             }
-	//         }
-	//     }
-	//     net(input: Array<number>): number {
-	//         // var mtx = this.type.signalMatrix;
-	//         // for (var i = 0; i < newSignals.length; i++) {
-	//         //     for (var j = 0; j < Fluids.N_SIGNALS; j++) { // first SIGNALS columns of matrix...
-	//         //         newSignals[i] += this.fluids.vector[j+Fluids.SIGNALS_START] * mtx[i][j];
-	//         //     }
-	//         //     for (j = 0; j < this.fluids.vector.length; ++j) {
-	//         //         newSignals[i] += this.fluids.vector[j] * mtx[i][j+this.signals.vector.length];
-	//         //     }
-	//         // }
-	//         // iterate through each layer of weights
-	//         var inlayer = input;
-	//         var outlayer;
-	//         for (var i = 0; i < this.netValues.length; ++i) {
-	//             outlayer = this.netValues[i];
-	//             var layerWeights = this.weights[i];
-	//             for (var j = 0; j < layerWeights.length; ++j) {
-	//                 // weights for the node
-	//                 var weights = layerWeights[j];
-	//                 var sum = weights[0];
-	//                 for (var k = 0; k < inlayer.length; ++k) {
-	//                     sum += inlayer[k] * weights[k+1];
-	//                 }
-	//                 outlayer[j] = sum; // VectorUtils.activatorFunction(sum);
-	//             }
-	//             inlayer = this.netValues[i];
-	//         }
-	//         console.log('computing net funciton', this.netValues, this.weights, outlayer);
-	//         return outlayer.slice();
-	//     }
-	// }
 
 
 /***/ },
@@ -1512,20 +1103,26 @@
 	    __extends(Evolution, _super);
 	    function Evolution(drawCanvas) {
 	        _super.call(this, drawCanvas);
+	        this.generation = 0;
 	    }
 	    Evolution.prototype.doEvolution = function (ngenerations, seed) {
 	        if (ngenerations === void 0) { ngenerations = 4; }
 	        if (!seed) {
 	            seed = new dna_1.DNA();
 	        }
+	        // this.FRAME_DELAY = 20;
+	        // for (var i = 0; i < length; ++i) {
+	        //     var mutated = seed.copyAndMutate();
+	        //     this.runForNTicks(5);
+	        //     // code...
+	        // }
+	        // this.setupSimulation(mutated);
+	        // return seed;
 	        var best = seed;
-	        for (var i = 0; i < ngenerations; ++i) {
-	            best = this.runGenerationSelectBest(10, best, 40);
-	        }
+	        // for (var i = 0; i < ngenerations; ++i) {
+	        best = this.runGenerationSelectBest(10, best, 4);
+	        // }
 	        return best;
-	    };
-	    Evolution.prototype.growSeed = function (seed, grownCallback) {
-	        requestAnimationFrame(grownCallback);
 	    };
 	    Evolution.prototype.runGenerationSelectBest = function (nchildren, seed, growtime) {
 	        // grow the seed for growtime iterations, then eval its fitness
@@ -1538,21 +1135,43 @@
 	        }
 	        // evaluate each one's fitness
 	        var fitness = new Array(nchildren);
-	        for (var i = 0; i < children.length; ++i) {
-	            this.setupSimulation(children[i]);
-	            this.runForNTicks(growtime);
-	            fitness[i] = this.evalFitness(this.automata.plant);
-	        }
-	        // return the child with the best fitness
-	        var maxFitness = -Infinity;
-	        var bestChild = null;
-	        for (var i = 0; i < children.length; ++i) {
-	            if (fitness[i] > maxFitness) {
-	                maxFitness = fitness[i];
-	                bestChild = children[i];
-	            }
-	        }
-	        return bestChild;
+	        var i = 0;
+	        var self = this;
+	        window.setInterval(function () {
+	            // this function will return immediately and then run grow on all children
+	            self.runGenerationSelectBestHelper(nchildren, seed, growtime, children, fitness, i);
+	            self.generation++;
+	            self.updateStatus();
+	            i++;
+	        }, this.FRAME_DELAY);
+	        window['fitness'] = fitness;
+	        window['children'] = children;
+	        return null;
+	    };
+	    Evolution.prototype.updateStatus = function () {
+	        var status;
+	        if (this.isSimulationRunning)
+	            status = 'Simulation running. ';
+	        else
+	            status = 'Simulation stopped. ';
+	        if (!this.drawEnabled)
+	            status += '(Draw disabled.) ';
+	        status += "Generation " + this.generation + ". ";
+	        this.showStatusString(status);
+	    };
+	    /* Recursive function */
+	    Evolution.prototype.runGenerationSelectBestHelper = function (nchildren, seed, growtime, children, fitness, child_index) {
+	        if (growtime === void 0) { growtime = 40; }
+	        this.setupSimulation(children[child_index]);
+	        this.runForNTicks(growtime);
+	        fitness[child_index] = this.evalFitness(this.automata.plant);
+	        // Recursive call on the next animation frame
+	        // if (child_index + 1 < nchildren) {
+	        //     var self = this;
+	        //     requestAnimationFrame(function() {
+	        //         self.runGenerationSelectBestHelper(nchildren, seed, growtime, children, fitness, child_index + 1);
+	        //     })
+	        // }
 	    };
 	    Evolution.prototype.evalFitness = function (plant) {
 	        return plant.length;

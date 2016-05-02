@@ -10,7 +10,9 @@ export class DirectionalAction implements IAction {
     sunGradient: number; //
 
     constructor(args){
-        this.fluidGradient = args['fluidGradient']
+        this.fluidGradient = args['fluidGradient'];
+        this.gravityGradient = args['gravityGradient'];
+        this.sunGradient = args['sunGradient'];
     }
 
     getActionDirection(upFluids, rightFluids, downFluids, leftFluids): number {
@@ -19,7 +21,14 @@ export class DirectionalAction implements IAction {
         var downContribution = Utils.crossProduct(downFluids, this.fluidGradient);
         var leftContribution = Utils.crossProduct(leftFluids, this.fluidGradient);
 
-        return Math.atan2(upContribution - downContribution, rightContribution - leftContribution);
+        if (this.gravityGradient) {
+            downContribution += this.gravityGradient;
+        }
+
+        var direction = Math.atan2(upContribution - downContribution, rightContribution - leftContribution);
+        console.log('calculated action direction is ', direction, upContribution, downContribution);
+
+        return direction;
     }
 
     /*

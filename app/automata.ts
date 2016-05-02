@@ -298,37 +298,35 @@ export class Automata {
         // respiration. this is needed for stuff
         var RESPIRATION_AMOUNT = 0.1;
         for (var i = 0; i < this.plant.length; ++i) {
-            let cell = this.plant[i];
+            var cell = this.plant[i];
             cell.fluids.vector[Fluids.WATER] -= RESPIRATION_AMOUNT;
             cell.fluids.vector[Fluids.GLUCOSE] -= RESPIRATION_AMOUNT;
         }
 
 
         // Passive transport / diffusion. Give nutrients to neighbors.
+        // console.log(fluidsDiff);
         var neighbs = [[-1, 0], [1, 0], [0, 1], [0, -1]];
         for (var row = 0; row < Automata.GRID_N_ROWS; ++row) {
             for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
                 for (var i = 0; i < neighbs.length; ++i) {
-                    let neighbRow = row + neighbs[i][0];
-                    let neighbCol = col + neighbs[i][1];
-                    if (neighbRow < 0
-                        || neighbCol < 0
-                        || neighbRow >= Automata.GRID_N_ROWS
-                        || neighbCol >= Automata.GRID_N_COLUMNS) {
+                    var neighbRow = row + neighbs[i][0];
+                    var neighbCol = col + neighbs[i][1];
+                    if (!this.isPositionOnGrid(neighbRow, neighbCol)) {
                         continue;
                     }
 
-                    let flowRate = 0.02;
+                    var flowRate = 0.02;
                     // air to air is very fast
                     if (this.isAirNotCell(row,col) && this.isAirNotCell(neighbRow,neighbCol)) {
                         flowRate = 0.2;
                     }
 
-                    let neighbFluids = this.fluidsArray[neighbRow][neighbCol];
-                    let fluids = this.fluidsArray[row][col];
+                    var neighbFluids = this.fluidsArray[neighbRow][neighbCol].vector;
+                    var fluids = this.fluidsArray[row][col].vector;
                     for (var j = 0; j < Fluids.N_FLUIDS; ++j) {
                         if (fluids[j] > neighbFluids[j]) {
-                            let diff = flowRate * (fluids[j] - neighbFluids[j]);
+                            var diff = flowRate * (fluids[j] - neighbFluids[j]);
                             fluidsDiff[row][col][j] -= diff;
                             fluidsDiff[neighbRow][neighbCol][j] += diff;
                         }
@@ -342,8 +340,8 @@ export class Automata {
         // Apply fluidsDiff to fluids
         for (var row = 0; row < Automata.GRID_N_ROWS; row ++){
             for (var col = 0; col < Automata.GRID_N_COLUMNS; col ++ ){
-                let fluids = this.fluidsArray[row][col];
-                let fluidDiff = fluidsDiff[row][col];
+                var fluids = this.fluidsArray[row][col].vector;
+                var fluidDiff = fluidsDiff[row][col];
                 for (var i = 0; i < Fluids.N_FLUIDS; ++i) {
                     fluids[i] += fluidDiff[i];
                 }
@@ -357,9 +355,9 @@ export class Automata {
     }
 
     isAirNotCell(row, col) {
+        // cell is dead and cell is air cell
         if (!this.isPositionOnGrid(row, col)) return false;
-        // return
-        return row < 50 && !(this.fluidsArray[row][col] instanceof Cell);
+        return row < 50 && !this.cellArray[row][col];
     }
 
     countAirNeighbors(row, col){
