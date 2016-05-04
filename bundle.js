@@ -45,14 +45,15 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var evolution_1 = __webpack_require__(10);
+	var simulation_1 = __webpack_require__(1);
 	var angle_1 = __webpack_require__(9);
+	var utils_1 = __webpack_require__(5);
 	document.addEventListener("DOMContentLoaded", function (event) {
 	    var drawCanvas = document.getElementById("draw");
-	    // var sim = new Simulation(drawCanvas);
-	    // sim.startSimulation();
-	    var sim = new evolution_1.Evolution(drawCanvas);
-	    var best = sim.doEvolution(0);
+	    var sim = new simulation_1.Simulation(drawCanvas);
+	    sim.startSimulation();
+	    // var sim = new Evolution(drawCanvas);
+	    // var best = sim.doEvolution(0);
 	    window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
 	    window['resetSimulation'] = function () {
 	        sim.setupSimulation(null); //.bind(sim);
@@ -65,6 +66,7 @@
 	    window['automata'] = sim.automata;
 	    window['simulation'] = sim;
 	    window['Angle'] = angle_1.Angle;
+	    window['Utils'] = utils_1.Utils;
 	});
 
 
@@ -80,11 +82,14 @@
 	var dna_1 = __webpack_require__(6);
 	var Simulation = (function () {
 	    function Simulation(drawCanvas) {
-	        this.FRAME_DELAY = 1000;
+	        this.FRAME_DELAY = 200;
 	        this.drawCanvas = drawCanvas;
 	        this.drawEnabled = true;
 	        this.automata = new automata_1.Automata('prototype', drawCanvas);
-	        this.automata.plantSeed(new dna_1.DNA());
+	        this.setupSimulation();
+	        // var seed = new DNA();
+	        // seed.mutate(100);
+	        // this.automata.plantSeed(seed);
 	    }
 	    Simulation.prototype.runForNTicks = function (N) {
 	        // run sim for N ticks
@@ -124,8 +129,10 @@
 	            this.startSimulation();
 	    };
 	    Simulation.prototype.setupSimulation = function (dna) {
+	        if (dna === void 0) { dna = null; }
 	        if (!dna) {
 	            dna = new dna_1.DNA();
+	            dna.mutate(100);
 	        }
 	        this.showStatusString('Resetting...');
 	        var view = this.automata.viewStyle;
@@ -211,7 +218,7 @@
 	                this.cellArray[row][col] = undefined;
 	            }
 	        }
-	        this.plant = seed.plantSeed(this.cellArray);
+	        this.plant = seed.plantSeed(this.cellArray, this.fluidsArray);
 	        this.dna = seed;
 	    };
 	    Automata.prototype.isAirCell = function (row, col) {
@@ -268,8 +275,9 @@
 	        }
 	        // Apply actions on this frame
 	        for (var i = 0; i < actions.length; i++) {
-	            if (!actions[i])
-	                continue;
+	            if (!actions[i]) {
+	                continue; // cell chose to do nothing
+	            }
 	            var action = actions[i];
 	            if (action instanceof action_1.DivideAction) {
 	                // console.log("cell wants to grow...")
@@ -288,7 +296,7 @@
 	                var cost = cell.type.cost;
 	                var canAfford = true;
 	                for (var j = 0; j < cost.vector.length; j++) {
-	                    if (!(this.plant[i].fluids.vector[j] >= cost.vector[j])) {
+	                    if (this.plant[i].fluids.vector[j] < cost.vector[j]) {
 	                        canAfford = false;
 	                        break;
 	                    }
@@ -301,13 +309,20 @@
 	                    // console.log("cannot make cell at " + gJ + ", " + gI);
 	                    continue;
 	                }
-	                if (!(this.cellArray[gI][gJ])) {
-	                    // console.log("growing new cell...")
-	                    this.subtractFluids(cell.fluids, cost);
-	                    var newFluids = this.splitFluids(cell.fluids);
-	                    var nCell = new cell_1.Cell(this.dna, cell.type, newFluids, gI, gJ);
-	                    this.plant.push(nCell);
-	                    this.cellArray[gI][gJ] = nCell;
+	                if (this.cellArray[gI][gJ]) {
+	                    // console.log("cell already exists at " + gJ + ", " + gI);
+	                    continue;
+	                }
+	                // console.log("growing new cell...")
+	                this.subtractFluids(cell.fluids, cost);
+	                var newFluids = this.splitFluids(cell.fluids);
+	                var nCell = new cell_1.Cell(this.dna, cell.type, newFluids, gI, gJ);
+	                this.plant.push(nCell);
+	                this.fluidsArray[gI][gJ] = newFluids;
+	                this.cellArray[gI][gJ] = nCell;
+	            }
+	            else if (action instanceof action_1.ReactAction) {
+	                for (var i = 0; i < length; ++i) {
 	                }
 	            }
 	        }
@@ -330,6 +345,12 @@
 	                cell.fluids.vector[fluids_1.Fluids.WATER] < MIN_WATER) {
 	                // kill cell
 	                toKill.push(cell);
+	            }
+	            if (cell.fluids.vector[fluids_1.Fluids.GLUCOSE] < MIN_GLUCOSE) {
+	                console.log('cell killed due to lack of glucose');
+	            }
+	            if (cell.fluids.vector[fluids_1.Fluids.WATER] < MIN_WATER) {
+	                console.log('cell killed due to lack of water');
 	            }
 	        }
 	        for (var i = 0; i < toKill.length; ++i) {
@@ -503,7 +524,7 @@
 	                else if (this.viewStyle === 'auxin') {
 	                    var cell_3 = this.cellArray[row][col];
 	                    if (cell_3) {
-	                        this.canvasCtx.fillStyle = "#" + "0000" + this.getColorHex(Math.min(255, Math.ceil(255 * fluids[fluids_1.Fluids.SIGNALS_START].vector[0])));
+	                        this.canvasCtx.fillStyle = "#" + "0000" + this.getColorHex(Math.min(255, Math.ceil(255 * fluids[fluids_1.Fluids.SIGNALS_START])));
 	                    }
 	                    else {
 	                        this.canvasCtx.fillStyle = "#000000";
@@ -643,6 +664,9 @@
 	        }
 	        var bestIndex = utils_1.Utils.argmax(potentials);
 	        // console.log('choosing action, ', actions[bestIndex]);
+	        if (potentials[bestIndex] < 0.5) {
+	            return null; // "empty" action
+	        }
 	        return actions[bestIndex];
 	        // for (var i = 0; i < activators.length; ++i) {
 	        //     activators[i] = this.activatorFunction(this.distanceToActivator(signals, actions[i].activator));
@@ -724,6 +748,9 @@
 	var Utils = (function () {
 	    function Utils() {
 	    }
+	    /*
+	    Returns a random number between -bound and bound
+	    */
 	    Utils.getBoundedRandom = function (bound) {
 	        return 2 * bound * Math.random() - bound;
 	    };
@@ -811,7 +838,7 @@
 	            }
 	            this.cellTypes[i] = {
 	                color: DNA.COLOR_HEX_ARRAY[i % DNA.COLOR_HEX_ARRAY.length],
-	                isLeaf: i == 1,
+	                isLeaf: i == 0,
 	                cost: new fluids_1.Fluids(0.2, 0.2),
 	                actionPerceptrons: actionPerceptrons
 	            };
@@ -821,81 +848,59 @@
 	        var serial = DNASerializer.serialize(this);
 	        return DNASerializer.deserialize(serial);
 	    };
-	    DNA.prototype.copyAndMutate = function (amount) {
+	    DNA.prototype.mutate = function (amount) {
 	        if (amount === void 0) { amount = 1; }
-	        var dna = this.clone();
 	        // mutate actions
-	        for (var i = 0; i < dna.actions.length; ++i) {
-	            var action = dna.actions[i];
+	        for (var i = 0; i < this.actions.length; ++i) {
+	            var action = this.actions[i];
 	            action.mutate(amount);
 	        }
 	        // mutate type controllers
-	        for (var i = 0; i < dna.cellTypes.length; ++i) {
-	            var type = dna.cellTypes[i];
+	        for (var i = 0; i < this.cellTypes.length; ++i) {
+	            var type = this.cellTypes[i];
 	            for (var j = 0; j < type.actionPerceptrons; ++j) {
 	                var p = type.actionPerceptrons[j];
 	                p.perturb(amount);
 	            }
 	        }
-	        return new DNA();
 	    };
-	    DNA.prototype.plantSeed = function (grid) {
+	    DNA.prototype.plantSeed = function (grid, fluidsArray) {
 	        var waterInitial = 1.75 * automata_1.Automata.MATERIAL_WATER_WATER_MEAN;
 	        var glucoseInitial = 20; // 4.0;
+	        var fluids1 = new fluids_1.Fluids(waterInitial, glucoseInitial), fluids2 = new fluids_1.Fluids(waterInitial, glucoseInitial);
 	        var rowCenter = Math.floor(automata_1.Automata.GRID_N_ROWS / 2), colCenter = Math.floor(automata_1.Automata.GRID_N_COLUMNS / 2), row1 = rowCenter + 2, row2 = rowCenter + 3, col1 = colCenter, col2 = colCenter;
-	        var c1 = new cell_1.Cell(this, 0, new fluids_1.Fluids(waterInitial, glucoseInitial), row1, col1), c2 = new cell_1.Cell(this, 1, new fluids_1.Fluids(waterInitial, glucoseInitial), row2, col2);
+	        var c1 = new cell_1.Cell(this, 0, fluids1, row1, col1), c2 = new cell_1.Cell(this, 1, fluids2, row2, col2);
 	        var seed = [c1, c2];
 	        grid[c1.row][c1.col] = c1;
 	        grid[c2.row][c2.col] = c2;
+	        fluidsArray[c1.row][c1.col] = fluids1;
+	        fluidsArray[c2.row][c2.col] = fluids2;
 	        return seed;
-	    };
-	    /*
-	  In nature, the gene controls the transcription product, and .
-	  
-	  
-	  Inputs of a cell:
-	  - Fluids
-	  - Fluids gradient...
-	  
-	  Actions of a cell:
-	  
-	  DNA is a list of potential actions:
-	  - Reproduce (directional), direction specified as vector multiplier of fluids
-	  - Pump fluids (directional), direction specified as vector multiplier of fluids
-	  - Reactions
-	  - Specialize
-	  
-	  CellType is the controller of DNA and determines when gene products are made.
-	  Each cell type is also a 2 layer neural net, which takes as input the fluid vector.
-	  Each cell type has a list of potential actions, which may be paramaterized by neighbor states.
-	  Transitions between cell types can be modeled as a markov chain, though some states are unreachable once left.
-	    */
-	    /*
-	    For every action, celltypes has a neural net
-	    */
-	    /*
-	    Serialization is necessary to store the results of evolution so they can be played back, saved
-	    */
-	    DNA.prototype.serialize = function () {
-	        var actionsSerial = new Array(this.actions.length);
-	        for (var i = 0; i < this.actions.length; ++i) {
-	            actionsSerial[i] = action_1.ActionSerializer.serialize(this.actions[i]);
-	        }
-	        return JSON.stringify({
-	            cellTypes: this.cellTypes,
-	            actions: actionsSerial
-	        });
 	    };
 	    DNA.N_CELL_TYPES = 5;
 	    DNA.COLOR_HEX_ARRAY = ["#ededbe", "#8F8F6E", "#6E6E8F", "#8F6E7F", "#80C4A1"];
 	    return DNA;
 	}());
 	exports.DNA = DNA;
+	/*
+	Serialization is necessary to store the results of evolution so they can be played back, saved
+	*/
 	var DNASerializer = (function () {
 	    function DNASerializer() {
 	    }
 	    DNASerializer.serialize = function (dna) {
-	        return "";
+	        var actionsSerial = new Array(dna.actions.length);
+	        for (var i = 0; i < dna.actions.length; ++i) {
+	            actionsSerial[i] = action_1.ActionSerializer.serialize(dna.actions[i]);
+	        }
+	        var cellTypesSerial = new Array(dna.cellTypes.length);
+	        for (var i = 0; i < dna.cellTypes.length; ++i) {
+	            actionsSerial[i] = celltypes_1.CellTypeSerializer.serialize(dna.cellTypes[i]);
+	        }
+	        return JSON.stringify({
+	            cellTypes: dna.cellTypes,
+	            actions: actionsSerial
+	        });
 	    };
 	    DNASerializer.deserialize = function (serialized) {
 	        var d = new DNA();
@@ -1040,6 +1045,7 @@
 	    function ReactAction(args) {
 	        this.reaction = args['reaction'];
 	    }
+	    // mutating a react action should not change the reagents / products
 	    ReactAction.prototype.mutate = function (amount) {
 	        if (amount === void 0) { amount = 1; }
 	    };
@@ -1213,100 +1219,7 @@
 
 
 /***/ },
-/* 10 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-	var __extends = (this && this.__extends) || function (d, b) {
-	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-	    function __() { this.constructor = d; }
-	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-	};
-	var dna_1 = __webpack_require__(6);
-	var simulation_1 = __webpack_require__(1);
-	var Evolution = (function (_super) {
-	    __extends(Evolution, _super);
-	    function Evolution(drawCanvas) {
-	        _super.call(this, drawCanvas);
-	        this.generation = 0;
-	    }
-	    Evolution.prototype.doEvolution = function (ngenerations, seed) {
-	        if (ngenerations === void 0) { ngenerations = 4; }
-	        if (!seed) {
-	            seed = new dna_1.DNA();
-	        }
-	        // this.FRAME_DELAY = 20;
-	        // for (var i = 0; i < length; ++i) {
-	        //     var mutated = seed.copyAndMutate();
-	        //     this.runForNTicks(5);
-	        //     // code...
-	        // }
-	        // this.setupSimulation(mutated);
-	        // return seed;
-	        var best = seed;
-	        // for (var i = 0; i < ngenerations; ++i) {
-	        best = this.runGenerationSelectBest(10, best, 4);
-	        // }
-	        return best;
-	    };
-	    Evolution.prototype.runGenerationSelectBest = function (nchildren, seed, growtime) {
-	        // grow the seed for growtime iterations, then eval its fitness
-	        if (growtime === void 0) { growtime = 40; }
-	        // generate random children
-	        var children = new Array(nchildren);
-	        // make n copies of the dna
-	        for (var i = 0; i < nchildren; ++i) {
-	            children[i] = seed.copyAndMutate();
-	        }
-	        // evaluate each one's fitness
-	        var fitness = new Array(nchildren);
-	        var i = 0;
-	        var self = this;
-	        window.setInterval(function () {
-	            // this function will return immediately and then run grow on all children
-	            self.runGenerationSelectBestHelper(nchildren, seed, growtime, children, fitness, i);
-	            self.generation++;
-	            self.updateStatus();
-	            i++;
-	        }, this.FRAME_DELAY);
-	        window['fitness'] = fitness;
-	        window['children'] = children;
-	        return null;
-	    };
-	    Evolution.prototype.updateStatus = function () {
-	        var status;
-	        if (this.isSimulationRunning)
-	            status = 'Simulation running. ';
-	        else
-	            status = 'Simulation stopped. ';
-	        if (!this.drawEnabled)
-	            status += '(Draw disabled.) ';
-	        status += "Generation " + this.generation + ". ";
-	        this.showStatusString(status);
-	    };
-	    /* Recursive function */
-	    Evolution.prototype.runGenerationSelectBestHelper = function (nchildren, seed, growtime, children, fitness, child_index) {
-	        if (growtime === void 0) { growtime = 40; }
-	        this.setupSimulation(children[child_index]);
-	        this.runForNTicks(growtime);
-	        fitness[child_index] = this.evalFitness(this.automata.plant);
-	        // Recursive call on the next animation frame
-	        // if (child_index + 1 < nchildren) {
-	        //     var self = this;
-	        //     requestAnimationFrame(function() {
-	        //         self.runGenerationSelectBestHelper(nchildren, seed, growtime, children, fitness, child_index + 1);
-	        //     })
-	        // }
-	    };
-	    Evolution.prototype.evalFitness = function (plant) {
-	        return plant.length;
-	    };
-	    return Evolution;
-	}(simulation_1.Simulation));
-	exports.Evolution = Evolution;
-
-
-/***/ },
+/* 10 */,
 /* 11 */
 /***/ function(module, exports) {
 

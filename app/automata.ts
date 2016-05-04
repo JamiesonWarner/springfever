@@ -3,7 +3,7 @@ import {Cell} from "./cell"
 import {Dirt} from "./dirt";
 import {Fluids} from "./fluids";
 import {ISystem} from "./system";
-import {IAction, DivideAction} from "./action";
+import {IAction, DivideAction, ReactAction} from "./action";
 import {Angle} from "./angle";
 
 /*
@@ -73,7 +73,7 @@ export class Automata {
                 this.cellArray[row][col] = undefined;
             }
         }
-        this.plant = seed.plantSeed(this.cellArray);
+        this.plant = seed.plantSeed(this.cellArray, this.fluidsArray);
         this.dna = seed;
     }
 
@@ -136,9 +136,11 @@ export class Automata {
 
         // Apply actions on this frame
         for (var i = 0; i < actions.length; i++) {
-            if (!actions[i]) continue;
+            if (!actions[i]) {
+                continue; // cell chose to do nothing
+            }
             var action = actions[i];
-            if(action instanceof DivideAction){
+            if(action instanceof DivideAction) {
                 // console.log("cell wants to grow...")
                 var daction: DivideAction = action;
 
@@ -160,8 +162,8 @@ export class Automata {
                 var cost = cell.type.cost;
 
                 var canAfford = true;
-                for (var j = 0; j < cost.vector.length; j++){
-                    if(!(this.plant[i].fluids.vector[j] >= cost.vector[j])){
+                for (var j = 0; j < cost.vector.length; j++) {
+                    if(this.plant[i].fluids.vector[j] < cost.vector[j]) {
                         canAfford = false;
                         break;
                     }
@@ -176,15 +178,24 @@ export class Automata {
                     continue;
                 }
 
-                if(! (this.cellArray[gI][gJ])){
-                    // console.log("growing new cell...")
-                    this.subtractFluids(cell.fluids, cost);
-                    var newFluids = this.splitFluids(cell.fluids);
-                    var nCell = new Cell(this.dna, cell.type, newFluids, gI, gJ);
-                    this.plant.push(nCell);
-                    this.cellArray[gI][gJ] = nCell;
+                if (this.cellArray[gI][gJ]) {
+                    // console.log("cell already exists at " + gJ + ", " + gI);
+                    continue;
                 }
 
+                // console.log("growing new cell...")
+                this.subtractFluids(cell.fluids, cost);
+                var newFluids = this.splitFluids(cell.fluids);
+                var nCell = new Cell(this.dna, cell.type, newFluids, gI, gJ);
+                this.plant.push(nCell);
+                this.fluidsArray[gI][gJ] = newFluids;
+                this.cellArray[gI][gJ] = nCell;
+            }
+
+            else if (action instanceof ReactAction) {
+                for (var i = 0; i < length; ++i) {
+                    // code...
+                }
             }
 
         }
@@ -209,6 +220,13 @@ export class Automata {
                 // kill cell
                 toKill.push(cell);
             }
+            if (cell.fluids.vector[Fluids.GLUCOSE] < MIN_GLUCOSE) {
+                console.log('cell killed due to lack of glucose');
+            }
+            if (cell.fluids.vector[Fluids.WATER] < MIN_WATER) {
+                console.log('cell killed due to lack of water');
+            }
+
         }
 
         for (var i = 0; i < toKill.length; ++i) {
@@ -403,7 +421,7 @@ export class Automata {
                 else if (this.viewStyle === 'auxin') {
                     let cell = this.cellArray[row][col];
                     if (cell) {
-                        this.canvasCtx.fillStyle = "#" + "0000" + this.getColorHex(Math.min(255,Math.ceil(255*fluids[Fluids.SIGNALS_START].vector[0])));
+                        this.canvasCtx.fillStyle = "#" + "0000" + this.getColorHex(Math.min(255,Math.ceil(255*fluids[Fluids.SIGNALS_START])));
                     }
                     else {
                         this.canvasCtx.fillStyle = "#000000";

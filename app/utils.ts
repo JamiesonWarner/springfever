@@ -1,4 +1,8 @@
 export class Utils {
+
+  /*
+  Returns a random number between -bound and bound
+  */
   static getBoundedRandom(bound) {
     return 2 * bound * Math.random() - bound;
   }

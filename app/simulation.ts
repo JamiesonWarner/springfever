@@ -6,7 +6,7 @@ import {Automata} from "./automata";
 import {DNA} from "./dna";
 
 export class Simulation {
-    FRAME_DELAY: number = 1000;
+    FRAME_DELAY: number = 200;
 
     updateInterval: number;
     automata: Automata;
@@ -18,7 +18,10 @@ export class Simulation {
         this.drawCanvas = drawCanvas;
         this.drawEnabled = true;
         this.automata = new Automata('prototype', drawCanvas);
-        this.automata.plantSeed(new DNA());
+        this.setupSimulation();
+        // var seed = new DNA();
+        // seed.mutate(100);
+        // this.automata.plantSeed(seed);
     }
 
     runForNTicks(N) {
@@ -64,9 +67,10 @@ export class Simulation {
             this.startSimulation();
     }
 
-    setupSimulation(dna: DNA) {
+    setupSimulation(dna: DNA = null) {
         if (!dna) {
             dna = new DNA();
+            dna.mutate(100);
         }
         this.showStatusString('Resetting...');
         let view = this.automata.viewStyle;

@@ -126,9 +126,8 @@ export class ReactAction implements IAction {
         this.reaction = args['reaction'];
     }
 
-    mutate(amount: number = 1) {
-
-    }
+    // mutating a react action should not change the reagents / products
+    mutate(amount: number = 1) {}
 }
 
 export class SpecializeAction implements IAction {

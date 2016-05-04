@@ -42,7 +42,7 @@ export class DNA {
       }
       this.cellTypes[i] = {
         color: DNA.COLOR_HEX_ARRAY[i%DNA.COLOR_HEX_ARRAY.length],
-        isLeaf: i==1,
+        isLeaf: i==0,
         cost: new Fluids(0.2, 0.2),
         actionPerceptrons: actionPerceptrons
       };
@@ -54,42 +54,41 @@ export class DNA {
     return DNASerializer.deserialize(serial);
   }
 
-  copyAndMutate(amount: number = 1): DNA {
-    var dna = this.clone();
-
+  mutate(amount: number = 1) {
     // mutate actions
-    for (var i = 0; i < dna.actions.length; ++i) {
-      var action = dna.actions[i];
+    for (var i = 0; i < this.actions.length; ++i) {
+      var action = this.actions[i];
       action.mutate(amount);
     }
 
     // mutate type controllers
-    for (var i = 0; i < dna.cellTypes.length; ++i) {
-      var type = dna.cellTypes[i];
+    for (var i = 0; i < this.cellTypes.length; ++i) {
+      var type = this.cellTypes[i];
       for (var j = 0; j < type.actionPerceptrons; ++j) {
         var p = type.actionPerceptrons[j];
         p.perturb(amount);
       }
     }
-
-    return new DNA();
   }
 
-  plantSeed(grid: Array<Array<Cell>>) {
+  plantSeed(grid: Array<Array<Cell>>, fluidsArray: Array<Array<Fluids>>) {
     var waterInitial = 1.75 * Automata.MATERIAL_WATER_WATER_MEAN;
     var glucoseInitial = 20; // 4.0;
+    var fluids1 = new Fluids(waterInitial, glucoseInitial),
+        fluids2 = new Fluids(waterInitial, glucoseInitial);
     var rowCenter = Math.floor(Automata.GRID_N_ROWS / 2),
         colCenter = Math.floor(Automata.GRID_N_COLUMNS / 2),
         row1 = rowCenter + 2,
         row2 = rowCenter + 3,
         col1 = colCenter,
         col2 = colCenter;
-
-    var c1 = new Cell(this, 0, new Fluids(waterInitial,glucoseInitial), row1, col1),
-        c2 = new Cell(this, 1, new Fluids(waterInitial,glucoseInitial), row2, col2);
+    var c1 = new Cell(this, 0, fluids1, row1, col1),
+        c2 = new Cell(this, 1, fluids2, row2, col2);
     var seed = [c1, c2];
     grid[c1.row][c1.col] = c1;
     grid[c2.row][c2.col] = c2;
+    fluidsArray[c1.row][c1.col] = fluids1;
+    fluidsArray[c2.row][c2.col] = fluids2;
     return seed;
   }
 
@@ -121,25 +120,27 @@ Transitions between cell types can be modeled as a markov chain, though some sta
   For every action, celltypes has a neural net
   */
 
-  /*
-  Serialization is necessary to store the results of evolution so they can be played back, saved
-  */
-  serialize(): string {
-    var actionsSerial = new Array(this.actions.length);
-    for (var i = 0; i < this.actions.length; ++i) {
-      actionsSerial[i] = ActionSerializer.serialize(this.actions[i]);
+}
+
+/*
+Serialization is necessary to store the results of evolution so they can be played back, saved
+*/
+class DNASerializer {
+  static serialize(dna: DNA): string {
+    var actionsSerial = new Array(dna.actions.length);
+    for (var i = 0; i < dna.actions.length; ++i) {
+      actionsSerial[i] = ActionSerializer.serialize(dna.actions[i]);
+    }
+
+    var cellTypesSerial = new Array(dna.cellTypes.length);
+    for (var i = 0; i < dna.cellTypes.length; ++i) {
+        actionsSerial[i] = CellTypeSerializer.serialize(dna.cellTypes[i]);
     }
 
     return JSON.stringify({
-      cellTypes: this.cellTypes, // cellTypes are plain objects so I think this is OK.. perceptrons though?
+      cellTypes: dna.cellTypes, // cellTypes are plain objects so I think this is OK.. perceptrons though?
       actions: actionsSerial
     });
-  }
-}
-
-class DNASerializer {
-  static serialize(dna: DNA): string {
-      return "";
   }
 
   static deserialize(serialized: string): DNA {

@@ -82,6 +82,9 @@ export class Cell {
         var bestIndex: number = Utils.argmax(potentials);
 
         // console.log('choosing action, ', actions[bestIndex]);
+        if (potentials[bestIndex] < 0.5) {
+            return null; // "empty" action
+        }
         return actions[bestIndex];
 
 

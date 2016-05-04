@@ -17,7 +17,7 @@ export class Evolution extends Simulation {
             seed = new DNA();
         }
 
-        // this.FRAME_DELAY = 20;
+        this.FRAME_DELAY = 20;
         // for (var i = 0; i < length; ++i) {
         //     var mutated = seed.copyAndMutate();
         //     this.runForNTicks(5);
@@ -31,7 +31,7 @@ export class Evolution extends Simulation {
 
         var best = seed;
         // for (var i = 0; i < ngenerations; ++i) {
-            best = this.runGenerationSelectBest(10, best, 4);
+            best = this.runGenerationSelectBest(100, best, 4);
         // }
         return best;
     }
@@ -40,28 +40,38 @@ export class Evolution extends Simulation {
         // grow the seed for growtime iterations, then eval its fitness
 
         // generate random children
-        var children: Array<DNA> = new Array(nchildren);
+        // var children: Array<DNA> = new Array(nchildren);
 
         // make n copies of the dna
-        for (var i = 0; i < nchildren; ++i) {
-            children[i] = seed.copyAndMutate();
-        }
+        // for (var i = 0; i < nchildren; ++i) {
+        //     children[i] = seed.clone();
+        //     children[i].mutate(10);
+        // }
 
         // evaluate each one's fitness
         var fitness = new Array(nchildren);
 
         var i = 0;
         var self = this;
-        window.setInterval(function() {
-            // this function will return immediately and then run grow on all children
-            self.runGenerationSelectBestHelper(nchildren, seed, growtime, children, fitness, i);
+        var interval = window.setInterval(function() {
+            if (i == nchildren) {
+                console.log('Completed evolution of ' + nchildren + ' seeds.');
+                console.log('Max fitness: ', Math.max.apply(null, fitness));
+                window.clearInterval(interval);
+                return;
+            }
+            // TODO modify original seed
+            var seed = new DNA();
+            seed.mutate(100);
+            self.setupSimulation(seed);
+            self.runForNTicks(growtime);
+            fitness[i] = self.evalFitness(self.automata.plant);
             self.generation++;
             self.updateStatus();
             i++;
         }, this.FRAME_DELAY);
 
         window['fitness'] = fitness;
-        window['children'] = children;
 
         return null;
     }
