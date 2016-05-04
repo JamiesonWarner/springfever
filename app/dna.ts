@@ -2,11 +2,12 @@ import {Cell} from "./cell";
 import {Fluids} from "./fluids";
 import {Grid} from "./grid";
 import {Automata} from "./automata";
-import {IAction, DivideAction, PumpAction, ReactAction, SpecializeAction} from "./action";
+import {IAction, DivideAction, PumpAction, ReactAction, SpecializeAction, ActionSerializer} from "./action";
 import {Perceptron} from "./perceptron";
+import {CellTypeSerializer} from "./celltypes";
 
 export class DNA {
-  static N_CELL_TYPES: number = 2;
+  static N_CELL_TYPES: number = 5;
   static COLOR_HEX_ARRAY = ["#ededbe", "#8F8F6E", "#6E6E8F", "#8F6E7F", "#80C4A1"];
 
   actions: Array<IAction>;
@@ -48,15 +49,35 @@ export class DNA {
     }
   }
 
-  copyAndMutate(amount: number = 1): DNA {
+  clone(): DNA {
+    var serial = DNASerializer.serialize(this);
+    return DNASerializer.deserialize(serial);
+  }
 
+  copyAndMutate(amount: number = 1): DNA {
+    var dna = this.clone();
+
+    // mutate actions
+    for (var i = 0; i < dna.actions.length; ++i) {
+      var action = dna.actions[i];
+      action.mutate(amount);
+    }
+
+    // mutate type controllers
+    for (var i = 0; i < dna.cellTypes.length; ++i) {
+      var type = dna.cellTypes[i];
+      for (var j = 0; j < type.actionPerceptrons; ++j) {
+        var p = type.actionPerceptrons[j];
+        p.perturb(amount);
+      }
+    }
 
     return new DNA();
   }
 
   plantSeed(grid: Array<Array<Cell>>) {
     var waterInitial = 1.75 * Automata.MATERIAL_WATER_WATER_MEAN;
-    var glucoseInitial = 4.0;
+    var glucoseInitial = 20; // 4.0;
     var rowCenter = Math.floor(Automata.GRID_N_ROWS / 2),
         colCenter = Math.floor(Automata.GRID_N_COLUMNS / 2),
         row1 = rowCenter + 2,
@@ -100,10 +121,45 @@ Transitions between cell types can be modeled as a markov chain, though some sta
   For every action, celltypes has a neural net
   */
 
-  serialize() {
-    return {
-      cellTypes: this.cellTypes,
-      actions: this.actions
+  /*
+  Serialization is necessary to store the results of evolution so they can be played back, saved
+  */
+  serialize(): string {
+    var actionsSerial = new Array(this.actions.length);
+    for (var i = 0; i < this.actions.length; ++i) {
+      actionsSerial[i] = ActionSerializer.serialize(this.actions[i]);
     }
+
+    return JSON.stringify({
+      cellTypes: this.cellTypes, // cellTypes are plain objects so I think this is OK.. perceptrons though?
+      actions: actionsSerial
+    });
+  }
+}
+
+class DNASerializer {
+  static serialize(dna: DNA): string {
+      return "";
+  }
+
+  static deserialize(serialized: string): DNA {
+    var d = new DNA();
+    var o = JSON.parse(serialized);
+
+    var actionsSerial = o.actions;
+    var actions = new Array(actionsSerial.length);
+    for (var i = 0; i < actionsSerial.length; ++i) {
+      actions[i] = ActionSerializer.deserialize(actionsSerial[i]);
+    }
+
+    var cellTypesSerial = o.cellTypes;
+    var cellTypes = new Array(cellTypesSerial.length);
+    for (var i = 0; i < cellTypes.length; ++i) {
+      cellTypes[i] = CellTypeSerializer.deserialize(cellTypesSerial[i]);
+    }
+
+    d.cellTypes = cellTypes;
+    d.actions = actions;
+    return d;
   }
 }

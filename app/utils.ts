@@ -1,4 +1,8 @@
 export class Utils {
+  static getBoundedRandom(bound) {
+    return 2 * bound * Math.random() - bound;
+  }
+
   static crossProduct(arr1, arr2) {
     var sum = 0;
     var length = Math.min(arr1.length, arr2.length);

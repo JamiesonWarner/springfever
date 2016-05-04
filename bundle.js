@@ -724,6 +724,9 @@
 	var Utils = (function () {
 	    function Utils() {
 	    }
+	    Utils.getBoundedRandom = function (bound) {
+	        return 2 * bound * Math.random() - bound;
+	    };
 	    Utils.crossProduct = function (arr1, arr2) {
 	        var sum = 0;
 	        var length = Math.min(arr1.length, arr2.length);
@@ -790,6 +793,7 @@
 	var automata_1 = __webpack_require__(2);
 	var action_1 = __webpack_require__(7);
 	var perceptron_1 = __webpack_require__(8);
+	var celltypes_1 = __webpack_require__(11);
 	var DNA = (function () {
 	    function DNA() {
 	        window['dna'] = this;
@@ -813,13 +817,31 @@
 	            };
 	        }
 	    }
+	    DNA.prototype.clone = function () {
+	        var serial = DNASerializer.serialize(this);
+	        return DNASerializer.deserialize(serial);
+	    };
 	    DNA.prototype.copyAndMutate = function (amount) {
 	        if (amount === void 0) { amount = 1; }
+	        var dna = this.clone();
+	        // mutate actions
+	        for (var i = 0; i < dna.actions.length; ++i) {
+	            var action = dna.actions[i];
+	            action.mutate(amount);
+	        }
+	        // mutate type controllers
+	        for (var i = 0; i < dna.cellTypes.length; ++i) {
+	            var type = dna.cellTypes[i];
+	            for (var j = 0; j < type.actionPerceptrons; ++j) {
+	                var p = type.actionPerceptrons[j];
+	                p.perturb(amount);
+	            }
+	        }
 	        return new DNA();
 	    };
 	    DNA.prototype.plantSeed = function (grid) {
 	        var waterInitial = 1.75 * automata_1.Automata.MATERIAL_WATER_WATER_MEAN;
-	        var glucoseInitial = 4.0;
+	        var glucoseInitial = 20; // 4.0;
 	        var rowCenter = Math.floor(automata_1.Automata.GRID_N_ROWS / 2), colCenter = Math.floor(automata_1.Automata.GRID_N_COLUMNS / 2), row1 = rowCenter + 2, row2 = rowCenter + 3, col1 = colCenter, col2 = colCenter;
 	        var c1 = new cell_1.Cell(this, 0, new fluids_1.Fluids(waterInitial, glucoseInitial), row1, col1), c2 = new cell_1.Cell(this, 1, new fluids_1.Fluids(waterInitial, glucoseInitial), row2, col2);
 	        var seed = [c1, c2];
@@ -851,17 +873,49 @@
 	    /*
 	    For every action, celltypes has a neural net
 	    */
+	    /*
+	    Serialization is necessary to store the results of evolution so they can be played back, saved
+	    */
 	    DNA.prototype.serialize = function () {
-	        return {
+	        var actionsSerial = new Array(this.actions.length);
+	        for (var i = 0; i < this.actions.length; ++i) {
+	            actionsSerial[i] = action_1.ActionSerializer.serialize(this.actions[i]);
+	        }
+	        return JSON.stringify({
 	            cellTypes: this.cellTypes,
-	            actions: this.actions
-	        };
+	            actions: actionsSerial
+	        });
 	    };
-	    DNA.N_CELL_TYPES = 2;
+	    DNA.N_CELL_TYPES = 5;
 	    DNA.COLOR_HEX_ARRAY = ["#ededbe", "#8F8F6E", "#6E6E8F", "#8F6E7F", "#80C4A1"];
 	    return DNA;
 	}());
 	exports.DNA = DNA;
+	var DNASerializer = (function () {
+	    function DNASerializer() {
+	    }
+	    DNASerializer.serialize = function (dna) {
+	        return "";
+	    };
+	    DNASerializer.deserialize = function (serialized) {
+	        var d = new DNA();
+	        var o = JSON.parse(serialized);
+	        var actionsSerial = o.actions;
+	        var actions = new Array(actionsSerial.length);
+	        for (var i = 0; i < actionsSerial.length; ++i) {
+	            actions[i] = action_1.ActionSerializer.deserialize(actionsSerial[i]);
+	        }
+	        var cellTypesSerial = o.cellTypes;
+	        var cellTypes = new Array(cellTypesSerial.length);
+	        for (var i = 0; i < cellTypes.length; ++i) {
+	            cellTypes[i] = celltypes_1.CellTypeSerializer.deserialize(cellTypesSerial[i]);
+	        }
+	        d.cellTypes = cellTypes;
+	        d.actions = actions;
+	        return d;
+	    };
+	    return DNASerializer;
+	}());
 
 
 /***/ },
@@ -875,6 +929,60 @@
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
 	var utils_1 = __webpack_require__(5);
+	var ActionSerializer = (function () {
+	    function ActionSerializer() {
+	    }
+	    ActionSerializer.serialize = function (action) {
+	        var cls;
+	        if (action.constructor == DivideAction) {
+	            cls = "DivideAction";
+	        }
+	        else if (action.constructor == PumpAction) {
+	            cls = "PumpAction";
+	        }
+	        else if (action.constructor == ReactAction) {
+	            cls = "ReactAction";
+	        }
+	        else if (action.constructor == SpecializeAction) {
+	            cls = "SpecializeAction";
+	        }
+	        else {
+	            throw new TypeError("Did not recognize the specified action type");
+	        }
+	        var obj = {
+	            class: cls
+	        };
+	        if (action instanceof DirectionalAction) {
+	            obj['fluidGradient'] = action.fluidGradient;
+	            obj['gravityGradient'] = action.gravityGradient;
+	            obj['sunGradient'] = action.sunGradient;
+	        }
+	        else if (action instanceof ReactAction) {
+	            obj['reaction'] = action.reaction;
+	        }
+	        else if (action instanceof SpecializeAction) {
+	            obj['toType'] = action.toType;
+	        }
+	        return JSON.stringify(obj);
+	    };
+	    ActionSerializer.deserialize = function (jsonAction) {
+	        var obj = JSON.parse(jsonAction);
+	        switch (obj.class) {
+	            case "DivideAction":
+	                return new DivideAction(obj);
+	            case "PumpAction":
+	                return new PumpAction(obj);
+	            case "ReactAction":
+	                return new ReactAction(obj);
+	            case "SpecializeAction":
+	                return new SpecializeAction(obj);
+	            default:
+	                throw new TypeError("Bad jsonAction");
+	        }
+	    };
+	    return ActionSerializer;
+	}());
+	exports.ActionSerializer = ActionSerializer;
 	var DirectionalAction = (function () {
 	    function DirectionalAction(args) {
 	        this.fluidGradient = args['fluidGradient'];
@@ -897,6 +1005,17 @@
 	    Calculate the angle that this action points to
 	    */
 	    DirectionalAction.prototype.getGradientToFluids = function () {
+	    };
+	    DirectionalAction.prototype.mutate = function (amount) {
+	        if (amount === void 0) { amount = 1; }
+	        for (var i = 0; i < this.fluidGradient.length; ++i) {
+	            var r = utils_1.Utils.getBoundedRandom(amount);
+	            this.fluidGradient[i] += r;
+	        }
+	        if (typeof this.gravityGradient != 'undefined')
+	            this.gravityGradient += utils_1.Utils.getBoundedRandom(amount);
+	        if (typeof this.sunGradient != 'undefined')
+	            this.sunGradient += utils_1.Utils.getBoundedRandom(amount);
 	    };
 	    return DirectionalAction;
 	}());
@@ -921,6 +1040,9 @@
 	    function ReactAction(args) {
 	        this.reaction = args['reaction'];
 	    }
+	    ReactAction.prototype.mutate = function (amount) {
+	        if (amount === void 0) { amount = 1; }
+	    };
 	    return ReactAction;
 	}());
 	exports.ReactAction = ReactAction;
@@ -928,6 +1050,9 @@
 	    function SpecializeAction(args) {
 	        this.toType = args['toType'];
 	    }
+	    SpecializeAction.prototype.mutate = function (amount) {
+	        if (amount === void 0) { amount = 1; }
+	    };
 	    return SpecializeAction;
 	}());
 	exports.SpecializeAction = SpecializeAction;
@@ -1179,6 +1304,34 @@
 	    return Evolution;
 	}(simulation_1.Simulation));
 	exports.Evolution = Evolution;
+
+
+/***/ },
+/* 11 */
+/***/ function(module, exports) {
+
+	"use strict";
+	var CellTypeSerializer = (function () {
+	    function CellTypeSerializer() {
+	    }
+	    CellTypeSerializer.serialize = function (celltype) {
+	        return "";
+	    };
+	    CellTypeSerializer.deserialize = function (serial) {
+	        return {};
+	    };
+	    return CellTypeSerializer;
+	}());
+	exports.CellTypeSerializer = CellTypeSerializer;
+	var CellType = (function () {
+	    function CellType() {
+	    }
+	    CellType.type_up = 0;
+	    CellType.type_right = 1;
+	    CellType.type_rest = 2;
+	    return CellType;
+	}());
+	exports.CellType = CellType;
 
 
 /***/ }

@@ -2,6 +2,63 @@ import {Angle} from "./angle";
 import {Utils} from "./utils";
 
 export interface IAction {
+    /*
+    Modify the parameters of the action by a given amount
+    */
+    mutate(amount: number);
+}
+
+export class ActionSerializer {
+    static serialize(action: IAction): string {
+        var cls;
+        if (action.constructor == DivideAction) {
+            cls = "DivideAction";
+        }
+        else if (action.constructor == PumpAction) {
+            cls = "PumpAction";
+        }
+        else if (action.constructor == ReactAction) {
+            cls = "ReactAction";
+        }
+        else if (action.constructor == SpecializeAction) {
+            cls = "SpecializeAction";
+        }
+        else {
+            throw new TypeError("Did not recognize the specified action type");
+        }
+
+        var obj = {
+            class: cls
+        };
+        if (action instanceof DirectionalAction) {
+            obj['fluidGradient'] = action.fluidGradient;
+            obj['gravityGradient'] = action.gravityGradient;
+            obj['sunGradient'] = action.sunGradient;
+        }
+        else if (action instanceof ReactAction) {
+            obj['reaction'] = action.reaction;
+        }
+        else if (action instanceof SpecializeAction) {
+            obj['toType'] = action.toType;
+        }
+        return JSON.stringify(obj)
+    }
+
+    static deserialize(jsonAction: string): IAction {
+        var obj = JSON.parse(jsonAction);
+        switch (obj.class) {
+            case "DivideAction":
+                return new DivideAction(obj);
+            case "PumpAction":
+                return new PumpAction(obj);
+            case "ReactAction":
+                return new ReactAction(obj);
+            case "SpecializeAction":
+                return new SpecializeAction(obj);
+            default:
+                throw new TypeError("Bad jsonAction");
+        }
+    }
 }
 
 export class DirectionalAction implements IAction {
@@ -37,6 +94,17 @@ export class DirectionalAction implements IAction {
     getGradientToFluids() {
 
     }
+
+    mutate(amount: number = 1) {
+        for (var i = 0; i < this.fluidGradient.length; ++i) {
+            var r = Utils.getBoundedRandom(amount);
+            this.fluidGradient[i] += r;
+        }
+        if (typeof this.gravityGradient != 'undefined')
+            this.gravityGradient += Utils.getBoundedRandom(amount);
+        if (typeof this.sunGradient != 'undefined')
+            this.sunGradient += Utils.getBoundedRandom(amount);
+    }
 }
 
 export class DivideAction extends DirectionalAction {
@@ -57,6 +125,10 @@ export class ReactAction implements IAction {
     constructor(args){
         this.reaction = args['reaction'];
     }
+
+    mutate(amount: number = 1) {
+
+    }
 }
 
 export class SpecializeAction implements IAction {
@@ -64,6 +136,10 @@ export class SpecializeAction implements IAction {
 
     constructor(args){
         this.toType = args['toType'];
+    }
+
+    mutate(amount: number = 1) {
+
     }
 }
 
