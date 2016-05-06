@@ -20,8 +20,11 @@ export class CellTypeSerializer {
         });
     }
 
-    static deserialize(serial: string): Object {
-        var obj = JSON.parse(serial);
+    static deserialize(serial): Object {
+        var obj = serial;
+        if (typeof serial === 'string') {
+            obj = JSON.parse(serial);
+        }
 
         var perceptronsSerial = obj.actionPerceptrons;
         var perceptrons = new Array(perceptronsSerial.length);

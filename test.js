@@ -819,7 +819,16 @@
 	        return JSON.stringify(obj);
 	    };
 	    ActionSerializer.deserialize = function (jsonAction) {
-	        var obj = JSON.parse(jsonAction);
+	        var obj = jsonAction;
+	        try {
+	            if (typeof obj === 'string') {
+	                obj = JSON.parse(jsonAction);
+	            }
+	        }
+	        catch (e) {
+	            console.log('Failure to parse action: ', jsonAction);
+	            throw e;
+	        }
 	        switch (obj.class) {
 	            case "DivideAction":
 	                return new DivideAction(obj);
@@ -830,6 +839,7 @@
 	            case "SpecializeAction":
 	                return new SpecializeAction(obj);
 	            default:
+	                console.log(obj, typeof obj);
 	                throw new TypeError("Bad jsonAction");
 	        }
 	    };
@@ -1046,13 +1056,13 @@
 	            new action_1.PumpAction({ fluidGradient: [-1, 0, 0.1, 0, 0, 0], fluids: [1, 0, 0, 0, 0, 0] }),
 	            new action_1.PumpAction({ fluidGradient: [-1, 0, 0.1, 0, 0, 0], fluids: [1, 0, 0, 0, 0, 0] }),
 	            // new ReactAction({ reaction: [-0.2,0.8,0.1,0,0,0] }), //photosynth
-	            // new ReactAction({ reaction: [0,0,0.1,0,0,0] }), // free auxin
-	            // new ReactAction({ reaction: [0,0,0,0.1,0,0] }), // free misc hormones
-	            // new ReactAction({ reaction: [0,0,0,0,0.1,0] }), // free misc hormones
-	            // new ReactAction({ reaction: [0,0,0,0,0,0.1] }), // free misc hormones
-	            // new ReactAction({ reaction: [0,0,0,-0.1,0,0] }), // free misc hormones
-	            // new ReactAction({ reaction: [0,0,0,0,-0.1,0] }), // free misc hormones
-	            // new ReactAction({ reaction: [0,0,0,0,0,-0.1] }), // free misc hormones
+	            new action_1.ReactAction({ reaction: [0, 0, 0.1, 0, 0, 0] }),
+	            new action_1.ReactAction({ reaction: [0, 0, 0, 0.1, 0, 0] }),
+	            new action_1.ReactAction({ reaction: [0, 0, 0, 0, 0.1, 0] }),
+	            new action_1.ReactAction({ reaction: [0, 0, 0, 0, 0, 0.1] }),
+	            new action_1.ReactAction({ reaction: [0, 0, 0, -0.1, 0, 0] }),
+	            new action_1.ReactAction({ reaction: [0, 0, 0, 0, -0.1, 0] }),
+	            new action_1.ReactAction({ reaction: [0, 0, 0, 0, 0, -0.1] }),
 	            new action_1.SpecializeAction({ toType: 0 }),
 	            new action_1.SpecializeAction({ toType: 1 }),
 	            new action_1.SpecializeAction({ toType: 2 }),
@@ -1132,7 +1142,6 @@
 	        for (var i = 0; i < dna.actions.length; ++i) {
 	            actionsSerial[i] = action_1.ActionSerializer.serialize(dna.actions[i]);
 	        }
-	        console.log('actionsSerial', actionsSerial);
 	        var cellTypesSerial = new Array(dna.cellTypes.length);
 	        for (var i = 0; i < dna.cellTypes.length; ++i) {
 	            cellTypesSerial[i] = celltypes_1.CellTypeSerializer.serialize(dna.cellTypes[i]);
@@ -1236,7 +1245,10 @@
 	        });
 	    };
 	    CellTypeSerializer.deserialize = function (serial) {
-	        var obj = JSON.parse(serial);
+	        var obj = serial;
+	        if (typeof serial === 'string') {
+	            obj = JSON.parse(serial);
+	        }
 	        var perceptronsSerial = obj.actionPerceptrons;
 	        var perceptrons = new Array(perceptronsSerial.length);
 	        for (var i = 0; i < perceptronsSerial.length; ++i) {

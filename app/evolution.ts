@@ -8,8 +8,8 @@ export class Evolution implements IViewSimulation {
 
     fitness: Array<number>;
     bestFitness: number;
-    bestSeed: DNA;
-    seed: DNA;
+    bestDna: DNA;
+    dna: DNA;
     isEvolutionRunning: boolean;
 
 
@@ -18,25 +18,30 @@ export class Evolution implements IViewSimulation {
     generation: number = 0;
     growtime;
     childrenPerGeneration;
+    childIndex: number;
 
     constructor(drawCanvas: Element) {
         this.simulation = new Simulation(drawCanvas);
-        this.simulation.pause(); // each frame will be an entire plant of automata
+        // this.simulatio    n.pause(); // each frame will be an entire plant of automata
         this.simulation.FRAME_DELAY = 200;
+        this.isEvolutionRunning = true;
+        this.dna = new DNA();
+        this.runGenerationSelectBest(1000, this.dna, 40);
+        // this.simulation.run();
     }
 
-    run(seed?:DNA) {
-        if (!seed) {
-            this.seed = new DNA();
-        }
-        this.seed = seed;
+    run(dna?:DNA) {
+        this.isEvolutionRunning = true;
+        // if (!dna) {
+        //     this.dna = new DNA();
+        // }
+        // this.dna = dna;
         // Run generation after generation...
         // TODO runGenerationSelectBest returns a Promise...
         // var ngenerations: number = 4;
 
-        // var best = seed;
+        // var best = dna;
         // for (var i = 0; i < ngenerations; ++i) {
-            this.runGenerationSelectBest(100, this.seed, 40);
         // }
         // return best;
     }
@@ -47,9 +52,10 @@ export class Evolution implements IViewSimulation {
 
     pause() {
         this.simulation.pause();
+        this.isEvolutionRunning = false;
     }
 
-    simulatedAnnealing(nchildren, seed:DNA, growtime: number = 40): DNA {
+    simulatedAnnealing(nchildren, dna:DNA, growtime: number = 40): DNA {
         // TODO
         var schedule = (round) => {
             return 1 / (1 + round/1000);
@@ -57,27 +63,30 @@ export class Evolution implements IViewSimulation {
         return null;
     }
 
-    runGenerationSelectBest(nchildren:number, seed:DNA, growtime: number = 40) {
-        // grow the seed for growtime iterations, then eval its fitness
+    runGenerationSelectBest(nchildren:number, dna:DNA, growtime: number = 40) {
+        // grow the dna for growtime iterations, then eval its fitness
+        // if (dna)
 
         // generate random children
-        this.bestSeed = null;
+        this.bestDna = null;
         this.bestFitness = -1;
         this.fitness = [];
         this.generation = 0;
         this.growtime = growtime;
         this.childrenPerGeneration = nchildren;
-        this.runGenerationSelectBestHelper(0);
+        this.childIndex = 0;
+        this.runGenerationSelectBestHelper();
 
         var self = this;
         window['stop'] = function() {
             console.log('Stopping after ' + self.generation + ' generations. ');
             console.log('Best fitness: ', self.bestFitness);
-            console.log('Best seed (serialized) stored in finalBest. ');
+            console.log('Best dna stored in finalBest. ');
             self.isEvolutionRunning = false;
-            window['finalBest'] = DNASerializer.serialize(self.bestSeed);
+            window['finalBest'] = self.bestDna; //DNASerializer.serialize(self.bestDna);
+            window['DNASerializer'] = DNASerializer;
+            window['fitness'] = self.fitness;
         };
-        window['fitness'] = this.fitness;
     }
 
     updateStatus() {
@@ -93,8 +102,8 @@ export class Evolution implements IViewSimulation {
     }
 
     /* Recursive function */
-    runGenerationSelectBestHelper(child_index:number) {
-        if (child_index >= this.childrenPerGeneration) {
+    runGenerationSelectBestHelper() {
+        if (this.childIndex >= this.childrenPerGeneration) {
             return;
         }
         if (!this.isEvolutionRunning) { // short-circuit out if pause is pressed
@@ -102,29 +111,32 @@ export class Evolution implements IViewSimulation {
         }
 
         this.generation++;
-        this.updateStatus();
+        this.dna = new DNA();
+        this.dna.mutate(1);
 
-        // grow the given seed
-        this.simulation.reset(this.seed);
+        // grow the given dna
+        // console.log('growing...');
+        this.simulation.reset(this.dna);
+        this.updateStatus();
+        // this.simulation.automata.draw();
         this.simulation.runForNTicks(this.growtime);
+        // console.log('done...');
 
         // evaluate its fitness
         var fit = this.evalFitness(this.simulation.automata.plant);
-        this.fitness[child_index] = fit;
+        this.fitness[this.childIndex] = fit;
 
-        // mark it as the best seed if applicable
+        // mark it as the best dna if applicable
         if (fit > this.bestFitness) {
             console.log('New best fitness: ', fit);
-            this.bestSeed = this.seed.clone();
+            this.bestDna = this.dna.clone();
             this.bestFitness = fit;
         }
 
-        // schedule to grow the next seed
+        // schedule to grow the next dna
         var self = this;
-        window.setTimeout(function() {
-            this.seed.mutate(1);
-            self.runGenerationSelectBestHelper(child_index + 1);
-        }, this.simulation.FRAME_DELAY);
+        this.childIndex++;
+        window.setTimeout(this.runGenerationSelectBestHelper.bind(this), this.simulation.FRAME_DELAY);
     }
 
     evalFitness(plant: Array<Cell>): number {

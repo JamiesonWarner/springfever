@@ -47,8 +47,17 @@ export class ActionSerializer {
         return JSON.stringify(obj)
     }
 
-    static deserialize(jsonAction: string): IAction {
-        var obj = JSON.parse(jsonAction);
+    static deserialize(jsonAction): IAction {
+        var obj = jsonAction;
+        try {
+            if (typeof obj === 'string') {
+                obj = JSON.parse(jsonAction);
+            }
+        }
+        catch (e) {
+            console.log('Failure to parse action: ', jsonAction);
+            throw e;
+        }
         switch (obj.class) {
             case "DivideAction":
                 return new DivideAction(obj);
@@ -59,6 +68,7 @@ export class ActionSerializer {
             case "SpecializeAction":
                 return new SpecializeAction(obj);
             default:
+                console.log(obj, typeof obj);
                 throw new TypeError("Bad jsonAction");
         }
     }

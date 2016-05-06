@@ -4,7 +4,7 @@ app.ts
 
 import {Automata} from "./automata";
 import {DNA, DNASerializer} from "./dna";
-// import {MY_PLANT} from "./myplant";
+import {MY_PLANT} from "./myplant";
 
 // interface for view layer
 export interface IViewSimulation {
@@ -19,7 +19,7 @@ export interface IViewSimulation {
 }
 
 export class Simulation implements IViewSimulation {
-    FRAME_DELAY: number = 400;
+    FRAME_DELAY: number = 500;
 
     automata: Automata;
     drawEnabled: boolean;
@@ -39,8 +39,9 @@ export class Simulation implements IViewSimulation {
         this.drawCanvas = drawCanvas;
         this.drawEnabled = true;
 
-        // this.dna = DNASerializer.deserialize(MY_PLANT); // to load DNA from a file
-        this.dna = new DNA();
+
+        this.dna = DNASerializer.deserialize(MY_PLANT); // to load DNA from a file
+        // this.dna = new DNA();
         this.reset(this.dna);
     }
 

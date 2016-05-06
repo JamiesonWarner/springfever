@@ -23,13 +23,13 @@ export class DNA {
       new PumpAction({ fluidGradient: [-1,0,0.1,0,0,0], fluids: [1,0,0,0,0,0] }),
       new PumpAction({ fluidGradient: [-1,0,0.1,0,0,0], fluids: [1,0,0,0,0,0] }),
       // new ReactAction({ reaction: [-0.2,0.8,0.1,0,0,0] }), //photosynth
-      // new ReactAction({ reaction: [0,0,0.1,0,0,0] }), // free auxin
-      // new ReactAction({ reaction: [0,0,0,0.1,0,0] }), // free misc hormones
-      // new ReactAction({ reaction: [0,0,0,0,0.1,0] }), // free misc hormones
-      // new ReactAction({ reaction: [0,0,0,0,0,0.1] }), // free misc hormones
-      // new ReactAction({ reaction: [0,0,0,-0.1,0,0] }), // free misc hormones
-      // new ReactAction({ reaction: [0,0,0,0,-0.1,0] }), // free misc hormones
-      // new ReactAction({ reaction: [0,0,0,0,0,-0.1] }), // free misc hormones
+      new ReactAction({ reaction: [0,0,0.1,0,0,0] }), // free auxin
+      new ReactAction({ reaction: [0,0,0,0.1,0,0] }), // free misc hormones
+      new ReactAction({ reaction: [0,0,0,0,0.1,0] }), // free misc hormones
+      new ReactAction({ reaction: [0,0,0,0,0,0.1] }), // free misc hormones
+      new ReactAction({ reaction: [0,0,0,-0.1,0,0] }), // free misc hormones
+      new ReactAction({ reaction: [0,0,0,0,-0.1,0] }), // free misc hormones
+      new ReactAction({ reaction: [0,0,0,0,0,-0.1] }), // free misc hormones
       new SpecializeAction({ toType: 0 }),
       new SpecializeAction({ toType: 1 }),
       new SpecializeAction({ toType: 2 }),
@@ -148,7 +148,6 @@ export class DNASerializer {
     for (var i = 0; i < dna.actions.length; ++i) {
       actionsSerial[i] = ActionSerializer.serialize(dna.actions[i]);
     }
-    console.log('actionsSerial', actionsSerial);
 
     var cellTypesSerial = new Array(dna.cellTypes.length);
     for (var i = 0; i < dna.cellTypes.length; ++i) {
