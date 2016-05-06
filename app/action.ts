@@ -41,6 +41,9 @@ export class ActionSerializer {
         else if (action instanceof SpecializeAction) {
             obj['toType'] = action.toType;
         }
+        else if (action instanceof PumpAction) {
+            obj['fluids'] = action.fluids;
+        }
         return JSON.stringify(obj)
     }
 
@@ -83,7 +86,6 @@ export class DirectionalAction implements IAction {
         }
 
         var direction = Math.atan2(upContribution - downContribution, rightContribution - leftContribution);
-        console.log('calculated action direction is ', direction, upContribution, downContribution);
 
         return direction;
     }
@@ -114,8 +116,19 @@ export class DivideAction extends DirectionalAction {
 }
 
 export class PumpAction extends DirectionalAction {
+    fluids: Array<number>;
+
     constructor(args){
         super(args);
+        this.fluids = args['fluids'] || [];
+    }
+
+    mutate(amount: number = 1) {
+        super.mutate(amount);
+        for (var i = 0; i < this.fluids.length; ++i) {
+            var r = Utils.getBoundedRandom(amount);
+            this.fluids[i] += r;
+        }
     }
 }
 

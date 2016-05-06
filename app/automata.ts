@@ -3,7 +3,7 @@ import {Cell} from "./cell"
 import {Dirt} from "./dirt";
 import {Fluids} from "./fluids";
 import {ISystem} from "./system";
-import {IAction, DivideAction, ReactAction} from "./action";
+import {IAction, DivideAction, ReactAction, SpecializeAction, PumpAction} from "./action";
 import {Angle} from "./angle";
 
 /*
@@ -140,6 +140,7 @@ export class Automata {
                 continue; // cell chose to do nothing
             }
             var action = actions[i];
+            var cell = this.plant[i];
             if(action instanceof DivideAction) {
                 // console.log("cell wants to grow...")
                 var daction: DivideAction = action;
@@ -183,7 +184,6 @@ export class Automata {
                     continue;
                 }
 
-                // console.log("growing new cell...")
                 this.subtractFluids(cell.fluids, cost);
                 var newFluids = this.splitFluids(cell.fluids);
                 var nCell = new Cell(this.dna, cell.type, newFluids, gI, gJ);
@@ -198,6 +198,34 @@ export class Automata {
                 }
             }
 
+            else if (action instanceof SpecializeAction) {
+                var saction: SpecializeAction = action;
+                cell.setType(saction.toType);
+            }
+
+            else if (action instanceof PumpAction) {
+                var paction: PumpAction = action;
+                var neighborUp = this.fluidsArray[cell.row - 1][cell.col];
+                var neighborRight = this.fluidsArray[cell.row][cell.col + 1];
+                var neighborDown = this.fluidsArray[cell.row + 1][cell.col];
+                var neighborLeft = this.fluidsArray[cell.row][cell.col - 1];
+                var angle: number = paction.getActionDirection(neighborUp, neighborRight, neighborDown, neighborLeft);
+                var direction = Angle.sampleDirection(angle);
+                var drow = Angle.directionDeltaRow(direction);
+                var dcol = Angle.directionDeltaCol(direction);
+                var gI = this.plant[i].row + drow;
+                var gJ = this.plant[i].col + dcol;
+                if(gI < 0 || gI >= Automata.GRID_N_ROWS || gJ < 0 || gJ >= Automata.GRID_N_COLUMNS ){
+                    continue;
+                }
+                var targetFluidVec = this.fluidsArray[gI][gJ].vector;
+                var fluidVec = cell.fluids.vector;
+                for (var i = 0; i < paction.fluids.length; ++i) {
+                    var d = Math.min(paction.fluids[i], fluidVec[i]);
+                    fluidVec[i] -= d;
+                    targetFluidVec[i] += d;
+                }
+            }
         }
 
         this.fluidUpdate();
@@ -221,10 +249,10 @@ export class Automata {
                 toKill.push(cell);
             }
             if (cell.fluids.vector[Fluids.GLUCOSE] < MIN_GLUCOSE) {
-                console.log('cell killed due to lack of glucose');
+                // console.log('cell killed due to lack of glucose');
             }
             if (cell.fluids.vector[Fluids.WATER] < MIN_WATER) {
-                console.log('cell killed due to lack of water');
+                // console.log('cell killed due to lack of water');
             }
 
         }
@@ -313,8 +341,8 @@ export class Automata {
             }
         }
 
-        // respiration. this is needed for stuff
-        var RESPIRATION_AMOUNT = 0.1;
+        // respiration. this is needed for metabolism
+        var RESPIRATION_AMOUNT = 0.01;
         for (var i = 0; i < this.plant.length; ++i) {
             var cell = this.plant[i];
             cell.fluids.vector[Fluids.WATER] -= RESPIRATION_AMOUNT;
@@ -334,10 +362,15 @@ export class Automata {
                         continue;
                     }
 
-                    var flowRate = 0.02;
+                    var flowRate = 0.1;
                     // air to air is very fast
                     if (this.isAirNotCell(row,col) && this.isAirNotCell(neighbRow,neighbCol)) {
                         flowRate = 0.2;
+                    }
+                    if (this.cellArray[row][col] && !this.cellArray[neighbRow][neighbCol] ||
+                        !this.cellArray[row][col] && this.cellArray[neighbRow][neighbCol]) {
+                        // flowRate = 0.01
+                        continue;
                     }
 
                     var neighbFluids = this.fluidsArray[neighbRow][neighbCol].vector;
@@ -353,7 +386,7 @@ export class Automata {
             }
         }
 
-        this.validateFluidsArray();
+        // this.validateFluidsArray();
 
         // Apply fluidsDiff to fluids
         for (var row = 0; row < Automata.GRID_N_ROWS; row ++){
@@ -402,12 +435,12 @@ export class Automata {
         for (var row = 0; row < Automata.GRID_N_ROWS; row ++){
             for (var col = 0; col < Automata.GRID_N_COLUMNS; col ++){
                 var fluids = this.fluidsArray[row][col].vector;
-                let waterContent = Math.max(Math.min(Math.round(fluids[Fluids.WATER]),255),0);
+                var waterContent = Math.max(Math.min(Math.round(fluids[Fluids.WATER]),255),0);
 
                 if (this.viewStyle === 'water') {
-                    let waterConcentration = fluids[Fluids.WATER] / (2 * Automata.MATERIAL_DIRT_WATER_MEAN);
-                    let waterColor = Math.max(Math.min(Math.round(255*waterConcentration),255),0);
-                    let colorString = "#" + "0064" + this.getColorHex(waterColor);
+                    var waterConcentration = fluids[Fluids.WATER] / (2 * Automata.MATERIAL_DIRT_WATER_MEAN);
+                    var waterColor = Math.max(Math.min(Math.round(255*waterConcentration),255),0);
+                    var colorString = "#" + "0064" + this.getColorHex(waterColor);
                     this.canvasCtx.fillStyle = colorString;
                 }
                 else if(this.viewStyle === 'glucose'){
@@ -419,7 +452,7 @@ export class Automata {
                     }
                 }
                 else if (this.viewStyle === 'auxin') {
-                    let cell = this.cellArray[row][col];
+                    var cell = this.cellArray[row][col];
                     if (cell) {
                         this.canvasCtx.fillStyle = "#" + "0000" + this.getColorHex(Math.min(255,Math.ceil(255*fluids[Fluids.SIGNALS_START])));
                     }
@@ -428,9 +461,9 @@ export class Automata {
                     }
                 }
                 else {
-                    let cell = this.cellArray[row][col];
+                    var cell = this.cellArray[row][col];
                     if (cell) {
-                        this.canvasCtx.fillStyle = this.cellArray[row][col].type.color;
+                        this.canvasCtx.fillStyle = cell.type.color;
                     }
                     else if(row >= 50){
                         var cval = Math.ceil(waterContent/4);

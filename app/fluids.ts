@@ -11,15 +11,11 @@ export class Fluids {
 
     vector;
 
-    constructor(water = Automata.MATERIAL_WATER_WATER_MEAN, glucose = 0) {
-
+    constructor(...vec) {
         this.vector = new Array(Fluids.N_FLUIDS);
         for (var i = 0; i < Fluids.N_FLUIDS; ++i) {
-            this.vector[i] = 0;
+            this.vector[i] = vec[i] || 0;
         }
-
-        this.vector[Fluids.WATER] = water;
-        this.vector[Fluids.GLUCOSE] = glucose;
     }
 
     sumFluids(): number {

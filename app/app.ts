@@ -10,10 +10,13 @@ document.addEventListener("DOMContentLoaded", function(event) {
     sim.startSimulation();
 
     // var sim = new Evolution(drawCanvas);
-    // var best = sim.doEvolution(0);
+    // var best = sim.doEvolution();
+
+    // var
 
     window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
     window['resetSimulation'] = function() {
+        console.log("=== Resetting simulation ===");
         sim.setupSimulation(null); //.bind(sim);
         sim.startSimulation();
     }

@@ -46,16 +46,18 @@
 
 	"use strict";
 	var simulation_1 = __webpack_require__(1);
-	var angle_1 = __webpack_require__(9);
-	var utils_1 = __webpack_require__(5);
+	var angle_1 = __webpack_require__(7);
+	var utils_1 = __webpack_require__(4);
 	document.addEventListener("DOMContentLoaded", function (event) {
 	    var drawCanvas = document.getElementById("draw");
 	    var sim = new simulation_1.Simulation(drawCanvas);
 	    sim.startSimulation();
 	    // var sim = new Evolution(drawCanvas);
-	    // var best = sim.doEvolution(0);
+	    // var best = sim.doEvolution();
+	    // var
 	    window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
 	    window['resetSimulation'] = function () {
+	        console.log("=== Resetting simulation ===");
 	        sim.setupSimulation(null); //.bind(sim);
 	        sim.startSimulation();
 	    };
@@ -79,14 +81,16 @@
 	*/
 	"use strict";
 	var automata_1 = __webpack_require__(2);
-	var dna_1 = __webpack_require__(6);
+	var dna_1 = __webpack_require__(8);
+	var myplant_1 = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"./myplant\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 	var Simulation = (function () {
 	    function Simulation(drawCanvas) {
 	        this.FRAME_DELAY = 200;
 	        this.drawCanvas = drawCanvas;
 	        this.drawEnabled = true;
 	        this.automata = new automata_1.Automata('prototype', drawCanvas);
-	        this.setupSimulation();
+	        var myPlant = dna_1.DNASerializer.deserialize(myplant_1.MY_PLANT);
+	        this.setupSimulation(myPlant);
 	        // var seed = new DNA();
 	        // seed.mutate(100);
 	        // this.automata.plantSeed(seed);
@@ -175,9 +179,9 @@
 
 	"use strict";
 	var cell_1 = __webpack_require__(3);
-	var fluids_1 = __webpack_require__(4);
-	var action_1 = __webpack_require__(7);
-	var angle_1 = __webpack_require__(9);
+	var fluids_1 = __webpack_require__(5);
+	var action_1 = __webpack_require__(6);
+	var angle_1 = __webpack_require__(7);
 	/*
 	TODO turn Automata into systems model.
 	Automata is a place for shared state.
@@ -279,6 +283,7 @@
 	                continue; // cell chose to do nothing
 	            }
 	            var action = actions[i];
+	            var cell = this.plant[i];
 	            if (action instanceof action_1.DivideAction) {
 	                // console.log("cell wants to grow...")
 	                var daction = action;
@@ -313,7 +318,6 @@
 	                    // console.log("cell already exists at " + gJ + ", " + gI);
 	                    continue;
 	                }
-	                // console.log("growing new cell...")
 	                this.subtractFluids(cell.fluids, cost);
 	                var newFluids = this.splitFluids(cell.fluids);
 	                var nCell = new cell_1.Cell(this.dna, cell.type, newFluids, gI, gJ);
@@ -323,6 +327,33 @@
 	            }
 	            else if (action instanceof action_1.ReactAction) {
 	                for (var i = 0; i < length; ++i) {
+	                }
+	            }
+	            else if (action instanceof action_1.SpecializeAction) {
+	                var saction = action;
+	                cell.setType(saction.toType);
+	            }
+	            else if (action instanceof action_1.PumpAction) {
+	                var paction = action;
+	                var neighborUp = this.fluidsArray[cell.row - 1][cell.col];
+	                var neighborRight = this.fluidsArray[cell.row][cell.col + 1];
+	                var neighborDown = this.fluidsArray[cell.row + 1][cell.col];
+	                var neighborLeft = this.fluidsArray[cell.row][cell.col - 1];
+	                var angle = paction.getActionDirection(neighborUp, neighborRight, neighborDown, neighborLeft);
+	                var direction = angle_1.Angle.sampleDirection(angle);
+	                var drow = angle_1.Angle.directionDeltaRow(direction);
+	                var dcol = angle_1.Angle.directionDeltaCol(direction);
+	                var gI = this.plant[i].row + drow;
+	                var gJ = this.plant[i].col + dcol;
+	                if (gI < 0 || gI >= Automata.GRID_N_ROWS || gJ < 0 || gJ >= Automata.GRID_N_COLUMNS) {
+	                    continue;
+	                }
+	                var targetFluidVec = this.fluidsArray[gI][gJ].vector;
+	                var fluidVec = cell.fluids.vector;
+	                for (var i = 0; i < paction.fluids.length; ++i) {
+	                    var d = Math.min(paction.fluids[i], fluidVec[i]);
+	                    fluidVec[i] -= d;
+	                    targetFluidVec[i] += d;
 	                }
 	            }
 	        }
@@ -347,10 +378,8 @@
 	                toKill.push(cell);
 	            }
 	            if (cell.fluids.vector[fluids_1.Fluids.GLUCOSE] < MIN_GLUCOSE) {
-	                console.log('cell killed due to lack of glucose');
 	            }
 	            if (cell.fluids.vector[fluids_1.Fluids.WATER] < MIN_WATER) {
-	                console.log('cell killed due to lack of water');
 	            }
 	        }
 	        for (var i = 0; i < toKill.length; ++i) {
@@ -429,8 +458,8 @@
 	                fluidsDiff[cell_2.row][cell_2.col][fluids_1.Fluids.GLUCOSE] += REACTION_FACTOR * dGlucose;
 	            }
 	        }
-	        // respiration. this is needed for stuff
-	        var RESPIRATION_AMOUNT = 0.1;
+	        // respiration. this is needed for metabolism
+	        var RESPIRATION_AMOUNT = 0.01;
 	        for (var i = 0; i < this.plant.length; ++i) {
 	            var cell = this.plant[i];
 	            cell.fluids.vector[fluids_1.Fluids.WATER] -= RESPIRATION_AMOUNT;
@@ -447,10 +476,15 @@
 	                    if (!this.isPositionOnGrid(neighbRow, neighbCol)) {
 	                        continue;
 	                    }
-	                    var flowRate = 0.02;
+	                    var flowRate = 0.1;
 	                    // air to air is very fast
 	                    if (this.isAirNotCell(row, col) && this.isAirNotCell(neighbRow, neighbCol)) {
 	                        flowRate = 0.2;
+	                    }
+	                    if (this.cellArray[row][col] && !this.cellArray[neighbRow][neighbCol] ||
+	                        !this.cellArray[row][col] && this.cellArray[neighbRow][neighbCol]) {
+	                        // flowRate = 0.01
+	                        continue;
 	                    }
 	                    var neighbFluids = this.fluidsArray[neighbRow][neighbCol].vector;
 	                    var fluids = this.fluidsArray[row][col].vector;
@@ -464,7 +498,7 @@
 	                }
 	            }
 	        }
-	        this.validateFluidsArray();
+	        // this.validateFluidsArray();
 	        // Apply fluidsDiff to fluids
 	        for (var row = 0; row < Automata.GRID_N_ROWS; row++) {
 	            for (var col = 0; col < Automata.GRID_N_COLUMNS; col++) {
@@ -522,8 +556,8 @@
 	                    }
 	                }
 	                else if (this.viewStyle === 'auxin') {
-	                    var cell_3 = this.cellArray[row][col];
-	                    if (cell_3) {
+	                    var cell = this.cellArray[row][col];
+	                    if (cell) {
 	                        this.canvasCtx.fillStyle = "#" + "0000" + this.getColorHex(Math.min(255, Math.ceil(255 * fluids[fluids_1.Fluids.SIGNALS_START])));
 	                    }
 	                    else {
@@ -531,9 +565,9 @@
 	                    }
 	                }
 	                else {
-	                    var cell_4 = this.cellArray[row][col];
-	                    if (cell_4) {
-	                        this.canvasCtx.fillStyle = this.cellArray[row][col].type.color;
+	                    var cell = this.cellArray[row][col];
+	                    if (cell) {
+	                        this.canvasCtx.fillStyle = cell.type.color;
 	                    }
 	                    else if (row >= 50) {
 	                        var cval = Math.ceil(waterContent / 4);
@@ -606,7 +640,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var utils_1 = __webpack_require__(5);
+	var utils_1 = __webpack_require__(4);
 	/*
 	Cell is a fleighweight object for the Grid. Systems.
 	Plus they also have context for fitting into the Grid.
@@ -617,14 +651,20 @@
 	        this.row = row;
 	        this.col = col;
 	        this.fluids = fluids;
+	        this.dna = dna;
+	        this.setType(type);
+	    }
+	    /*
+	    Pass either a literal type object or a numerical type index referencing dna type definitions
+	    */
+	    Cell.prototype.setType = function (type) {
 	        if (typeof type === 'number') {
-	            this.type = dna.cellTypes[type];
+	            this.type = this.dna.cellTypes[type];
 	        }
 	        else {
 	            this.type = type;
 	        }
-	        this.dna = dna;
-	    }
+	    };
 	    Cell.prototype.updateSignals = function () {
 	        // multiply by matrix
 	        // var newSignals = new Array(Fluids.N_SIGNALS);
@@ -681,67 +721,6 @@
 
 /***/ },
 /* 4 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-	var automata_1 = __webpack_require__(2);
-	var Fluids = (function () {
-	    function Fluids(water, glucose) {
-	        if (water === void 0) { water = automata_1.Automata.MATERIAL_WATER_WATER_MEAN; }
-	        if (glucose === void 0) { glucose = 0; }
-	        this.vector = new Array(Fluids.N_FLUIDS);
-	        for (var i = 0; i < Fluids.N_FLUIDS; ++i) {
-	            this.vector[i] = 0;
-	        }
-	        this.vector[Fluids.WATER] = water;
-	        this.vector[Fluids.GLUCOSE] = glucose;
-	    }
-	    Fluids.prototype.sumFluids = function () {
-	        var s = 0;
-	        for (var i = 0; i < this.vector.length; ++i) {
-	            s += this.vector[i];
-	        }
-	        return s;
-	    };
-	    Fluids.prototype.getPressureInArea = function (area) {
-	        return this.sumFluids() / area;
-	    };
-	    /*
-	    Goal:  q
-	    */
-	    /*
-	    Returns the quantity of a given fluid, which is the amount of a substance per unit volume.
-	    divided by the total fluid.
-	
-	    */
-	    /*
-	
-	    */
-	    Fluids.prototype.getFluidConcentration = function (fluidId, area) {
-	    };
-	    /*
-	    Diffusive flux is rate of flow per unit area. Positive value means outward flow.
-	
-	    Fick's law of diffusion: J = -D (d phi)/(d x)
-	    J is diffusive flux
-	    D is diffusion coefficient
-	    phi is amount of
-	    x is position
-	    */
-	    Fluids.prototype.getDiffusiveFlux = function (toFluid, area1, area2) { };
-	    Fluids.WATER = 0;
-	    Fluids.GLUCOSE = 1;
-	    Fluids.AUXIN = 2;
-	    Fluids.SIGNALS_START = 2;
-	    Fluids.N_SIGNALS = 4;
-	    Fluids.N_FLUIDS = 2 + Fluids.N_SIGNALS;
-	    return Fluids;
-	}());
-	exports.Fluids = Fluids;
-
-
-/***/ },
-/* 5 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -811,120 +790,67 @@
 
 
 /***/ },
-/* 6 */
-/***/ function(module, exports, __webpack_require__) {
+/* 5 */
+/***/ function(module, exports) {
 
 	"use strict";
-	var cell_1 = __webpack_require__(3);
-	var fluids_1 = __webpack_require__(4);
-	var automata_1 = __webpack_require__(2);
-	var action_1 = __webpack_require__(7);
-	var perceptron_1 = __webpack_require__(8);
-	var celltypes_1 = __webpack_require__(11);
-	var DNA = (function () {
-	    function DNA() {
-	        window['dna'] = this;
-	        this.actions = [
-	            // new DivideAction({ fluidGradient: [0,0,-1,0,0,0], gravityGradient: 2 }),
-	            new action_1.DivideAction({ fluidGradient: [0, 0, 0, 0, 0, 0], gravityGradient: 2 }),
-	            new action_1.DivideAction({ fluidGradient: [0, 0, 0, 0, 0, 0], gravityGradient: -2 }),
-	        ];
-	        // cell types
-	        this.cellTypes = new Array(DNA.N_CELL_TYPES);
-	        for (var i = 0; i < DNA.N_CELL_TYPES; ++i) {
-	            var actionPerceptrons = [];
-	            for (var j = 0; j < this.actions.length; ++j) {
-	                actionPerceptrons[j] = new perceptron_1.Perceptron(fluids_1.Fluids.N_FLUIDS, 8, 1);
-	            }
-	            this.cellTypes[i] = {
-	                color: DNA.COLOR_HEX_ARRAY[i % DNA.COLOR_HEX_ARRAY.length],
-	                isLeaf: i == 0,
-	                cost: new fluids_1.Fluids(0.2, 0.2),
-	                actionPerceptrons: actionPerceptrons
-	            };
+	var Fluids = (function () {
+	    function Fluids() {
+	        var vec = [];
+	        for (var _i = 0; _i < arguments.length; _i++) {
+	            vec[_i - 0] = arguments[_i];
+	        }
+	        this.vector = new Array(Fluids.N_FLUIDS);
+	        for (var i = 0; i < Fluids.N_FLUIDS; ++i) {
+	            this.vector[i] = vec[i] || 0;
 	        }
 	    }
-	    DNA.prototype.clone = function () {
-	        var serial = DNASerializer.serialize(this);
-	        return DNASerializer.deserialize(serial);
-	    };
-	    DNA.prototype.mutate = function (amount) {
-	        if (amount === void 0) { amount = 1; }
-	        // mutate actions
-	        for (var i = 0; i < this.actions.length; ++i) {
-	            var action = this.actions[i];
-	            action.mutate(amount);
+	    Fluids.prototype.sumFluids = function () {
+	        var s = 0;
+	        for (var i = 0; i < this.vector.length; ++i) {
+	            s += this.vector[i];
 	        }
-	        // mutate type controllers
-	        for (var i = 0; i < this.cellTypes.length; ++i) {
-	            var type = this.cellTypes[i];
-	            for (var j = 0; j < type.actionPerceptrons; ++j) {
-	                var p = type.actionPerceptrons[j];
-	                p.perturb(amount);
-	            }
-	        }
+	        return s;
 	    };
-	    DNA.prototype.plantSeed = function (grid, fluidsArray) {
-	        var waterInitial = 1.75 * automata_1.Automata.MATERIAL_WATER_WATER_MEAN;
-	        var glucoseInitial = 20; // 4.0;
-	        var fluids1 = new fluids_1.Fluids(waterInitial, glucoseInitial), fluids2 = new fluids_1.Fluids(waterInitial, glucoseInitial);
-	        var rowCenter = Math.floor(automata_1.Automata.GRID_N_ROWS / 2), colCenter = Math.floor(automata_1.Automata.GRID_N_COLUMNS / 2), row1 = rowCenter + 2, row2 = rowCenter + 3, col1 = colCenter, col2 = colCenter;
-	        var c1 = new cell_1.Cell(this, 0, fluids1, row1, col1), c2 = new cell_1.Cell(this, 1, fluids2, row2, col2);
-	        var seed = [c1, c2];
-	        grid[c1.row][c1.col] = c1;
-	        grid[c2.row][c2.col] = c2;
-	        fluidsArray[c1.row][c1.col] = fluids1;
-	        fluidsArray[c2.row][c2.col] = fluids2;
-	        return seed;
+	    Fluids.prototype.getPressureInArea = function (area) {
+	        return this.sumFluids() / area;
 	    };
-	    DNA.N_CELL_TYPES = 5;
-	    DNA.COLOR_HEX_ARRAY = ["#ededbe", "#8F8F6E", "#6E6E8F", "#8F6E7F", "#80C4A1"];
-	    return DNA;
+	    /*
+	    Goal:  q
+	    */
+	    /*
+	    Returns the quantity of a given fluid, which is the amount of a substance per unit volume.
+	    divided by the total fluid.
+	
+	    */
+	    /*
+	
+	    */
+	    Fluids.prototype.getFluidConcentration = function (fluidId, area) {
+	    };
+	    /*
+	    Diffusive flux is rate of flow per unit area. Positive value means outward flow.
+	
+	    Fick's law of diffusion: J = -D (d phi)/(d x)
+	    J is diffusive flux
+	    D is diffusion coefficient
+	    phi is amount of
+	    x is position
+	    */
+	    Fluids.prototype.getDiffusiveFlux = function (toFluid, area1, area2) { };
+	    Fluids.WATER = 0;
+	    Fluids.GLUCOSE = 1;
+	    Fluids.AUXIN = 2;
+	    Fluids.SIGNALS_START = 2;
+	    Fluids.N_SIGNALS = 4;
+	    Fluids.N_FLUIDS = 2 + Fluids.N_SIGNALS;
+	    return Fluids;
 	}());
-	exports.DNA = DNA;
-	/*
-	Serialization is necessary to store the results of evolution so they can be played back, saved
-	*/
-	var DNASerializer = (function () {
-	    function DNASerializer() {
-	    }
-	    DNASerializer.serialize = function (dna) {
-	        var actionsSerial = new Array(dna.actions.length);
-	        for (var i = 0; i < dna.actions.length; ++i) {
-	            actionsSerial[i] = action_1.ActionSerializer.serialize(dna.actions[i]);
-	        }
-	        var cellTypesSerial = new Array(dna.cellTypes.length);
-	        for (var i = 0; i < dna.cellTypes.length; ++i) {
-	            actionsSerial[i] = celltypes_1.CellTypeSerializer.serialize(dna.cellTypes[i]);
-	        }
-	        return JSON.stringify({
-	            cellTypes: dna.cellTypes,
-	            actions: actionsSerial
-	        });
-	    };
-	    DNASerializer.deserialize = function (serialized) {
-	        var d = new DNA();
-	        var o = JSON.parse(serialized);
-	        var actionsSerial = o.actions;
-	        var actions = new Array(actionsSerial.length);
-	        for (var i = 0; i < actionsSerial.length; ++i) {
-	            actions[i] = action_1.ActionSerializer.deserialize(actionsSerial[i]);
-	        }
-	        var cellTypesSerial = o.cellTypes;
-	        var cellTypes = new Array(cellTypesSerial.length);
-	        for (var i = 0; i < cellTypes.length; ++i) {
-	            cellTypes[i] = celltypes_1.CellTypeSerializer.deserialize(cellTypesSerial[i]);
-	        }
-	        d.cellTypes = cellTypes;
-	        d.actions = actions;
-	        return d;
-	    };
-	    return DNASerializer;
-	}());
+	exports.Fluids = Fluids;
 
 
 /***/ },
-/* 7 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -933,7 +859,7 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var utils_1 = __webpack_require__(5);
+	var utils_1 = __webpack_require__(4);
 	var ActionSerializer = (function () {
 	    function ActionSerializer() {
 	    }
@@ -967,6 +893,9 @@
 	        }
 	        else if (action instanceof SpecializeAction) {
 	            obj['toType'] = action.toType;
+	        }
+	        else if (action instanceof PumpAction) {
+	            obj['fluids'] = action.fluids;
 	        }
 	        return JSON.stringify(obj);
 	    };
@@ -1003,7 +932,6 @@
 	            downContribution += this.gravityGradient;
 	        }
 	        var direction = Math.atan2(upContribution - downContribution, rightContribution - leftContribution);
-	        console.log('calculated action direction is ', direction, upContribution, downContribution);
 	        return direction;
 	    };
 	    /*
@@ -1037,7 +965,16 @@
 	    __extends(PumpAction, _super);
 	    function PumpAction(args) {
 	        _super.call(this, args);
+	        this.fluids = args['fluids'] || [];
 	    }
+	    PumpAction.prototype.mutate = function (amount) {
+	        if (amount === void 0) { amount = 1; }
+	        _super.prototype.mutate.call(this, amount);
+	        for (var i = 0; i < this.fluids.length; ++i) {
+	            var r = utils_1.Utils.getBoundedRandom(amount);
+	            this.fluids[i] += r;
+	        }
+	    };
 	    return PumpAction;
 	}(DirectionalAction));
 	exports.PumpAction = PumpAction;
@@ -1065,56 +1002,7 @@
 
 
 /***/ },
-/* 8 */
-/***/ function(module, exports) {
-
-	"use strict";
-	var __extends = (this && this.__extends) || function (d, b) {
-	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-	    function __() { this.constructor = d; }
-	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-	};
-	var Perceptron = (function (_super) {
-	    __extends(Perceptron, _super);
-	    function Perceptron() {
-	        var nnodes = [];
-	        for (var _i = 0; _i < arguments.length; _i++) {
-	            nnodes[_i - 0] = arguments[_i];
-	        }
-	        _super.apply(this, nnodes);
-	    }
-	    Perceptron.prototype.perturb = function (amount) {
-	        // perturb every weight by ~amount
-	        if (amount === void 0) { amount = 1.0; }
-	        // iterate through layers connections
-	        var connections = this.layers.input.connectedTo[0].list
-	            .concat(connections = this.layers.hidden[0].connectedTo[0].list);
-	        for (var i = 0; i < connections.length; ++i) {
-	            var connection = connections[i];
-	            connection.weight += 2 * Math.random() * amount - amount;
-	        }
-	        // iterate through neurons
-	        var neurons = this.layers.input.list
-	            .concat(this.layers.hidden[0].list)
-	            .concat(this.layers.output.list);
-	        for (var i = 0; i < neurons.length; ++i) {
-	            neurons[i].bias += 2 * Math.random() * amount - amount;
-	        }
-	        // for (var i = 0; i < this.weights.length; ++i) {
-	        //     for (var j = 0; j < this.weights[i].length; ++j) {
-	        //         for (var k = 0; k < this.weights[i][j].length; ++k) {
-	        //             this.weights[i][j][k] += 2 * Math.random() * amount - amount;
-	        //         }
-	        //     }
-	        // }
-	    };
-	    return Perceptron;
-	}(Architect.Perceptron));
-	exports.Perceptron = Perceptron;
-
-
-/***/ },
-/* 9 */
+/* 7 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -1219,19 +1107,216 @@
 
 
 /***/ },
-/* 10 */,
-/* 11 */
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var cell_1 = __webpack_require__(3);
+	var fluids_1 = __webpack_require__(5);
+	var automata_1 = __webpack_require__(2);
+	var action_1 = __webpack_require__(6);
+	var perceptron_1 = __webpack_require__(9);
+	var celltypes_1 = __webpack_require__(10);
+	var DNA = (function () {
+	    function DNA() {
+	        window['dna'] = this;
+	        this.actions = [
+	            // new DivideAction({ fluidGradient: [0,0,-1,0,0,0], gravityGradient: 2 }),
+	            new action_1.DivideAction({ fluidGradient: [0, 0, 0, 0, 0, 0], gravityGradient: 2 }),
+	            new action_1.DivideAction({ fluidGradient: [0, 0, 0, 0, 0, 0], gravityGradient: -2 }),
+	            new action_1.PumpAction({ fluidGradient: [-1, 0, 0.1, 0, 0, 0], fluids: [1, 0, 0, 0, 0, 0] }),
+	            new action_1.PumpAction({ fluidGradient: [-1, 0, 0.1, 0, 0, 0], fluids: [1, 0, 0, 0, 0, 0] }),
+	            // new ReactAction({ reaction: [-0.2,0.8,0.1,0,0,0] }), //photosynth
+	            // new ReactAction({ reaction: [0,0,0.1,0,0,0] }), // free auxin
+	            // new ReactAction({ reaction: [0,0,0,0.1,0,0] }), // free misc hormones
+	            // new ReactAction({ reaction: [0,0,0,0,0.1,0] }), // free misc hormones
+	            // new ReactAction({ reaction: [0,0,0,0,0,0.1] }), // free misc hormones
+	            // new ReactAction({ reaction: [0,0,0,-0.1,0,0] }), // free misc hormones
+	            // new ReactAction({ reaction: [0,0,0,0,-0.1,0] }), // free misc hormones
+	            // new ReactAction({ reaction: [0,0,0,0,0,-0.1] }), // free misc hormones
+	            new action_1.SpecializeAction({ toType: 0 }),
+	            new action_1.SpecializeAction({ toType: 1 }),
+	            new action_1.SpecializeAction({ toType: 2 }),
+	            new action_1.SpecializeAction({ toType: 3 }),
+	            new action_1.SpecializeAction({ toType: 4 })
+	        ];
+	        // cell types
+	        this.cellTypes = new Array(DNA.N_CELL_TYPES);
+	        for (var i = 0; i < DNA.N_CELL_TYPES; ++i) {
+	            var actionPerceptrons = [];
+	            for (var j = 0; j < this.actions.length; ++j) {
+	                actionPerceptrons[j] = new perceptron_1.Perceptron(fluids_1.Fluids.N_FLUIDS, 8, 1);
+	            }
+	            this.cellTypes[i] = {
+	                color: DNA.COLOR_HEX_ARRAY[i % DNA.COLOR_HEX_ARRAY.length],
+	                isLeaf: i == 4,
+	                cost: new fluids_1.Fluids(0.2, 0.2),
+	                actionPerceptrons: actionPerceptrons
+	            };
+	        }
+	    }
+	    DNA.prototype.clone = function () {
+	        var serial = DNASerializer.serialize(this);
+	        return DNASerializer.deserialize(serial);
+	    };
+	    DNA.prototype.mutate = function (amount) {
+	        if (amount === void 0) { amount = 1; }
+	        // mutate actions
+	        for (var i = 0; i < this.actions.length; ++i) {
+	            var action = this.actions[i];
+	            action.mutate(amount);
+	        }
+	        // mutate type controllers
+	        for (var i = 0; i < this.cellTypes.length; ++i) {
+	            var type = this.cellTypes[i];
+	            for (var j = 0; j < type.actionPerceptrons; ++j) {
+	                var p = type.actionPerceptrons[j];
+	                p.perturb(amount);
+	            }
+	        }
+	    };
+	    DNA.prototype.plantSeed = function (grid, fluidsArray) {
+	        var waterInitial = 20; // 1.75 * Automata.MATERIAL_WATER_WATER_MEAN;
+	        var glucoseInitial = 20; // 4.0;
+	        var fluids1 = new fluids_1.Fluids(waterInitial, glucoseInitial), fluids2 = new fluids_1.Fluids(waterInitial, glucoseInitial);
+	        var rowCenter = Math.floor(automata_1.Automata.GRID_N_ROWS / 2), colCenter = Math.floor(automata_1.Automata.GRID_N_COLUMNS / 2), row1 = rowCenter + 2, row2 = rowCenter + 3, col1 = colCenter, col2 = colCenter;
+	        var c1 = new cell_1.Cell(this, 0, fluids1, row1, col1), c2 = new cell_1.Cell(this, 1, fluids2, row2, col2);
+	        var seed = [c1, c2];
+	        grid[c1.row][c1.col] = c1;
+	        grid[c2.row][c2.col] = c2;
+	        fluidsArray[c1.row][c1.col] = fluids1;
+	        fluidsArray[c2.row][c2.col] = fluids2;
+	        return seed;
+	    };
+	    DNA.N_CELL_TYPES = 5;
+	    DNA.COLOR_HEX_ARRAY = ["#ededbe", "#8F8F6E", "#6E6E8F", "#8F6E7F", "#80C4A1"];
+	    return DNA;
+	}());
+	exports.DNA = DNA;
+	/*
+	Serialization is necessary to store the results of evolution so they can be played back, saved
+	*/
+	var DNASerializer = (function () {
+	    function DNASerializer() {
+	    }
+	    DNASerializer.serialize = function (dna) {
+	        var actionsSerial = new Array(dna.actions.length);
+	        for (var i = 0; i < dna.actions.length; ++i) {
+	            actionsSerial[i] = action_1.ActionSerializer.serialize(dna.actions[i]);
+	        }
+	        console.log('actionsSerial', actionsSerial);
+	        var cellTypesSerial = new Array(dna.cellTypes.length);
+	        for (var i = 0; i < dna.cellTypes.length; ++i) {
+	            cellTypesSerial[i] = celltypes_1.CellTypeSerializer.serialize(dna.cellTypes[i]);
+	        }
+	        return JSON.stringify({
+	            cellTypes: cellTypesSerial,
+	            actions: actionsSerial
+	        });
+	    };
+	    DNASerializer.deserialize = function (serialized) {
+	        var d = new DNA();
+	        var o = JSON.parse(serialized);
+	        var actionsSerial = o.actions;
+	        var actions = new Array(actionsSerial.length);
+	        for (var i = 0; i < actionsSerial.length; ++i) {
+	            actions[i] = action_1.ActionSerializer.deserialize(actionsSerial[i]);
+	        }
+	        var cellTypesSerial = o.cellTypes;
+	        var cellTypes = new Array(cellTypesSerial.length);
+	        for (var i = 0; i < cellTypes.length; ++i) {
+	            cellTypes[i] = celltypes_1.CellTypeSerializer.deserialize(cellTypesSerial[i]);
+	        }
+	        d.cellTypes = cellTypes;
+	        d.actions = actions;
+	        return d;
+	    };
+	    return DNASerializer;
+	}());
+	exports.DNASerializer = DNASerializer;
+
+
+/***/ },
+/* 9 */
 /***/ function(module, exports) {
 
 	"use strict";
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var Perceptron = (function (_super) {
+	    __extends(Perceptron, _super);
+	    function Perceptron() {
+	        var nnodes = [];
+	        for (var _i = 0; _i < arguments.length; _i++) {
+	            nnodes[_i - 0] = arguments[_i];
+	        }
+	        _super.apply(this, nnodes);
+	    }
+	    Perceptron.prototype.perturb = function (amount) {
+	        // perturb every weight by ~amount
+	        if (amount === void 0) { amount = 1.0; }
+	        // iterate through layers connections
+	        var connections = this.layers.input.connectedTo[0].list
+	            .concat(connections = this.layers.hidden[0].connectedTo[0].list);
+	        for (var i = 0; i < connections.length; ++i) {
+	            var connection = connections[i];
+	            connection.weight += 2 * Math.random() * amount - amount;
+	        }
+	        // iterate through neurons
+	        var neurons = this.layers.input.list
+	            .concat(this.layers.hidden[0].list)
+	            .concat(this.layers.output.list);
+	        for (var i = 0; i < neurons.length; ++i) {
+	            neurons[i].bias += 2 * Math.random() * amount - amount;
+	        }
+	        // for (var i = 0; i < this.weights.length; ++i) {
+	        //     for (var j = 0; j < this.weights[i].length; ++j) {
+	        //         for (var k = 0; k < this.weights[i][j].length; ++k) {
+	        //             this.weights[i][j][k] += 2 * Math.random() * amount - amount;
+	        //         }
+	        //     }
+	        // }
+	    };
+	    return Perceptron;
+	}(Architect.Perceptron));
+	exports.Perceptron = Perceptron;
+
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var fluids_1 = __webpack_require__(5);
 	var CellTypeSerializer = (function () {
 	    function CellTypeSerializer() {
 	    }
 	    CellTypeSerializer.serialize = function (celltype) {
-	        return "";
+	        var perceptrons = celltype['actionPerceptrons'];
+	        var perceptronsSerial = new Array(perceptrons.length);
+	        for (var i = 0; i < perceptrons.length; ++i) {
+	            perceptronsSerial[i] = perceptrons[i].toJSON();
+	        }
+	        return JSON.stringify({
+	            color: celltype['color'],
+	            isLeaf: celltype['isLeaf'],
+	            cost: celltype['cost'].vector,
+	            actionPerceptrons: perceptronsSerial
+	        });
 	    };
 	    CellTypeSerializer.deserialize = function (serial) {
-	        return {};
+	        var obj = JSON.parse(serial);
+	        var perceptronsSerial = obj.actionPerceptrons;
+	        var perceptrons = new Array(perceptronsSerial.length);
+	        for (var i = 0; i < perceptronsSerial.length; ++i) {
+	            perceptrons[i] = Network.fromJSON(perceptronsSerial[i]);
+	        }
+	        obj.actionPerceptrons = perceptrons;
+	        obj.cost = new (Function.prototype.bind.apply(fluids_1.Fluids, obj.cost));
+	        return obj;
 	    };
 	    return CellTypeSerializer;
 	}());

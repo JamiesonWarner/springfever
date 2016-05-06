@@ -24,14 +24,20 @@ export class Cell {
         this.row = row;
         this.col = col;
         this.fluids = fluids;
+        this.dna = dna;
+        this.setType(type);
+    }
 
+    /*
+    Pass either a literal type object or a numerical type index referencing dna type definitions
+    */
+    setType(type) {
         if (typeof type === 'number') {
-            this.type = dna.cellTypes[type];
+            this.type = this.dna.cellTypes[type];
         }
         else {
             this.type = type;
         }
-        this.dna = dna;
     }
 
     updateSignals() {

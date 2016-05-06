@@ -1,8 +1,23 @@
 import {Perceptron} from "../app/perceptron";
+import {DNA, DNASerializer} from "../app/dna";
 
 declare var it;
 declare var expect;
 declare var describe;
+
+describe("dnaSerializer", function() {
+    it("works", function() {
+        var dna = new DNA();
+        dna.mutate(1);
+        var val = dna.cellTypes[0].actionPerceptrons[0].activate([1, 2, 3, 4, 5, 6]);
+
+        var dna2 = dna.clone();
+        var val2 = dna2.cellTypes[0].actionPerceptrons[0].activate([1, 2, 3, 4, 5, 6]);
+        console.log(val, val2);
+        expect(val).toEqual(val2);
+        expect(dna).not.toEqual(dna2);
+    })
+})
 
 describe("perceptron", function() {
     it("initializes to expected values", function() {

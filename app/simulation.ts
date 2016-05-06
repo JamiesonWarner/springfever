@@ -3,7 +3,8 @@ app.ts
 */
 
 import {Automata} from "./automata";
-import {DNA} from "./dna";
+import {DNA, DNASerializer} from "./dna";
+import {MY_PLANT} from "./myplant";
 
 export class Simulation {
     FRAME_DELAY: number = 200;
@@ -18,7 +19,9 @@ export class Simulation {
         this.drawCanvas = drawCanvas;
         this.drawEnabled = true;
         this.automata = new Automata('prototype', drawCanvas);
-        this.setupSimulation();
+
+        var myPlant = DNASerializer.deserialize(MY_PLANT);
+        this.setupSimulation(myPlant);
         // var seed = new DNA();
         // seed.mutate(100);
         // this.automata.plantSeed(seed);

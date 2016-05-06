@@ -20,7 +20,8 @@ export class DNA {
       // new DivideAction({ fluidGradient: [0,0,-1,0,0,0], gravityGradient: 2 }),
       new DivideAction({ fluidGradient: [0,0,0,0,0,0], gravityGradient: 2 }),
       new DivideAction({ fluidGradient: [0,0,0,0,0,0], gravityGradient: -2 }),
-      // new PumpAction({ fluidGradient: [-1,0,0.1,0,0,0] }),
+      new PumpAction({ fluidGradient: [-1,0,0.1,0,0,0], fluids: [1,0,0,0,0,0] }),
+      new PumpAction({ fluidGradient: [-1,0,0.1,0,0,0], fluids: [1,0,0,0,0,0] }),
       // new ReactAction({ reaction: [-0.2,0.8,0.1,0,0,0] }), //photosynth
       // new ReactAction({ reaction: [0,0,0.1,0,0,0] }), // free auxin
       // new ReactAction({ reaction: [0,0,0,0.1,0,0] }), // free misc hormones
@@ -29,8 +30,11 @@ export class DNA {
       // new ReactAction({ reaction: [0,0,0,-0.1,0,0] }), // free misc hormones
       // new ReactAction({ reaction: [0,0,0,0,-0.1,0] }), // free misc hormones
       // new ReactAction({ reaction: [0,0,0,0,0,-0.1] }), // free misc hormones
-      // new SpecializeAction({ toType: 0 }),
-      // new SpecializeAction({ toType: 1 })
+      new SpecializeAction({ toType: 0 }),
+      new SpecializeAction({ toType: 1 }),
+      new SpecializeAction({ toType: 2 }),
+      new SpecializeAction({ toType: 3 }),
+      new SpecializeAction({ toType: 4 })
     ];
 
     // cell types
@@ -42,7 +46,7 @@ export class DNA {
       }
       this.cellTypes[i] = {
         color: DNA.COLOR_HEX_ARRAY[i%DNA.COLOR_HEX_ARRAY.length],
-        isLeaf: i==0,
+        isLeaf: i==4,
         cost: new Fluids(0.2, 0.2),
         actionPerceptrons: actionPerceptrons
       };
@@ -72,7 +76,7 @@ export class DNA {
   }
 
   plantSeed(grid: Array<Array<Cell>>, fluidsArray: Array<Array<Fluids>>) {
-    var waterInitial = 1.75 * Automata.MATERIAL_WATER_WATER_MEAN;
+    var waterInitial = 20; // 1.75 * Automata.MATERIAL_WATER_WATER_MEAN;
     var glucoseInitial = 20; // 4.0;
     var fluids1 = new Fluids(waterInitial, glucoseInitial),
         fluids2 = new Fluids(waterInitial, glucoseInitial);
@@ -125,20 +129,21 @@ Transitions between cell types can be modeled as a markov chain, though some sta
 /*
 Serialization is necessary to store the results of evolution so they can be played back, saved
 */
-class DNASerializer {
+export class DNASerializer {
   static serialize(dna: DNA): string {
     var actionsSerial = new Array(dna.actions.length);
     for (var i = 0; i < dna.actions.length; ++i) {
       actionsSerial[i] = ActionSerializer.serialize(dna.actions[i]);
     }
+    console.log('actionsSerial', actionsSerial);
 
     var cellTypesSerial = new Array(dna.cellTypes.length);
     for (var i = 0; i < dna.cellTypes.length; ++i) {
-        actionsSerial[i] = CellTypeSerializer.serialize(dna.cellTypes[i]);
+        cellTypesSerial[i] = CellTypeSerializer.serialize(dna.cellTypes[i]);
     }
 
     return JSON.stringify({
-      cellTypes: dna.cellTypes, // cellTypes are plain objects so I think this is OK.. perceptrons though?
+      cellTypes: cellTypesSerial,
       actions: actionsSerial
     });
   }

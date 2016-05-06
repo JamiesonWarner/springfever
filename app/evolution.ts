@@ -1,10 +1,15 @@
-import {DNA} from "./dna";
+import {DNA, DNASerializer} from "./dna";
 import {Simulation} from "./simulation";
 import {Cell} from "./cell";
 
 export class Evolution extends Simulation {
     drawCanvas: Element;
     seedlings;
+
+    fitness: Array<number>;
+    bestFitness: number;
+    bestSeed: DNA;
+    evolving: boolean;
 
     generation: number = 0;
 
@@ -17,7 +22,7 @@ export class Evolution extends Simulation {
             seed = new DNA();
         }
 
-        this.FRAME_DELAY = 20;
+        this.FRAME_DELAY = 200;
         // for (var i = 0; i < length; ++i) {
         //     var mutated = seed.copyAndMutate();
         //     this.runForNTicks(5);
@@ -31,49 +36,39 @@ export class Evolution extends Simulation {
 
         var best = seed;
         // for (var i = 0; i < ngenerations; ++i) {
-            best = this.runGenerationSelectBest(100, best, 4);
+            this.runGenerationSelectBest(100, best, 40);
         // }
         return best;
     }
 
-    runGenerationSelectBest(nchildren:number, seed:DNA, growtime: number = 40): DNA {
+    simulatedAnnealing(nchildren, seed:DNA, growtime: number = 40): DNA {
+        // TODO
+        var schedule = (round) => {
+            return 1 / (1 + round/1000);
+        }
+        return null;
+    }
+
+    runGenerationSelectBest(nchildren:number, seed:DNA, growtime: number = 40) {
         // grow the seed for growtime iterations, then eval its fitness
 
         // generate random children
-        // var children: Array<DNA> = new Array(nchildren);
+        this.bestSeed = null;
+        this.bestFitness = -1;
+        this.fitness = [];
+        this.generation = 0;
+        this.evolving = true;
+        this.runGenerationSelectBestHelper(nchildren, seed, growtime, 0);
 
-        // make n copies of the dna
-        // for (var i = 0; i < nchildren; ++i) {
-        //     children[i] = seed.clone();
-        //     children[i].mutate(10);
-        // }
-
-        // evaluate each one's fitness
-        var fitness = new Array(nchildren);
-
-        var i = 0;
         var self = this;
-        var interval = window.setInterval(function() {
-            if (i == nchildren) {
-                console.log('Completed evolution of ' + nchildren + ' seeds.');
-                console.log('Max fitness: ', Math.max.apply(null, fitness));
-                window.clearInterval(interval);
-                return;
-            }
-            // TODO modify original seed
-            var seed = new DNA();
-            seed.mutate(100);
-            self.setupSimulation(seed);
-            self.runForNTicks(growtime);
-            fitness[i] = self.evalFitness(self.automata.plant);
-            self.generation++;
-            self.updateStatus();
-            i++;
-        }, this.FRAME_DELAY);
-
-        window['fitness'] = fitness;
-
-        return null;
+        window['stop'] = function() {
+            console.log('Stopping after ' + self.generation + ' generations. ');
+            console.log('Best fitness: ', self.bestFitness);
+            console.log('Best seed (serialized) stored in finalBest. ');
+            self.evolving = false;
+            window['finalBest'] = DNASerializer.serialize(self.bestSeed);
+        };
+        window['fitness'] = this.fitness;
     }
 
     updateStatus() {
@@ -89,20 +84,39 @@ export class Evolution extends Simulation {
     }
 
     /* Recursive function */
-    runGenerationSelectBestHelper(nchildren:number, seed:DNA, growtime: number = 40, children, fitness, child_index:number) {
-        this.setupSimulation(children[child_index]);
+    runGenerationSelectBestHelper(nchildren:number, seed:DNA, growtime: number = 40, child_index:number) {
+        if (child_index >= nchildren) {
+            return;
+        }
+        if (!this.evolving) {
+            return;
+        }
+
+        this.generation++;
+        this.updateStatus();
+
+        // grow the given seed
+        this.setupSimulation(seed);
         this.runForNTicks(growtime);
-        fitness[child_index] = this.evalFitness(this.automata.plant);
 
-        // Recursive call on the next animation frame
-        // if (child_index + 1 < nchildren) {
-        //     var self = this;
-        //     requestAnimationFrame(function() {
-        //         self.runGenerationSelectBestHelper(nchildren, seed, growtime, children, fitness, child_index + 1);
-        //     })
-        // }
+        // evaluate its fitness
+        var fit = this.evalFitness(this.automata.plant);
+        this.fitness[child_index] = fit;
+
+        // mark it as the best seed if applicable
+        if (fit > this.bestFitness) {
+            console.log('New best fitness: ', fit);
+            this.bestSeed = seed.clone();
+            this.bestFitness = fit;
+        }
+
+        // schedule to grow the next seed
+        var self = this;
+        window.setTimeout(function() {
+            seed.mutate(1);
+            self.runGenerationSelectBestHelper(nchildren, seed, growtime, child_index + 1);
+        }, this.FRAME_DELAY);
     }
-
 
     evalFitness(plant: Array<Cell>): number {
         return plant.length;
