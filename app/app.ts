@@ -29,8 +29,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
         console.log("=== Resetting simulation ===");
         sim.reset();
     }
-    // window['toggleDraw'] = sim.toggleDraw.bind(sim);
-    // window['drawStyle'] = sim.drawStyle.bind(sim);
+    window['toggleDraw'] = sim.toggleDraw.bind(sim);
+    window['drawStyle'] = sim.drawStyle.bind(sim);
 
     // sim.runForNTicks(100);
 

@@ -69,8 +69,8 @@
 	        console.log("=== Resetting simulation ===");
 	        sim.reset();
 	    };
-	    // window['toggleDraw'] = sim.toggleDraw.bind(sim);
-	    // window['drawStyle'] = sim.drawStyle.bind(sim);
+	    window['toggleDraw'] = sim.toggleDraw.bind(sim);
+	    window['drawStyle'] = sim.drawStyle.bind(sim);
 	    // sim.runForNTicks(100);
 	    // DEBUG //
 	    // window['automata'] = sim.automata;
@@ -91,7 +91,7 @@
 	"use strict";
 	var automata_1 = __webpack_require__(2);
 	var dna_1 = __webpack_require__(8);
-	var myplant_1 = __webpack_require__(12);
+	var myplant_1 = __webpack_require__(11);
 	var Simulation = (function () {
 	    function Simulation(drawCanvas) {
 	        this.FRAME_DELAY = 500;
@@ -1370,8 +1370,7 @@
 
 
 /***/ },
-/* 11 */,
-/* 12 */
+/* 11 */
 /***/ function(module, exports) {
 
 	"use strict";
