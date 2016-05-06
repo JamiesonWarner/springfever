@@ -111,32 +111,47 @@
 	        this.automata.plantSeed(dna);
 	        if (viewTemp)
 	            this.automata.drawStyle = viewTemp;
+	        // if (this.isSimulationRunning) {
+	        //     this.updatePlantForever();
+	        // }
 	    };
 	    Simulation.prototype.run = function () {
+	        if (this.isSimulationRunning) {
+	            throw new TypeError("Simulation is already running");
+	        }
 	        if (this.drawEnabled) {
 	            this.automata.draw();
 	        }
 	        this.isSimulationRunning = true;
 	        this.updateStatus();
-	        var self = this;
-	        this.updateInterval = window.setInterval(function () {
+	        this.updatePlantForever();
+	    };
+	    // weird self-calling function
+	    Simulation.prototype.updatePlantForever = function () {
+	        if (!this.isSimulationRunning) {
+	            return;
+	        }
+	        try {
+	            this.automata.update();
+	        }
+	        catch (e) {
+	            console.warn("Automata error! Stopping simulation...");
+	            this.pause();
+	            throw e;
+	        }
+	        if (this.drawEnabled) {
 	            try {
-	                // self.midUpdate = true;
-	                // self.updateStatus();
-	                self.automata.update();
-	                // self.midUpdate = false;
-	                self.tick++;
-	                self.updateStatus();
+	                this.automata.draw();
 	            }
 	            catch (e) {
-	                console.warn("Automata error! Stopping simulation...");
-	                self.pause();
+	                console.warn("Draw error! Stopping simulation...");
+	                this.pause();
 	                throw e;
 	            }
-	            if (self.drawEnabled) {
-	                self.automata.draw();
-	            }
-	        }, this.FRAME_DELAY);
+	        }
+	        this.tick++;
+	        this.updateStatus();
+	        window.setTimeout(this.updatePlantForever.bind(this), this.FRAME_DELAY);
 	    };
 	    Simulation.prototype.runForNTicks = function (N) {
 	        // run sim for N ticks
@@ -146,7 +161,10 @@
 	        this.automata.draw();
 	    };
 	    Simulation.prototype.pause = function () {
-	        window.clearInterval(this.updateInterval);
+	        if (!this.isSimulationRunning) {
+	            throw new TypeError("Simulation is already paused");
+	        }
+	        window.clearTimeout(this.updateInterval);
 	        this.isSimulationRunning = false;
 	        this.showStatusString('Simulation stopped.');
 	    };
@@ -270,8 +288,8 @@
 	        }
 	    };
 	    Automata.prototype.showInfo = function (x, y) {
-	        var tx = x / 10;
-	        var ty = y / 10;
+	        var tx = x / Automata.CELL_SCALE_PIXELS;
+	        var ty = y / Automata.CELL_SCALE_PIXELS;
 	        var row = Math.floor(ty);
 	        var col = Math.floor(tx);
 	        var fluids = this.fluidsArray[row][col];
@@ -289,8 +307,8 @@
 	        this.doCellActions();
 	        this.doPassiveFlowAndPhotosynthesis();
 	        this.doCellMetabolism();
+	        this.cellDeath();
 	        // this.signalsUpdate();
-	        // this.cellDeath();
 	    };
 	    Automata.prototype.doCellActions = function () {
 	        // Calc actions on this frame
@@ -348,36 +366,9 @@
 	                this.fluidsArray[gI][gJ] = newFluids;
 	                this.cellArray[gI][gJ] = nCell;
 	            }
-	            else if (action instanceof action_1.ReactAction) {
-	                for (var i = 0; i < length; ++i) {
-	                }
-	            }
 	            else if (action instanceof action_1.SpecializeAction) {
 	                var saction = action;
 	                cell.setType(saction.toType);
-	            }
-	            else if (action instanceof action_1.PumpAction) {
-	                var paction = action;
-	                var neighborUp = this.fluidsArray[cell.row - 1][cell.col];
-	                var neighborRight = this.fluidsArray[cell.row][cell.col + 1];
-	                var neighborDown = this.fluidsArray[cell.row + 1][cell.col];
-	                var neighborLeft = this.fluidsArray[cell.row][cell.col - 1];
-	                var angle = paction.getActionDirection(neighborUp, neighborRight, neighborDown, neighborLeft);
-	                var direction = angle_1.Angle.sampleDirection(angle);
-	                var drow = angle_1.Angle.directionDeltaRow(direction);
-	                var dcol = angle_1.Angle.directionDeltaCol(direction);
-	                var gI = this.plant[i].row + drow;
-	                var gJ = this.plant[i].col + dcol;
-	                if (gI < 0 || gI >= Automata.GRID_N_ROWS || gJ < 0 || gJ >= Automata.GRID_N_COLUMNS) {
-	                    continue;
-	                }
-	                var targetFluidVec = this.fluidsArray[gI][gJ].vector;
-	                var fluidVec = cell.fluids.vector;
-	                for (var i = 0; i < paction.fluids.length; ++i) {
-	                    var d = Math.min(paction.fluids[i], fluidVec[i]);
-	                    fluidVec[i] -= d;
-	                    targetFluidVec[i] += d;
-	                }
 	            }
 	        }
 	    };

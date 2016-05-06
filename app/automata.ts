@@ -111,8 +111,8 @@ export class Automata {
     }
 
     showInfo(x,y) {
-        var tx = x / 10;
-        var ty = y / 10;
+        var tx = x / Automata.CELL_SCALE_PIXELS;
+        var ty = y / Automata.CELL_SCALE_PIXELS;
         var row = Math.floor(ty);
         var col = Math.floor(tx)
         var fluids = this.fluidsArray[row][col];
@@ -134,9 +134,9 @@ export class Automata {
         this.doCellActions();
         this.doPassiveFlowAndPhotosynthesis();
         this.doCellMetabolism();
+        this.cellDeath();
 
         // this.signalsUpdate();
-        // this.cellDeath();
     }
 
     doCellActions() {
@@ -206,40 +206,40 @@ export class Automata {
                this.cellArray[gI][gJ] = nCell;
            }
 
-           else if (action instanceof ReactAction) {
-               for (var i = 0; i < length; ++i) {
-                   // code...
-               }
-           }
+           // else if (action instanceof ReactAction) {
+           //     for (var i = 0; i < length; ++i) {
+           //         // code...
+           //     }
+           // }
 
            else if (action instanceof SpecializeAction) {
                var saction: SpecializeAction = action;
                cell.setType(saction.toType);
            }
 
-           else if (action instanceof PumpAction) {
-               var paction: PumpAction = action;
-               var neighborUp = this.fluidsArray[cell.row - 1][cell.col];
-               var neighborRight = this.fluidsArray[cell.row][cell.col + 1];
-               var neighborDown = this.fluidsArray[cell.row + 1][cell.col];
-               var neighborLeft = this.fluidsArray[cell.row][cell.col - 1];
-               var angle: number = paction.getActionDirection(neighborUp, neighborRight, neighborDown, neighborLeft);
-               var direction = Angle.sampleDirection(angle);
-               var drow = Angle.directionDeltaRow(direction);
-               var dcol = Angle.directionDeltaCol(direction);
-               var gI = this.plant[i].row + drow;
-               var gJ = this.plant[i].col + dcol;
-               if(gI < 0 || gI >= Automata.GRID_N_ROWS || gJ < 0 || gJ >= Automata.GRID_N_COLUMNS ){
-                   continue;
-               }
-               var targetFluidVec = this.fluidsArray[gI][gJ].vector;
-               var fluidVec = cell.fluids.vector;
-               for (var i = 0; i < paction.fluids.length; ++i) {
-                   var d = Math.min(paction.fluids[i], fluidVec[i]);
-                   fluidVec[i] -= d;
-                   targetFluidVec[i] += d;
-               }
-           }
+           // else if (action instanceof PumpAction) {
+           //     var paction: PumpAction = action;
+           //     var neighborUp = this.fluidsArray[cell.row - 1][cell.col];
+           //     var neighborRight = this.fluidsArray[cell.row][cell.col + 1];
+           //     var neighborDown = this.fluidsArray[cell.row + 1][cell.col];
+           //     var neighborLeft = this.fluidsArray[cell.row][cell.col - 1];
+           //     var angle: number = paction.getActionDirection(neighborUp, neighborRight, neighborDown, neighborLeft);
+           //     var direction = Angle.sampleDirection(angle);
+           //     var drow = Angle.directionDeltaRow(direction);
+           //     var dcol = Angle.directionDeltaCol(direction);
+           //     var gI = this.plant[i].row + drow;
+           //     var gJ = this.plant[i].col + dcol;
+           //     if(gI < 0 || gI >= Automata.GRID_N_ROWS || gJ < 0 || gJ >= Automata.GRID_N_COLUMNS ){
+           //         continue;
+           //     }
+           //     var targetFluidVec = this.fluidsArray[gI][gJ].vector;
+           //     var fluidVec = cell.fluids.vector;
+           //     for (var i = 0; i < paction.fluids.length; ++i) {
+           //         var d = Math.min(paction.fluids[i], fluidVec[i]);
+           //         fluidVec[i] -= d;
+           //         targetFluidVec[i] += d;
+           //     }
+           // }
        }
     }
 

@@ -21,7 +21,6 @@ export interface IViewSimulation {
 export class Simulation implements IViewSimulation {
     FRAME_DELAY: number = 400;
 
-    updateInterval: number;
     automata: Automata;
     drawEnabled: boolean;
     drawCanvas: Element;
@@ -34,6 +33,7 @@ export class Simulation implements IViewSimulation {
     midUpdate: boolean;
 
     tick = 0;
+    updateInterval: number;
 
     constructor(drawCanvas: Element) {
         this.drawCanvas = drawCanvas;
@@ -57,37 +57,53 @@ export class Simulation implements IViewSimulation {
         this.automata.plantSeed(dna);
         if (viewTemp)
             this.automata.drawStyle = viewTemp;
+
+        // if (this.isSimulationRunning) {
+        //     this.updatePlantForever();
+        // }
     }
 
 
     run() {
+        if (this.isSimulationRunning) {
+            throw new TypeError("Simulation is already running");
+        }
         if (this.drawEnabled) {
             this.automata.draw();
         }
 
         this.isSimulationRunning = true;
         this.updateStatus();
+        this.updatePlantForever();
+    }
 
-        var self = this;
-        this.updateInterval = window.setInterval(function() {
+    // weird self-calling function
+    updatePlantForever() {
+        if (!this.isSimulationRunning) {
+            return;
+        }
+
+        try {
+            this.automata.update();
+        } catch(e) {
+            console.warn("Automata error! Stopping simulation...");
+            this.pause();
+            throw e;
+        }
+
+        if (this.drawEnabled) {
             try {
-                // self.midUpdate = true;
-                // self.updateStatus();
-                self.automata.update();
-                // self.midUpdate = false;
-                self.tick++;
-                self.updateStatus();
-
+                this.automata.draw();
             } catch(e) {
-                console.warn("Automata error! Stopping simulation...");
-                self.pause();
+                console.warn("Draw error! Stopping simulation...");
+                this.pause();
                 throw e;
             }
+        }
 
-            if (self.drawEnabled) {
-                self.automata.draw();
-            }
-        }, this.FRAME_DELAY);
+        this.tick ++;
+        this.updateStatus();
+        window.setTimeout(this.updatePlantForever.bind(this), this.FRAME_DELAY);
     }
 
     runForNTicks(N) {
@@ -100,7 +116,10 @@ export class Simulation implements IViewSimulation {
 
 
     pause() {
-        window.clearInterval(this.updateInterval);
+        if (!this.isSimulationRunning) {
+            throw new TypeError("Simulation is already paused");
+        }
+        window.clearTimeout(this.updateInterval);
         this.isSimulationRunning = false;
         this.showStatusString('Simulation stopped.');
     }

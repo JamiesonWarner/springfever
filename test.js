@@ -194,8 +194,8 @@
 	        }
 	    };
 	    Automata.prototype.showInfo = function (x, y) {
-	        var tx = x / 10;
-	        var ty = y / 10;
+	        var tx = x / Automata.CELL_SCALE_PIXELS;
+	        var ty = y / Automata.CELL_SCALE_PIXELS;
 	        var row = Math.floor(ty);
 	        var col = Math.floor(tx);
 	        var fluids = this.fluidsArray[row][col];
@@ -213,8 +213,8 @@
 	        this.doCellActions();
 	        this.doPassiveFlowAndPhotosynthesis();
 	        this.doCellMetabolism();
+	        this.cellDeath();
 	        // this.signalsUpdate();
-	        // this.cellDeath();
 	    };
 	    Automata.prototype.doCellActions = function () {
 	        // Calc actions on this frame
@@ -272,36 +272,9 @@
 	                this.fluidsArray[gI][gJ] = newFluids;
 	                this.cellArray[gI][gJ] = nCell;
 	            }
-	            else if (action instanceof action_1.ReactAction) {
-	                for (var i = 0; i < length; ++i) {
-	                }
-	            }
 	            else if (action instanceof action_1.SpecializeAction) {
 	                var saction = action;
 	                cell.setType(saction.toType);
-	            }
-	            else if (action instanceof action_1.PumpAction) {
-	                var paction = action;
-	                var neighborUp = this.fluidsArray[cell.row - 1][cell.col];
-	                var neighborRight = this.fluidsArray[cell.row][cell.col + 1];
-	                var neighborDown = this.fluidsArray[cell.row + 1][cell.col];
-	                var neighborLeft = this.fluidsArray[cell.row][cell.col - 1];
-	                var angle = paction.getActionDirection(neighborUp, neighborRight, neighborDown, neighborLeft);
-	                var direction = angle_1.Angle.sampleDirection(angle);
-	                var drow = angle_1.Angle.directionDeltaRow(direction);
-	                var dcol = angle_1.Angle.directionDeltaCol(direction);
-	                var gI = this.plant[i].row + drow;
-	                var gJ = this.plant[i].col + dcol;
-	                if (gI < 0 || gI >= Automata.GRID_N_ROWS || gJ < 0 || gJ >= Automata.GRID_N_COLUMNS) {
-	                    continue;
-	                }
-	                var targetFluidVec = this.fluidsArray[gI][gJ].vector;
-	                var fluidVec = cell.fluids.vector;
-	                for (var i = 0; i < paction.fluids.length; ++i) {
-	                    var d = Math.min(paction.fluids[i], fluidVec[i]);
-	                    fluidVec[i] -= d;
-	                    targetFluidVec[i] += d;
-	                }
 	            }
 	        }
 	    };
