@@ -6,27 +6,88 @@ import {Automata} from "./automata";
 import {DNA, DNASerializer} from "./dna";
 // import {MY_PLANT} from "./myplant";
 
-export class Simulation {
-    FRAME_DELAY: number = 200;
+// interface for view layer
+export interface IViewSimulation {
+    // constructor(drawCanvas: Element): void;
+    reset(): void; // set state to initial
+
+    pause(): void; // pause execution
+    run(): void; //
+
+    // setDrawEnabled()
+    // setDrawDisabled()
+}
+
+export class Simulation implements IViewSimulation {
+    FRAME_DELAY: number = 400;
 
     updateInterval: number;
     automata: Automata;
-    isSimulationRunning: boolean;
     drawEnabled: boolean;
     drawCanvas: Element;
+
+    // a reference to the dna used to make the automata
+    dna: DNA;
+
+    // flags for showing status
+    isSimulationRunning: boolean;
+    midUpdate: boolean;
+
+    tick = 0;
 
     constructor(drawCanvas: Element) {
         this.drawCanvas = drawCanvas;
         this.drawEnabled = true;
-        this.automata = new Automata('prototype', drawCanvas);
 
-        // var myPlant = DNASerializer.deserialize(MY_PLANT);
-        var seed = new DNA();
-        this.automata = new Automata();
-        this.automata.plantSeed(seed);
+        // this.dna = DNASerializer.deserialize(MY_PLANT); // to load DNA from a file
         this.dna = new DNA();
-        this.setupSimulation(this.dna);
-        // seed.mutate(100);
+        this.reset(this.dna);
+    }
+
+
+    reset(dna?: DNA) {
+        this.showStatusString('Resetting...');
+        this.tick = 0;
+        if (!dna) {
+            dna = new DNA();
+            dna.mutate(1);
+        }
+        var viewTemp = this.automata && this.automata.drawStyle;
+        this.automata = new Automata('prototype', this.drawCanvas);
+        this.automata.plantSeed(dna);
+        if (viewTemp)
+            this.automata.drawStyle = viewTemp;
+    }
+
+
+    run() {
+        if (this.drawEnabled) {
+            this.automata.draw();
+        }
+
+        this.isSimulationRunning = true;
+        this.updateStatus();
+
+        var self = this;
+        this.updateInterval = window.setInterval(function() {
+            try {
+                // self.midUpdate = true;
+                // self.updateStatus();
+                self.automata.update();
+                // self.midUpdate = false;
+                self.tick++;
+                self.updateStatus();
+
+            } catch(e) {
+                console.warn("Automata error! Stopping simulation...");
+                self.pause();
+                throw e;
+            }
+
+            if (self.drawEnabled) {
+                self.automata.draw();
+            }
+        }, this.FRAME_DELAY);
     }
 
     runForNTicks(N) {
@@ -37,53 +98,18 @@ export class Simulation {
         this.automata.draw();
     }
 
-    startSimulation() {
-        this.isSimulationRunning = true;
-        this.updateStatus();
 
-        var self = this;
-        this.updateInterval = window.setInterval(function() {
-            try {
-                self.automata.update();
-            } catch(e) {
-                console.warn("Automata error! Stopping simulation...");
-                self.stopSimulation();
-                throw e;
-            }
-
-            if (self.drawEnabled) {
-                self.automata.draw();
-            }
-        }, this.FRAME_DELAY);
-
-        this.automata.draw();
-    }
-
-    stopSimulation() {
-        this.showStatusString('Simulation stopped.');
+    pause() {
         window.clearInterval(this.updateInterval);
         this.isSimulationRunning = false;
+        this.showStatusString('Simulation stopped.');
     }
 
     toggleSimulation() {
         if (this.isSimulationRunning)
-            this.stopSimulation();
+            this.pause();
         else
-            this.startSimulation();
-    }
-
-    setupSimulation(dna: DNA = null) {
-        if (!dna) {
-            dna = new DNA();
-            dna.mutate(100);
-        }
-        this.showStatusString('Resetting...');
-        let view = this.automata.drawStyle;
-        this.stopSimulation();
-        this.automata = null;
-        this.automata = new Automata('prototype', this.drawCanvas);
-        this.automata.plantSeed(dna);
-        this.automata.drawStyle = view;
+            this.run();
     }
 
     toggleDraw() {
@@ -98,13 +124,15 @@ export class Simulation {
     }
 
     updateStatus() {
-        let status;
+        var status;
         if (this.isSimulationRunning)
             status = 'Simulation running. ';
         else
             status = 'Simulation stopped. ';
         if (!this.drawEnabled)
             status += '(Draw disabled.) ';
+        status += "Tick " + this.tick;
+        if (this.midUpdate) status += "*";
         this.showStatusString(status);
     }
 

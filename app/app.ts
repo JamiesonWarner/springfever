@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     var drawCanvas = document.getElementById("draw");
 
     var sim = new Simulation(drawCanvas);
-    sim.startSimulation();
+    sim.run();
 
     // var sim = new Evolution(drawCanvas);
     // var best = sim.doEvolution();
@@ -26,8 +26,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
     window['resetSimulation'] = function() {
         console.log("=== Resetting simulation ===");
-        sim.setupSimulation(null); //.bind(sim);
-        sim.startSimulation();
+        sim.reset();
     }
     window['toggleDraw'] = sim.toggleDraw.bind(sim);
     window['drawStyle'] = sim.drawStyle.bind(sim);

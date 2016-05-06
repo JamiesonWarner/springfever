@@ -98,7 +98,7 @@ export class DNA {
         colEnd: number = colCenterOfGrid + 2;
     for (var row = rowStart; row < rowEnd; ++row) {
       for (var col = colStart; col < colEnd; ++col) {
-        fluids = new Fluids(2, 2);
+        fluids = new Fluids(waterInitial, glucoseInitial);
         cell = new Cell(this, this.cellTypes[0], fluids, row, col);
         fluidsArray[row][col] = fluids;
         cellArray[row][col] = cell;

@@ -44,6 +44,14 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
+	/*
+	app.js
+	The view provider layer!
+	This calls:
+	(simulationStart) when
+	
+	
+	*/
 	"use strict";
 	var simulation_1 = __webpack_require__(1);
 	var angle_1 = __webpack_require__(7);
@@ -51,18 +59,17 @@
 	document.addEventListener("DOMContentLoaded", function (event) {
 	    var drawCanvas = document.getElementById("draw");
 	    var sim = new simulation_1.Simulation(drawCanvas);
-	    sim.startSimulation();
+	    sim.run();
 	    // var sim = new Evolution(drawCanvas);
 	    // var best = sim.doEvolution();
 	    // var
 	    window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
 	    window['resetSimulation'] = function () {
 	        console.log("=== Resetting simulation ===");
-	        sim.setupSimulation(null); //.bind(sim);
-	        sim.startSimulation();
+	        sim.reset();
 	    };
 	    window['toggleDraw'] = sim.toggleDraw.bind(sim);
-	    window['viewStyle'] = sim.viewStyle.bind(sim);
+	    window['drawStyle'] = sim.drawStyle.bind(sim);
 	    // sim.runForNTicks(100);
 	    // DEBUG //
 	    window['automata'] = sim.automata;
@@ -82,19 +89,55 @@
 	"use strict";
 	var automata_1 = __webpack_require__(2);
 	var dna_1 = __webpack_require__(8);
-	var myplant_1 = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"./myplant\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 	var Simulation = (function () {
 	    function Simulation(drawCanvas) {
-	        this.FRAME_DELAY = 200;
+	        this.FRAME_DELAY = 400;
+	        this.tick = 0;
 	        this.drawCanvas = drawCanvas;
 	        this.drawEnabled = true;
-	        this.automata = new automata_1.Automata('prototype', drawCanvas);
-	        var myPlant = dna_1.DNASerializer.deserialize(myplant_1.MY_PLANT);
-	        this.setupSimulation(myPlant);
-	        // var seed = new DNA();
-	        // seed.mutate(100);
-	        // this.automata.plantSeed(seed);
+	        // this.dna = DNASerializer.deserialize(MY_PLANT); // to load DNA from a file
+	        this.dna = new dna_1.DNA();
+	        this.reset(this.dna);
 	    }
+	    Simulation.prototype.reset = function (dna) {
+	        this.showStatusString('Resetting...');
+	        this.tick = 0;
+	        if (!dna) {
+	            dna = new dna_1.DNA();
+	            dna.mutate(1);
+	        }
+	        var viewTemp = this.automata && this.automata.drawStyle;
+	        this.automata = new automata_1.Automata('prototype', this.drawCanvas);
+	        this.automata.plantSeed(dna);
+	        if (viewTemp)
+	            this.automata.drawStyle = viewTemp;
+	    };
+	    Simulation.prototype.run = function () {
+	        if (this.drawEnabled) {
+	            this.automata.draw();
+	        }
+	        this.isSimulationRunning = true;
+	        this.updateStatus();
+	        var self = this;
+	        this.updateInterval = window.setInterval(function () {
+	            try {
+	                // self.midUpdate = true;
+	                // self.updateStatus();
+	                self.automata.update();
+	                // self.midUpdate = false;
+	                self.tick++;
+	                self.updateStatus();
+	            }
+	            catch (e) {
+	                console.warn("Automata error! Stopping simulation...");
+	                self.pause();
+	                throw e;
+	            }
+	            if (self.drawEnabled) {
+	                self.automata.draw();
+	            }
+	        }, this.FRAME_DELAY);
+	    };
 	    Simulation.prototype.runForNTicks = function (N) {
 	        // run sim for N ticks
 	        for (var n = 0; n < N; ++n) {
@@ -102,57 +145,24 @@
 	        }
 	        this.automata.draw();
 	    };
-	    Simulation.prototype.startSimulation = function () {
-	        this.isSimulationRunning = true;
-	        this.updateStatus();
-	        var self = this;
-	        this.updateInterval = window.setInterval(function () {
-	            try {
-	                self.automata.update();
-	            }
-	            catch (e) {
-	                console.warn("Automata error! Stopping simulation...");
-	                self.stopSimulation();
-	                throw e;
-	            }
-	            if (self.drawEnabled) {
-	                self.automata.draw();
-	            }
-	        }, this.FRAME_DELAY);
-	        this.automata.draw();
-	    };
-	    Simulation.prototype.stopSimulation = function () {
-	        this.showStatusString('Simulation stopped.');
+	    Simulation.prototype.pause = function () {
 	        window.clearInterval(this.updateInterval);
 	        this.isSimulationRunning = false;
+	        this.showStatusString('Simulation stopped.');
 	    };
 	    Simulation.prototype.toggleSimulation = function () {
 	        if (this.isSimulationRunning)
-	            this.stopSimulation();
+	            this.pause();
 	        else
-	            this.startSimulation();
-	    };
-	    Simulation.prototype.setupSimulation = function (dna) {
-	        if (dna === void 0) { dna = null; }
-	        if (!dna) {
-	            dna = new dna_1.DNA();
-	            dna.mutate(100);
-	        }
-	        this.showStatusString('Resetting...');
-	        var view = this.automata.viewStyle;
-	        this.stopSimulation();
-	        this.automata = null;
-	        this.automata = new automata_1.Automata('prototype', this.drawCanvas);
-	        this.automata.plantSeed(dna);
-	        this.automata.viewStyle = view;
+	            this.run();
 	    };
 	    Simulation.prototype.toggleDraw = function () {
 	        this.drawEnabled = !this.drawEnabled;
 	        this.updateStatus();
 	    };
-	    Simulation.prototype.viewStyle = function (style) {
-	        console.log('viewstyle', style);
-	        this.automata.viewStyle = style;
+	    Simulation.prototype.drawStyle = function (style) {
+	        console.log('drawStyle', style);
+	        this.automata.drawStyle = style;
 	        this.automata.draw();
 	    };
 	    Simulation.prototype.updateStatus = function () {
@@ -163,6 +173,9 @@
 	            status = 'Simulation stopped. ';
 	        if (!this.drawEnabled)
 	            status += '(Draw disabled.) ';
+	        status += "Tick " + this.tick;
+	        if (this.midUpdate)
+	            status += "*";
 	        this.showStatusString(status);
 	    };
 	    Simulation.prototype.showStatusString = function (status) {
@@ -265,11 +278,21 @@
 	        document.getElementById('bar-water').style.width = fluids.vector[fluids_1.Fluids.WATER] + 'px';
 	        document.getElementById('bar-glucose').style.width = fluids.vector[fluids_1.Fluids.GLUCOSE] + 'px';
 	        document.getElementById('bar-auxin').style.width = (40 * fluids.vector[fluids_1.Fluids.AUXIN]) + 'px';
+	        document.getElementById('text-water').innerHTML = "" + fluids.vector[fluids_1.Fluids.WATER];
+	        document.getElementById('text-glucose').innerHTML = "" + fluids.vector[fluids_1.Fluids.GLUCOSE];
+	        document.getElementById('text-auxin').innerHTML = "" + fluids.vector[fluids_1.Fluids.AUXIN];
 	    };
 	    Automata.prototype.update = function () {
 	        //console.log("tick");
 	        // if (this.plant.length)
 	        //     console.log('cell fluids', this.plant[0].fluids.vector);
+	        this.doCellActions();
+	        this.doPassiveFlowAndPhotosynthesis();
+	        this.doCellMetabolism();
+	        // this.signalsUpdate();
+	        // this.cellDeath();
+	    };
+	    Automata.prototype.doCellActions = function () {
 	        // Calc actions on this frame
 	        var actions = new Array(this.plant.length);
 	        var cell;
@@ -357,9 +380,6 @@
 	                }
 	            }
 	        }
-	        // this.fluidUpdate();
-	        // this.signalsUpdate();
-	        // this.cellDeath();
 	    };
 	    /*
 	    Kill all cells who don't have enough resources to live
@@ -434,7 +454,16 @@
 	            }
 	        }
 	    };
-	    Automata.prototype.fluidUpdate = function () {
+	    Automata.prototype.doCellMetabolism = function () {
+	        // respiration. this is needed for metabolism
+	        var RESPIRATION_AMOUNT = 0.01;
+	        for (var i = 0; i < this.plant.length; ++i) {
+	            var cell = this.plant[i];
+	            cell.fluids.vector[fluids_1.Fluids.WATER] -= RESPIRATION_AMOUNT;
+	            cell.fluids.vector[fluids_1.Fluids.GLUCOSE] -= RESPIRATION_AMOUNT;
+	        }
+	    };
+	    Automata.prototype.doPassiveFlowAndPhotosynthesis = function () {
 	        // Initialize fluidsDiff to 0's
 	        var fluidsDiff = new Array(Automata.GRID_N_ROWS);
 	        for (var row = 0; row < Automata.GRID_N_ROWS; row++) {
@@ -449,21 +478,14 @@
 	        // photosynthesis. TODO this will be an action
 	        var REACTION_FACTOR = 10; // expend 1 water to get 4 glucose
 	        for (var i = 0; i < this.plant.length; i++) {
-	            var cell_2 = this.plant[i];
-	            if (cell_2.type.isLeaf) {
-	                var numAir = this.countAirNeighbors(cell_2.row, cell_2.col);
-	                var dGlucose = Math.min(cell_2.fluids.vector[fluids_1.Fluids.WATER] / 4, 100 * numAir);
-	                // convert water to glucose
-	                fluidsDiff[cell_2.row][cell_2.col][fluids_1.Fluids.WATER] -= dGlucose;
-	                fluidsDiff[cell_2.row][cell_2.col][fluids_1.Fluids.GLUCOSE] += REACTION_FACTOR * dGlucose;
-	            }
-	        }
-	        // respiration. this is needed for metabolism
-	        var RESPIRATION_AMOUNT = 0.01;
-	        for (var i = 0; i < this.plant.length; ++i) {
 	            var cell = this.plant[i];
-	            cell.fluids.vector[fluids_1.Fluids.WATER] -= RESPIRATION_AMOUNT;
-	            cell.fluids.vector[fluids_1.Fluids.GLUCOSE] -= RESPIRATION_AMOUNT;
+	            if (cell.type.isLeaf) {
+	                var numAir = this.countAirNeighbors(cell.row, cell.col);
+	                var dGlucose = Math.min(cell.fluids.vector[fluids_1.Fluids.WATER] / 4, 100 * numAir);
+	                // convert water to glucose
+	                fluidsDiff[cell.row][cell.col][fluids_1.Fluids.WATER] -= dGlucose;
+	                fluidsDiff[cell.row][cell.col][fluids_1.Fluids.GLUCOSE] += REACTION_FACTOR * dGlucose;
+	            }
 	        }
 	        // Passive transport / diffusion. Give nutrients to neighbors.
 	        // console.log(fluidsDiff);
@@ -541,13 +563,13 @@
 	            for (var col = 0; col < Automata.GRID_N_COLUMNS; col++) {
 	                var fluids = this.fluidsArray[row][col].vector;
 	                var waterContent = Math.max(Math.min(Math.round(fluids[fluids_1.Fluids.WATER]), 255), 0);
-	                if (this.viewStyle === 'water') {
+	                if (this.drawStyle === 'water') {
 	                    var waterConcentration = fluids[fluids_1.Fluids.WATER] / (2 * Automata.MATERIAL_DIRT_WATER_MEAN);
 	                    var waterColor = Math.max(Math.min(Math.round(255 * waterConcentration), 255), 0);
 	                    var colorString = "#" + "0064" + this.getColorHex(waterColor);
 	                    this.canvasCtx.fillStyle = colorString;
 	                }
-	                else if (this.viewStyle === 'glucose') {
+	                else if (this.drawStyle === 'glucose') {
 	                    if (this.cellArray[row][col]) {
 	                        this.canvasCtx.fillStyle = "#" + this.getColorHex(Math.min(255, Math.ceil(fluids[fluids_1.Fluids.GLUCOSE]))) + "0000";
 	                    }
@@ -555,7 +577,7 @@
 	                        this.canvasCtx.fillStyle = "#000000";
 	                    }
 	                }
-	                else if (this.viewStyle === 'auxin') {
+	                else if (this.drawStyle === 'auxin') {
 	                    var cell = this.cellArray[row][col];
 	                    if (cell) {
 	                        this.canvasCtx.fillStyle = "#" + "0000" + this.getColorHex(Math.min(255, Math.ceil(255 * fluids[fluids_1.Fluids.SIGNALS_START])));
@@ -580,7 +602,7 @@
 	                }
 	                this.canvasCtx.fillRect(Math.floor(scale * col), Math.floor(scale * row), scale, scale);
 	                // draw green outline around the plant
-	                if (this.viewStyle == 'water' || this.viewStyle == 'glucose' || this.viewStyle == 'auxin') {
+	                if (this.drawStyle == 'water' || this.drawStyle == 'glucose' || this.drawStyle == 'auxin') {
 	                    this.canvasCtx.strokeStyle = "#009900";
 	                    var neighbs = [[-1, 0], [1, 0], [0, 1], [0, -1]];
 	                    var cell = this.cellArray[row][col];
@@ -1175,18 +1197,27 @@
 	            }
 	        }
 	    };
-	    DNA.prototype.plantSeed = function (grid, fluidsArray) {
+	    DNA.prototype.plantSeed = function (cellArray, fluidsArray) {
+	        // compute initial fluid vectors
 	        var waterInitial = 20; // 1.75 * Automata.MATERIAL_WATER_WATER_MEAN;
 	        var glucoseInitial = 20; // 4.0;
-	        var fluids1 = new fluids_1.Fluids(waterInitial, glucoseInitial), fluids2 = new fluids_1.Fluids(waterInitial, glucoseInitial);
-	        var rowCenter = Math.floor(automata_1.Automata.GRID_N_ROWS / 2), colCenter = Math.floor(automata_1.Automata.GRID_N_COLUMNS / 2), row1 = rowCenter + 2, row2 = rowCenter + 3, col1 = colCenter, col2 = colCenter;
-	        var c1 = new cell_1.Cell(this, 0, fluids1, row1, col1), c2 = new cell_1.Cell(this, 1, fluids2, row2, col2);
-	        var seed = [c1, c2];
-	        grid[c1.row][c1.col] = c1;
-	        grid[c2.row][c2.col] = c2;
-	        fluidsArray[c1.row][c1.col] = fluids1;
-	        fluidsArray[c2.row][c2.col] = fluids2;
-	        return seed;
+	        var fluids1 = new fluids_1.Fluids(waterInitial, glucoseInitial), fluids2 = new fluids_1.Fluids(waterInitial, glucoseInitial), fluids;
+	        // reference coordinates
+	        var rowCenterOfGrid = Math.floor(automata_1.Automata.GRID_N_ROWS / 2), colCenterOfGrid = Math.floor(automata_1.Automata.GRID_N_COLUMNS / 2), 
+	        // plant to create
+	        plant = [], cell, 
+	        // iterate.
+	        rowStart = rowCenterOfGrid + 2, rowEnd = rowCenterOfGrid + 10, colStart = colCenterOfGrid - 2, colEnd = colCenterOfGrid + 2;
+	        for (var row = rowStart; row < rowEnd; ++row) {
+	            for (var col = colStart; col < colEnd; ++col) {
+	                fluids = new fluids_1.Fluids(waterInitial, glucoseInitial);
+	                cell = new cell_1.Cell(this, this.cellTypes[0], fluids, row, col);
+	                fluidsArray[row][col] = fluids;
+	                cellArray[row][col] = cell;
+	                plant.push(cell);
+	            }
+	        }
+	        return plant;
 	    };
 	    DNA.N_CELL_TYPES = 5;
 	    DNA.COLOR_HEX_ARRAY = ["#ededbe", "#8F8F6E", "#6E6E8F", "#8F6E7F", "#80C4A1"];

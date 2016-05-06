@@ -119,6 +119,10 @@ export class Automata {
         document.getElementById('bar-water').style.width = fluids.vector[Fluids.WATER] + 'px';
         document.getElementById('bar-glucose').style.width = fluids.vector[Fluids.GLUCOSE] + 'px';
         document.getElementById('bar-auxin').style.width = (40*fluids.vector[Fluids.AUXIN]) + 'px';
+        document.getElementById('text-water').innerHTML = "" + fluids.vector[Fluids.WATER];
+        document.getElementById('text-glucose').innerHTML = "" + fluids.vector[Fluids.GLUCOSE];
+        document.getElementById('text-auxin').innerHTML = "" + fluids.vector[Fluids.AUXIN];
+
     }
 
     update() {
@@ -126,111 +130,117 @@ export class Automata {
         // if (this.plant.length)
         //     console.log('cell fluids', this.plant[0].fluids.vector);
 
-        // Calc actions on this frame
-        var actions = new Array(this.plant.length);
-        var cell: Cell;
-        for (var i = 0; i < this.plant.length; i++) {
-            cell = this.plant[i];
-            actions[i] = cell.chooseAction();
-        }
 
-        // Apply actions on this frame
-        for (var i = 0; i < actions.length; i++) {
-            if (!actions[i]) {
-                continue; // cell chose to do nothing
-            }
-            var action = actions[i];
-            var cell = this.plant[i];
-            if(action instanceof DivideAction) {
-                // console.log("cell wants to grow...")
-                var daction: DivideAction = action;
+        this.doCellActions();
+        this.doPassiveFlowAndPhotosynthesis();
+        this.doCellMetabolism();
 
-                // calculate direction of this action
-
-                var neighborUp = this.fluidsArray[cell.row - 1][cell.col];
-                var neighborRight = this.fluidsArray[cell.row][cell.col + 1];
-                var neighborDown = this.fluidsArray[cell.row + 1][cell.col];
-                var neighborLeft = this.fluidsArray[cell.row][cell.col - 1];
-                var angle: number = daction.getActionDirection(neighborUp, neighborRight, neighborDown, neighborLeft);
-
-                var direction = Angle.sampleDirection(angle);
-                var drow = Angle.directionDeltaRow(direction);
-                var dcol = Angle.directionDeltaCol(direction);
-
-                var gI = this.plant[i].row + drow;
-                var gJ = this.plant[i].col + dcol;
-
-                var cost = cell.type.cost;
-
-                var canAfford = true;
-                for (var j = 0; j < cost.vector.length; j++) {
-                    if(this.plant[i].fluids.vector[j] < cost.vector[j]) {
-                        canAfford = false;
-                        break;
-                    }
-                }
-                if (!canAfford) {
-                    // console.log("cell can't afford...")
-                    continue;
-                }
-
-                if(gI < 0 || gI >= Automata.GRID_N_ROWS || gJ < 0 || gJ >= Automata.GRID_N_COLUMNS ){
-                    // console.log("cannot make cell at " + gJ + ", " + gI);
-                    continue;
-                }
-
-                if (this.cellArray[gI][gJ]) {
-                    // console.log("cell already exists at " + gJ + ", " + gI);
-                    continue;
-                }
-
-                this.subtractFluids(cell.fluids, cost);
-                var newFluids = this.splitFluids(cell.fluids);
-                var nCell = new Cell(this.dna, cell.type, newFluids, gI, gJ);
-                this.plant.push(nCell);
-                this.fluidsArray[gI][gJ] = newFluids;
-                this.cellArray[gI][gJ] = nCell;
-            }
-
-            else if (action instanceof ReactAction) {
-                for (var i = 0; i < length; ++i) {
-                    // code...
-                }
-            }
-
-            else if (action instanceof SpecializeAction) {
-                var saction: SpecializeAction = action;
-                cell.setType(saction.toType);
-            }
-
-            else if (action instanceof PumpAction) {
-                var paction: PumpAction = action;
-                var neighborUp = this.fluidsArray[cell.row - 1][cell.col];
-                var neighborRight = this.fluidsArray[cell.row][cell.col + 1];
-                var neighborDown = this.fluidsArray[cell.row + 1][cell.col];
-                var neighborLeft = this.fluidsArray[cell.row][cell.col - 1];
-                var angle: number = paction.getActionDirection(neighborUp, neighborRight, neighborDown, neighborLeft);
-                var direction = Angle.sampleDirection(angle);
-                var drow = Angle.directionDeltaRow(direction);
-                var dcol = Angle.directionDeltaCol(direction);
-                var gI = this.plant[i].row + drow;
-                var gJ = this.plant[i].col + dcol;
-                if(gI < 0 || gI >= Automata.GRID_N_ROWS || gJ < 0 || gJ >= Automata.GRID_N_COLUMNS ){
-                    continue;
-                }
-                var targetFluidVec = this.fluidsArray[gI][gJ].vector;
-                var fluidVec = cell.fluids.vector;
-                for (var i = 0; i < paction.fluids.length; ++i) {
-                    var d = Math.min(paction.fluids[i], fluidVec[i]);
-                    fluidVec[i] -= d;
-                    targetFluidVec[i] += d;
-                }
-            }
-        }
-
-        // this.fluidUpdate();
         // this.signalsUpdate();
         // this.cellDeath();
+    }
+
+    doCellActions() {
+       // Calc actions on this frame
+       var actions = new Array(this.plant.length);
+       var cell: Cell;
+       for (var i = 0; i < this.plant.length; i++) {
+           cell = this.plant[i];
+           actions[i] = cell.chooseAction();
+       }
+
+       // Apply actions on this frame
+       for (var i = 0; i < actions.length; i++) {
+           if (!actions[i]) {
+               continue; // cell chose to do nothing
+           }
+           var action = actions[i];
+           var cell = this.plant[i];
+           if(action instanceof DivideAction) {
+               // console.log("cell wants to grow...")
+               var daction: DivideAction = action;
+
+               // calculate direction of this action
+
+               var neighborUp = this.fluidsArray[cell.row - 1][cell.col];
+               var neighborRight = this.fluidsArray[cell.row][cell.col + 1];
+               var neighborDown = this.fluidsArray[cell.row + 1][cell.col];
+               var neighborLeft = this.fluidsArray[cell.row][cell.col - 1];
+               var angle: number = daction.getActionDirection(neighborUp, neighborRight, neighborDown, neighborLeft);
+
+               var direction = Angle.sampleDirection(angle);
+               var drow = Angle.directionDeltaRow(direction);
+               var dcol = Angle.directionDeltaCol(direction);
+
+               var gI = this.plant[i].row + drow;
+               var gJ = this.plant[i].col + dcol;
+
+               var cost = cell.type.cost;
+
+               var canAfford = true;
+               for (var j = 0; j < cost.vector.length; j++) {
+                   if(this.plant[i].fluids.vector[j] < cost.vector[j]) {
+                       canAfford = false;
+                       break;
+                   }
+               }
+               if (!canAfford) {
+                   // console.log("cell can't afford...")
+                   continue;
+               }
+
+               if(gI < 0 || gI >= Automata.GRID_N_ROWS || gJ < 0 || gJ >= Automata.GRID_N_COLUMNS ){
+                   // console.log("cannot make cell at " + gJ + ", " + gI);
+                   continue;
+               }
+
+               if (this.cellArray[gI][gJ]) {
+                   // console.log("cell already exists at " + gJ + ", " + gI);
+                   continue;
+               }
+
+               this.subtractFluids(cell.fluids, cost);
+               var newFluids = this.splitFluids(cell.fluids);
+               var nCell = new Cell(this.dna, cell.type, newFluids, gI, gJ);
+               this.plant.push(nCell);
+               this.fluidsArray[gI][gJ] = newFluids;
+               this.cellArray[gI][gJ] = nCell;
+           }
+
+           else if (action instanceof ReactAction) {
+               for (var i = 0; i < length; ++i) {
+                   // code...
+               }
+           }
+
+           else if (action instanceof SpecializeAction) {
+               var saction: SpecializeAction = action;
+               cell.setType(saction.toType);
+           }
+
+           else if (action instanceof PumpAction) {
+               var paction: PumpAction = action;
+               var neighborUp = this.fluidsArray[cell.row - 1][cell.col];
+               var neighborRight = this.fluidsArray[cell.row][cell.col + 1];
+               var neighborDown = this.fluidsArray[cell.row + 1][cell.col];
+               var neighborLeft = this.fluidsArray[cell.row][cell.col - 1];
+               var angle: number = paction.getActionDirection(neighborUp, neighborRight, neighborDown, neighborLeft);
+               var direction = Angle.sampleDirection(angle);
+               var drow = Angle.directionDeltaRow(direction);
+               var dcol = Angle.directionDeltaCol(direction);
+               var gI = this.plant[i].row + drow;
+               var gJ = this.plant[i].col + dcol;
+               if(gI < 0 || gI >= Automata.GRID_N_ROWS || gJ < 0 || gJ >= Automata.GRID_N_COLUMNS ){
+                   continue;
+               }
+               var targetFluidVec = this.fluidsArray[gI][gJ].vector;
+               var fluidVec = cell.fluids.vector;
+               for (var i = 0; i < paction.fluids.length; ++i) {
+                   var d = Math.min(paction.fluids[i], fluidVec[i]);
+                   fluidVec[i] -= d;
+                   targetFluidVec[i] += d;
+               }
+           }
+       }
     }
 
     /*
@@ -315,7 +325,18 @@ export class Automata {
         }
     }
 
-    fluidUpdate() {
+    doCellMetabolism() {
+
+        // respiration. this is needed for metabolism
+        var RESPIRATION_AMOUNT = 0.01;
+        for (var i = 0; i < this.plant.length; ++i) {
+            var cell = this.plant[i];
+            cell.fluids.vector[Fluids.WATER] -= RESPIRATION_AMOUNT;
+            cell.fluids.vector[Fluids.GLUCOSE] -= RESPIRATION_AMOUNT;
+        }
+    }
+
+    doPassiveFlowAndPhotosynthesis() {
         // Initialize fluidsDiff to 0's
         var fluidsDiff = new Array(Automata.GRID_N_ROWS);
         for (var row = 0; row < Automata.GRID_N_ROWS; row++) {
@@ -340,15 +361,6 @@ export class Automata {
                 fluidsDiff[cell.row][cell.col][Fluids.GLUCOSE] += REACTION_FACTOR*dGlucose;
             }
         }
-
-        // respiration. this is needed for metabolism
-        var RESPIRATION_AMOUNT = 0.01;
-        for (var i = 0; i < this.plant.length; ++i) {
-            var cell = this.plant[i];
-            cell.fluids.vector[Fluids.WATER] -= RESPIRATION_AMOUNT;
-            cell.fluids.vector[Fluids.GLUCOSE] -= RESPIRATION_AMOUNT;
-        }
-
 
         // Passive transport / diffusion. Give nutrients to neighbors.
         // console.log(fluidsDiff);
