@@ -1,3 +1,12 @@
+/*
+app.js
+The view provider layer!
+This calls:
+(simulationStart) when
+
+
+*/
+
 import {Simulation} from "./simulation";
 import {Evolution} from "./evolution";
 import {Angle} from "./angle";
@@ -21,7 +30,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         sim.startSimulation();
     }
     window['toggleDraw'] = sim.toggleDraw.bind(sim);
-    window['viewStyle'] = sim.viewStyle.bind(sim);
+    window['drawStyle'] = sim.drawStyle.bind(sim);
 
     // sim.runForNTicks(100);
 

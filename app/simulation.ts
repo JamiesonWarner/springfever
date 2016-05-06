@@ -4,7 +4,7 @@ app.ts
 
 import {Automata} from "./automata";
 import {DNA, DNASerializer} from "./dna";
-import {MY_PLANT} from "./myplant";
+// import {MY_PLANT} from "./myplant";
 
 export class Simulation {
     FRAME_DELAY: number = 200;
@@ -20,11 +20,13 @@ export class Simulation {
         this.drawEnabled = true;
         this.automata = new Automata('prototype', drawCanvas);
 
-        var myPlant = DNASerializer.deserialize(MY_PLANT);
-        this.setupSimulation(myPlant);
-        // var seed = new DNA();
+        // var myPlant = DNASerializer.deserialize(MY_PLANT);
+        var seed = new DNA();
+        this.automata = new Automata();
+        this.automata.plantSeed(seed);
+        this.dna = new DNA();
+        this.setupSimulation(this.dna);
         // seed.mutate(100);
-        // this.automata.plantSeed(seed);
     }
 
     runForNTicks(N) {
@@ -76,12 +78,12 @@ export class Simulation {
             dna.mutate(100);
         }
         this.showStatusString('Resetting...');
-        let view = this.automata.viewStyle;
+        let view = this.automata.drawStyle;
         this.stopSimulation();
         this.automata = null;
         this.automata = new Automata('prototype', this.drawCanvas);
         this.automata.plantSeed(dna);
-        this.automata.viewStyle = view;
+        this.automata.drawStyle = view;
     }
 
     toggleDraw() {
@@ -89,9 +91,9 @@ export class Simulation {
         this.updateStatus();
     }
 
-    viewStyle(style) {
-        console.log('viewstyle', style);
-        this.automata.viewStyle = style;
+    drawStyle(style) {
+        console.log('drawStyle', style);
+        this.automata.drawStyle = style;
         this.automata.draw();
     }
 

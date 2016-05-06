@@ -357,9 +357,9 @@
 	                }
 	            }
 	        }
-	        this.fluidUpdate();
-	        this.signalsUpdate();
-	        this.cellDeath();
+	        // this.fluidUpdate();
+	        // this.signalsUpdate();
+	        // this.cellDeath();
 	    };
 	    /*
 	    Kill all cells who don't have enough resources to live

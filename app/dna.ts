@@ -75,25 +75,38 @@ export class DNA {
     }
   }
 
-  plantSeed(grid: Array<Array<Cell>>, fluidsArray: Array<Array<Fluids>>) {
+  plantSeed(cellArray: Array<Array<Cell>>, fluidsArray: Array<Array<Fluids>>) {
+    // compute initial fluid vectors
     var waterInitial = 20; // 1.75 * Automata.MATERIAL_WATER_WATER_MEAN;
     var glucoseInitial = 20; // 4.0;
     var fluids1 = new Fluids(waterInitial, glucoseInitial),
-        fluids2 = new Fluids(waterInitial, glucoseInitial);
-    var rowCenter = Math.floor(Automata.GRID_N_ROWS / 2),
-        colCenter = Math.floor(Automata.GRID_N_COLUMNS / 2),
-        row1 = rowCenter + 2,
-        row2 = rowCenter + 3,
-        col1 = colCenter,
-        col2 = colCenter;
-    var c1 = new Cell(this, 0, fluids1, row1, col1),
-        c2 = new Cell(this, 1, fluids2, row2, col2);
-    var seed = [c1, c2];
-    grid[c1.row][c1.col] = c1;
-    grid[c2.row][c2.col] = c2;
-    fluidsArray[c1.row][c1.col] = fluids1;
-    fluidsArray[c2.row][c2.col] = fluids2;
-    return seed;
+        fluids2 = new Fluids(waterInitial, glucoseInitial),
+        fluids: Fluids;
+
+    // reference coordinates
+    var rowCenterOfGrid = Math.floor(Automata.GRID_N_ROWS / 2),
+        colCenterOfGrid = Math.floor(Automata.GRID_N_COLUMNS / 2),
+
+    // plant to create
+        plant: Array<Cell> = [],
+        cell: Cell,
+
+    // iterate.
+        rowStart: number = rowCenterOfGrid + 2,
+        rowEnd: number = rowCenterOfGrid + 10,
+        colStart: number = colCenterOfGrid - 2,
+        colEnd: number = colCenterOfGrid + 2;
+    for (var row = rowStart; row < rowEnd; ++row) {
+      for (var col = colStart; col < colEnd; ++col) {
+        fluids = new Fluids(2, 2);
+        cell = new Cell(this, this.cellTypes[0], fluids, row, col);
+        fluidsArray[row][col] = fluids;
+        cellArray[row][col] = cell;
+        plant.push(cell)
+      }
+    }
+
+    return plant;
   }
 
 

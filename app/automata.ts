@@ -27,7 +27,7 @@ export class Automata {
     plant: Array<Cell>;
     dna;
 
-    viewStyle: string;
+    drawStyle: string;
 
     systems: Array<ISystem>;
 
@@ -228,9 +228,9 @@ export class Automata {
             }
         }
 
-        this.fluidUpdate();
-        this.signalsUpdate();
-        this.cellDeath();
+        // this.fluidUpdate();
+        // this.signalsUpdate();
+        // this.cellDeath();
     }
 
     /*
@@ -437,13 +437,13 @@ export class Automata {
                 var fluids = this.fluidsArray[row][col].vector;
                 var waterContent = Math.max(Math.min(Math.round(fluids[Fluids.WATER]),255),0);
 
-                if (this.viewStyle === 'water') {
+                if (this.drawStyle === 'water') {
                     var waterConcentration = fluids[Fluids.WATER] / (2 * Automata.MATERIAL_DIRT_WATER_MEAN);
                     var waterColor = Math.max(Math.min(Math.round(255*waterConcentration),255),0);
                     var colorString = "#" + "0064" + this.getColorHex(waterColor);
                     this.canvasCtx.fillStyle = colorString;
                 }
-                else if(this.viewStyle === 'glucose'){
+                else if(this.drawStyle === 'glucose'){
                     if (this.cellArray[row][col]) {
                         this.canvasCtx.fillStyle = "#" + this.getColorHex(Math.min(255,Math.ceil(fluids[Fluids.GLUCOSE]))) + "0000";
                     }
@@ -451,7 +451,7 @@ export class Automata {
                         this.canvasCtx.fillStyle = "#000000";
                     }
                 }
-                else if (this.viewStyle === 'auxin') {
+                else if (this.drawStyle === 'auxin') {
                     var cell = this.cellArray[row][col];
                     if (cell) {
                         this.canvasCtx.fillStyle = "#" + "0000" + this.getColorHex(Math.min(255,Math.ceil(255*fluids[Fluids.SIGNALS_START])));
@@ -477,7 +477,7 @@ export class Automata {
                 this.canvasCtx.fillRect(Math.floor(scale * col), Math.floor(scale * row), scale, scale);
 
                 // draw green outline around the plant
-                if (this.viewStyle == 'water' || this.viewStyle == 'glucose' || this.viewStyle == 'auxin') {
+                if (this.drawStyle == 'water' || this.drawStyle == 'glucose' || this.drawStyle == 'auxin') {
                     this.canvasCtx.strokeStyle = "#009900";
                     var neighbs = [[-1, 0], [1, 0], [0, 1], [0, -1]];
 
