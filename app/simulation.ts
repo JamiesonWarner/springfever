@@ -4,22 +4,23 @@ app.ts
 
 import {Automata} from "./automata";
 import {DNA, DNASerializer} from "./dna";
+import {Cell} from "./cell";
 import {MY_PLANT} from "./myplant";
 
 // interface for view layer
 export interface IViewSimulation {
     // constructor(drawCanvas: Element): void;
     reset(): void; // set state to initial
-
     pause(): void; // pause execution
     run(): void; //
+
 
     // setDrawEnabled()
     // setDrawDisabled()
 }
 
 export class Simulation implements IViewSimulation {
-    FRAME_DELAY: number = 500;
+    FRAME_DELAY: number = 10;
 
     automata: Automata;
     drawEnabled: boolean;
@@ -35,14 +36,16 @@ export class Simulation implements IViewSimulation {
     tick = 0;
     updateInterval: number;
 
+    fitness: Array<number>;
+
     constructor(drawCanvas: Element) {
         this.drawCanvas = drawCanvas;
         this.drawEnabled = true;
 
 
-        this.dna = DNASerializer.deserialize(MY_PLANT); // to load DNA from a file
+        // this.dna = DNASerializer.deserialize(MY_PLANT); // to load DNA from a file
         // this.dna = new DNA();
-        this.reset(this.dna);
+        this.reset();
     }
 
 
@@ -51,13 +54,15 @@ export class Simulation implements IViewSimulation {
         this.tick = 0;
         if (!dna) {
             dna = new DNA();
-            dna.mutate(1);
+            dna.mutate(10);
         }
         var viewTemp = this.automata && this.automata.drawStyle;
         this.automata = new Automata('prototype', this.drawCanvas);
         this.automata.plantSeed(dna);
         if (viewTemp)
             this.automata.drawStyle = viewTemp;
+
+        window['fitness'] = this.fitness = [];
 
         // if (this.isSimulationRunning) {
         //     this.updatePlantForever();
@@ -85,6 +90,7 @@ export class Simulation implements IViewSimulation {
         }
 
         try {
+            this.fitness[this.tick] = this.evalFitness(this.automata.plant);
             this.automata.update();
         } catch(e) {
             console.warn("Automata error! Stopping simulation...");
@@ -105,6 +111,15 @@ export class Simulation implements IViewSimulation {
         this.tick ++;
         this.updateStatus();
         window.setTimeout(this.updatePlantForever.bind(this), this.FRAME_DELAY);
+    }
+
+    evalFitness(plant: Array<Cell>): number {
+        var tfluids = 0;
+        for (var i = 0; i < plant.length; ++i) {
+            var cell: Cell = plant[i];
+            tfluids += cell.sumFluids();
+        }
+        return tfluids;
     }
 
     runForNTicks(N) {

@@ -2,7 +2,10 @@ import {DNA, DNASerializer} from "./dna";
 import {Simulation, IViewSimulation} from "./simulation";
 import {Cell} from "./cell";
 
-export class Evolution implements IViewSimulation {
+/*
+
+*/
+export class Evolution extends Simulation {
     drawCanvas: Element;
     seedlings;
 
@@ -12,8 +15,6 @@ export class Evolution implements IViewSimulation {
     dna: DNA;
     isEvolutionRunning: boolean;
 
-
-
     simulation: Simulation;
     generation: number = 0;
     growtime;
@@ -21,12 +22,14 @@ export class Evolution implements IViewSimulation {
     childIndex: number;
 
     constructor(drawCanvas: Element) {
+        super(drawCanvas);
         this.simulation = new Simulation(drawCanvas);
         // this.simulatio    n.pause(); // each frame will be an entire plant of automata
         this.simulation.FRAME_DELAY = 200;
         this.isEvolutionRunning = true;
         this.dna = new DNA();
-        this.runGenerationSelectBest(1000, this.dna, 40);
+        this.runGenerationSelectBest(1000, this.dna, 150);
+
         // this.simulation.run();
     }
 
@@ -112,7 +115,7 @@ export class Evolution implements IViewSimulation {
 
         this.generation++;
         this.dna = new DNA();
-        this.dna.mutate(1);
+        this.dna.mutate(10);
 
         // grow the given dna
         // console.log('growing...');
@@ -140,6 +143,11 @@ export class Evolution implements IViewSimulation {
     }
 
     evalFitness(plant: Array<Cell>): number {
-        return plant.length;
+        var tfluids = 0;
+        for (var i = 0; i < plant.length; ++i) {
+            var cell: Cell = plant[i];
+            tfluids += cell.sumFluids();
+        }
+        return tfluids;
     }
 }

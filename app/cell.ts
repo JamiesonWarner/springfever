@@ -19,13 +19,21 @@ export class Cell {
     dna;
     angle;
     signals;
+    cellArray: Array<Array<Cell>>;
 
-    constructor(dna,type,fluids,row,col) {
+    constructor(dna,type,fluids,row,col, cellArray) {
         this.row = row;
         this.col = col;
         this.fluids = fluids;
         this.dna = dna;
         this.setType(type);
+        this.cellArray = cellArray;
+    }
+
+    sumFluids(): number {
+        // Only sum "actual" fluids, not hormones.
+        var glucoseWeight = 1.5;
+        return this.fluids.vector[Fluids.WATER] + glucoseWeight * this.fluids.vector[Fluids.GLUCOSE];
     }
 
     /*
@@ -81,8 +89,14 @@ export class Cell {
         // Calculate which actions have high potential values
         var actions = this.dna.actions;
         var potentials = new Array(actions.length);
+        var input = this.fluids.vector.concat([
+            !!this.cellArray[this.row-1][this.col],
+            !!this.cellArray[this.row+1][this.col],
+            !!this.cellArray[this.row][this.col-1],
+            !!this.cellArray[this.row][this.col+1]
+        ]);
         for (var i = 0; i < actions.length; ++i) {
-            potentials[i] = this.type.actionPerceptrons[i].activate(this.fluids.vector)[0]; // this.getActionPotential(actions[i]);
+            potentials[i] = this.type.actionPerceptrons[i].activate(input)[0]; // this.getActionPotential(actions[i]);
         }
 
         var bestIndex: number = Utils.argmax(potentials);

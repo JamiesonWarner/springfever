@@ -17,19 +17,17 @@ export class DNA {
     window['dna'] = this;
 
     this.actions = [
-      // new DivideAction({ fluidGradient: [0,0,-1,0,0,0], gravityGradient: 2 }),
+      new DivideAction({ fluidGradient: [0,0,-1,0,0,0], gravityGradient: 2 }),
       new DivideAction({ fluidGradient: [0,0,0,0,0,0], gravityGradient: 2 }),
-      new DivideAction({ fluidGradient: [0,0,0,0,0,0], gravityGradient: -2 }),
-      new PumpAction({ fluidGradient: [-1,0,0.1,0,0,0], fluids: [1,0,0,0,0,0] }),
-      new PumpAction({ fluidGradient: [-1,0,0.1,0,0,0], fluids: [1,0,0,0,0,0] }),
+      new PumpAction({ fluidGradient: [0,0,0,0,0,0], fluids: [1,0,0,0,0,0] }),
       // new ReactAction({ reaction: [-0.2,0.8,0.1,0,0,0] }), //photosynth
-      new ReactAction({ reaction: [0,0,0.1,0,0,0] }), // free auxin
-      new ReactAction({ reaction: [0,0,0,0.1,0,0] }), // free misc hormones
-      new ReactAction({ reaction: [0,0,0,0,0.1,0] }), // free misc hormones
-      new ReactAction({ reaction: [0,0,0,0,0,0.1] }), // free misc hormones
-      new ReactAction({ reaction: [0,0,0,-0.1,0,0] }), // free misc hormones
-      new ReactAction({ reaction: [0,0,0,0,-0.1,0] }), // free misc hormones
-      new ReactAction({ reaction: [0,0,0,0,0,-0.1] }), // free misc hormones
+      // new ReactAction({ reaction: [0,0,0.1,0,0,0] }), // free auxin
+      // new ReactAction({ reaction: [0,0,0,0.1,0,0] }), // free misc hormones
+      // new ReactAction({ reaction: [0,0,0,0,0.1,0] }), // free misc hormones
+      // new ReactAction({ reaction: [0,0,0,0,0,0.1] }), // free misc hormones
+      // new ReactAction({ reaction: [0,0,0,-0.1,0,0] }), // free misc hormones
+      // new ReactAction({ reaction: [0,0,0,0,-0.1,0] }), // free misc hormones
+      // new ReactAction({ reaction: [0,0,0,0,0,-0.1] }), // free misc hormones
       new SpecializeAction({ toType: 0 }),
       new SpecializeAction({ toType: 1 }),
       new SpecializeAction({ toType: 2 }),
@@ -42,7 +40,7 @@ export class DNA {
     for (var i = 0; i < DNA.N_CELL_TYPES; ++i) {
       var actionPerceptrons = [];
       for (var j = 0; j < this.actions.length; ++j) {
-        actionPerceptrons[j] = new Perceptron(Fluids.N_FLUIDS, 8, 1);
+        actionPerceptrons[j] = new Perceptron(Fluids.N_FLUIDS + 4, 8, 1);
       }
       this.cellTypes[i] = {
         color: DNA.COLOR_HEX_ARRAY[i%DNA.COLOR_HEX_ARRAY.length],
@@ -94,17 +92,52 @@ export class DNA {
     // iterate.
         rowStart: number = rowCenterOfGrid + 2,
         rowEnd: number = rowCenterOfGrid + 10,
+        rowMid: number = Math.floor((rowStart + rowEnd) / 2),
         colStart: number = colCenterOfGrid - 2,
-        colEnd: number = colCenterOfGrid + 2;
-    for (var row = rowStart; row < rowEnd; ++row) {
+        colEnd: number = colCenterOfGrid + 2,
+        colMid: number = Math.floor((colStart + colEnd) / 2);
+    for (var row = rowStart; row < rowMid; ++row) {
       for (var col = colStart; col < colEnd; ++col) {
+        if (col == colMid) continue;
         fluids = new Fluids(waterInitial, glucoseInitial);
-        cell = new Cell(this, this.cellTypes[0], fluids, row, col);
+        cell = new Cell(this, this.cellTypes[2], fluids, row, col, cellArray);
         fluidsArray[row][col] = fluids;
         cellArray[row][col] = cell;
         plant.push(cell)
       }
     }
+
+    for (var row = rowMid; row < rowEnd; ++row) {
+      for (var col = colStart; col < colEnd; ++col) {
+        if (col == colMid) continue;
+        fluids = new Fluids(waterInitial, glucoseInitial);
+        cell = new Cell(this, this.cellTypes[3], fluids, row, col, cellArray); // different type is only change
+        fluidsArray[row][col] = fluids;
+        cellArray[row][col] = cell;
+        plant.push(cell)
+      }
+    }
+
+    // create center column
+    // meristems
+    for (var row = rowStart; row < rowMid; ++row) {
+      var col = colMid;
+      fluids = new Fluids(waterInitial, glucoseInitial);
+      cell = new Cell(this, this.cellTypes[0], fluids, row, col, cellArray);
+      fluidsArray[row][col] = fluids;
+      cellArray[row][col] = cell;
+      plant.push(cell)
+    }
+
+    for (var row = rowMid; row < rowEnd; ++row) {
+      var col = colMid;
+      fluids = new Fluids(waterInitial, glucoseInitial);
+      cell = new Cell(this, this.cellTypes[1], fluids, row, col, cellArray);
+      fluidsArray[row][col] = fluids;
+      cellArray[row][col] = cell;
+      plant.push(cell)
+    }
+
 
     return plant;
   }

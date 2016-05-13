@@ -18,17 +18,9 @@ export class Fluids {
         }
     }
 
-    sumFluids(): number {
-        var s = 0;
-        for (var i = 0; i < this.vector.length; ++i) {
-            s += this.vector[i];
-        }
-        return s;
-    }
-
-    getPressureInArea(area: number): number {
-        return this.sumFluids() / area;
-    }
+    // getPressureInArea(area: number): number {
+    //     return this.sumFluids() / area;
+    // }
 
 
 

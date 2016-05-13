@@ -116,7 +116,7 @@
 
 	"use strict";
 	var cell_1 = __webpack_require__(3);
-	var fluids_1 = __webpack_require__(5);
+	var fluids_1 = __webpack_require__(4);
 	var action_1 = __webpack_require__(6);
 	var angle_1 = __webpack_require__(7);
 	/*
@@ -137,9 +137,11 @@
 	                // create fluid for each location in the fluids array
 	                var water;
 	                if (this.isDirtCell(row, col))
-	                    water = Math.random() * 2 * Automata.MATERIAL_DIRT_WATER_MEAN;
+	                    water = Automata.MATERIAL_DIRT_WATER_MEAN;
 	                else
-	                    water = Math.random() * 2 * Automata.MATERIAL_AIR_WATER_MEAN;
+	                    water = Automata.MATERIAL_AIR_WATER_MEAN;
+	                // Uncomment to make a random amount of starting water
+	                // water = Math.random() * 2 * Automata.MATERIAL_AIR_WATER_MEAN;
 	                this.fluidsArray[row][col] = new fluids_1.Fluids(water, 0);
 	            }
 	        }
@@ -231,6 +233,7 @@
 	            }
 	            var action = actions[i];
 	            var cell = this.plant[i];
+	            // console.log(action);
 	            if (action instanceof action_1.DivideAction) {
 	                // console.log("cell wants to grow...")
 	                var daction = action;
@@ -267,7 +270,7 @@
 	                }
 	                this.subtractFluids(cell.fluids, cost);
 	                var newFluids = this.splitFluids(cell.fluids);
-	                var nCell = new cell_1.Cell(this.dna, cell.type, newFluids, gI, gJ);
+	                var nCell = new cell_1.Cell(this.dna, cell.type, newFluids, gI, gJ, this.cellArray);
 	                this.plant.push(nCell);
 	                this.fluidsArray[gI][gJ] = newFluids;
 	                this.cellArray[gI][gJ] = nCell;
@@ -275,6 +278,49 @@
 	            else if (action instanceof action_1.SpecializeAction) {
 	                var saction = action;
 	                cell.setType(saction.toType);
+	            }
+	            else if (action instanceof action_1.PumpAction) {
+	                console.log('pumping....');
+	                var paction = action;
+	                var neighborUp = this.fluidsArray[cell.row - 1][cell.col];
+	                var neighborRight = this.fluidsArray[cell.row][cell.col + 1];
+	                var neighborDown = this.fluidsArray[cell.row + 1][cell.col];
+	                var neighborLeft = this.fluidsArray[cell.row][cell.col - 1];
+	                // console.log('a');
+	                var angle = paction.getActionDirection(neighborUp, neighborRight, neighborDown, neighborLeft);
+	                // console.log('b');
+	                var direction = angle_1.Angle.sampleDirection(angle);
+	                var drow = angle_1.Angle.directionDeltaRow(direction);
+	                var dcol = angle_1.Angle.directionDeltaCol(direction);
+	                var gI = this.plant[i].row + drow;
+	                var gJ = this.plant[i].col + dcol;
+	                if (gI < 0 || gI >= Automata.GRID_N_ROWS || gJ < 0 || gJ >= Automata.GRID_N_COLUMNS) {
+	                    continue;
+	                }
+	                // console.log('c');
+	                var targetFluidVec = this.fluidsArray[gI][gJ].vector;
+	                var fluidVec = cell.fluids.vector;
+	                for (var j = 0; j < paction.fluids.length; ++j) {
+	                    // move d fluids from fluidVec to targetFluidVec
+	                    // if d is negative then this is "pulling" fluids
+	                    var d = paction.fluids[j];
+	                    // let the plant "cheat": only pump *from* environment, *to* other plant cells
+	                    if (this.cellArray[gI][gJ]) {
+	                        d = Math.abs(d);
+	                    }
+	                    else {
+	                        d = -Math.abs(d);
+	                    }
+	                    // don't pump to negative fluids
+	                    if (d > 0) {
+	                        d = Math.min(d, fluidVec[j]);
+	                    }
+	                    else {
+	                        d = Math.max(d, -targetFluidVec[j]);
+	                    }
+	                    fluidVec[j] -= d;
+	                    targetFluidVec[j] += d;
+	                }
 	            }
 	        }
 	    };
@@ -400,8 +446,8 @@
 	                    if (this.isAirNotCell(row, col) && this.isAirNotCell(neighbRow, neighbCol)) {
 	                        flowRate = 0.2;
 	                    }
-	                    if (this.cellArray[row][col] && !this.cellArray[neighbRow][neighbCol] ||
-	                        !this.cellArray[row][col] && this.cellArray[neighbRow][neighbCol]) {
+	                    // disable passive flow from / to cells
+	                    if (this.cellArray[row][col] || this.cellArray[neighbRow][neighbCol]) {
 	                        // flowRate = 0.01
 	                        continue;
 	                    }
@@ -559,20 +605,27 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var utils_1 = __webpack_require__(4);
+	var fluids_1 = __webpack_require__(4);
+	var utils_1 = __webpack_require__(5);
 	/*
 	Cell is a fleighweight object for the Grid. Systems.
 	Plus they also have context for fitting into the Grid.
 	It can also be thought of as a DNA controller.
 	*/
 	var Cell = (function () {
-	    function Cell(dna, type, fluids, row, col) {
+	    function Cell(dna, type, fluids, row, col, cellArray) {
 	        this.row = row;
 	        this.col = col;
 	        this.fluids = fluids;
 	        this.dna = dna;
 	        this.setType(type);
+	        this.cellArray = cellArray;
 	    }
+	    Cell.prototype.sumFluids = function () {
+	        // Only sum "actual" fluids, not hormones.
+	        var glucoseWeight = 1.5;
+	        return this.fluids.vector[fluids_1.Fluids.WATER] + glucoseWeight * this.fluids.vector[fluids_1.Fluids.GLUCOSE];
+	    };
 	    /*
 	    Pass either a literal type object or a numerical type index referencing dna type definitions
 	    */
@@ -618,8 +671,14 @@
 	        // Calculate which actions have high potential values
 	        var actions = this.dna.actions;
 	        var potentials = new Array(actions.length);
+	        var input = this.fluids.vector.concat([
+	            !!this.cellArray[this.row - 1][this.col],
+	            !!this.cellArray[this.row + 1][this.col],
+	            !!this.cellArray[this.row][this.col - 1],
+	            !!this.cellArray[this.row][this.col + 1]
+	        ]);
 	        for (var i = 0; i < actions.length; ++i) {
-	            potentials[i] = this.type.actionPerceptrons[i].activate(this.fluids.vector)[0]; // this.getActionPotential(actions[i]);
+	            potentials[i] = this.type.actionPerceptrons[i].activate(input)[0]; // this.getActionPotential(actions[i]);
 	        }
 	        var bestIndex = utils_1.Utils.argmax(potentials);
 	        // console.log('choosing action, ', actions[bestIndex]);
@@ -640,6 +699,59 @@
 
 /***/ },
 /* 4 */
+/***/ function(module, exports) {
+
+	"use strict";
+	var Fluids = (function () {
+	    function Fluids() {
+	        var vec = [];
+	        for (var _i = 0; _i < arguments.length; _i++) {
+	            vec[_i - 0] = arguments[_i];
+	        }
+	        this.vector = new Array(Fluids.N_FLUIDS);
+	        for (var i = 0; i < Fluids.N_FLUIDS; ++i) {
+	            this.vector[i] = vec[i] || 0;
+	        }
+	    }
+	    // getPressureInArea(area: number): number {
+	    //     return this.sumFluids() / area;
+	    // }
+	    /*
+	    Goal:  q
+	    */
+	    /*
+	    Returns the quantity of a given fluid, which is the amount of a substance per unit volume.
+	    divided by the total fluid.
+	
+	    */
+	    /*
+	
+	    */
+	    Fluids.prototype.getFluidConcentration = function (fluidId, area) {
+	    };
+	    /*
+	    Diffusive flux is rate of flow per unit area. Positive value means outward flow.
+	
+	    Fick's law of diffusion: J = -D (d phi)/(d x)
+	    J is diffusive flux
+	    D is diffusion coefficient
+	    phi is amount of
+	    x is position
+	    */
+	    Fluids.prototype.getDiffusiveFlux = function (toFluid, area1, area2) { };
+	    Fluids.WATER = 0;
+	    Fluids.GLUCOSE = 1;
+	    Fluids.AUXIN = 2;
+	    Fluids.SIGNALS_START = 2;
+	    Fluids.N_SIGNALS = 4;
+	    Fluids.N_FLUIDS = 2 + Fluids.N_SIGNALS;
+	    return Fluids;
+	}());
+	exports.Fluids = Fluids;
+
+
+/***/ },
+/* 5 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -709,66 +821,6 @@
 
 
 /***/ },
-/* 5 */
-/***/ function(module, exports) {
-
-	"use strict";
-	var Fluids = (function () {
-	    function Fluids() {
-	        var vec = [];
-	        for (var _i = 0; _i < arguments.length; _i++) {
-	            vec[_i - 0] = arguments[_i];
-	        }
-	        this.vector = new Array(Fluids.N_FLUIDS);
-	        for (var i = 0; i < Fluids.N_FLUIDS; ++i) {
-	            this.vector[i] = vec[i] || 0;
-	        }
-	    }
-	    Fluids.prototype.sumFluids = function () {
-	        var s = 0;
-	        for (var i = 0; i < this.vector.length; ++i) {
-	            s += this.vector[i];
-	        }
-	        return s;
-	    };
-	    Fluids.prototype.getPressureInArea = function (area) {
-	        return this.sumFluids() / area;
-	    };
-	    /*
-	    Goal:  q
-	    */
-	    /*
-	    Returns the quantity of a given fluid, which is the amount of a substance per unit volume.
-	    divided by the total fluid.
-	
-	    */
-	    /*
-	
-	    */
-	    Fluids.prototype.getFluidConcentration = function (fluidId, area) {
-	    };
-	    /*
-	    Diffusive flux is rate of flow per unit area. Positive value means outward flow.
-	
-	    Fick's law of diffusion: J = -D (d phi)/(d x)
-	    J is diffusive flux
-	    D is diffusion coefficient
-	    phi is amount of
-	    x is position
-	    */
-	    Fluids.prototype.getDiffusiveFlux = function (toFluid, area1, area2) { };
-	    Fluids.WATER = 0;
-	    Fluids.GLUCOSE = 1;
-	    Fluids.AUXIN = 2;
-	    Fluids.SIGNALS_START = 2;
-	    Fluids.N_SIGNALS = 4;
-	    Fluids.N_FLUIDS = 2 + Fluids.N_SIGNALS;
-	    return Fluids;
-	}());
-	exports.Fluids = Fluids;
-
-
-/***/ },
 /* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -778,7 +830,7 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var utils_1 = __webpack_require__(4);
+	var utils_1 = __webpack_require__(5);
 	var ActionSerializer = (function () {
 	    function ActionSerializer() {
 	    }
@@ -1041,7 +1093,7 @@
 
 	"use strict";
 	var cell_1 = __webpack_require__(3);
-	var fluids_1 = __webpack_require__(5);
+	var fluids_1 = __webpack_require__(4);
 	var automata_1 = __webpack_require__(2);
 	var action_1 = __webpack_require__(6);
 	var perceptron_1 = __webpack_require__(9);
@@ -1050,19 +1102,17 @@
 	    function DNA() {
 	        window['dna'] = this;
 	        this.actions = [
-	            // new DivideAction({ fluidGradient: [0,0,-1,0,0,0], gravityGradient: 2 }),
+	            new action_1.DivideAction({ fluidGradient: [0, 0, -1, 0, 0, 0], gravityGradient: 2 }),
 	            new action_1.DivideAction({ fluidGradient: [0, 0, 0, 0, 0, 0], gravityGradient: 2 }),
-	            new action_1.DivideAction({ fluidGradient: [0, 0, 0, 0, 0, 0], gravityGradient: -2 }),
-	            new action_1.PumpAction({ fluidGradient: [-1, 0, 0.1, 0, 0, 0], fluids: [1, 0, 0, 0, 0, 0] }),
-	            new action_1.PumpAction({ fluidGradient: [-1, 0, 0.1, 0, 0, 0], fluids: [1, 0, 0, 0, 0, 0] }),
+	            new action_1.PumpAction({ fluidGradient: [0, 0, 0, 0, 0, 0], fluids: [1, 0, 0, 0, 0, 0] }),
 	            // new ReactAction({ reaction: [-0.2,0.8,0.1,0,0,0] }), //photosynth
-	            new action_1.ReactAction({ reaction: [0, 0, 0.1, 0, 0, 0] }),
-	            new action_1.ReactAction({ reaction: [0, 0, 0, 0.1, 0, 0] }),
-	            new action_1.ReactAction({ reaction: [0, 0, 0, 0, 0.1, 0] }),
-	            new action_1.ReactAction({ reaction: [0, 0, 0, 0, 0, 0.1] }),
-	            new action_1.ReactAction({ reaction: [0, 0, 0, -0.1, 0, 0] }),
-	            new action_1.ReactAction({ reaction: [0, 0, 0, 0, -0.1, 0] }),
-	            new action_1.ReactAction({ reaction: [0, 0, 0, 0, 0, -0.1] }),
+	            // new ReactAction({ reaction: [0,0,0.1,0,0,0] }), // free auxin
+	            // new ReactAction({ reaction: [0,0,0,0.1,0,0] }), // free misc hormones
+	            // new ReactAction({ reaction: [0,0,0,0,0.1,0] }), // free misc hormones
+	            // new ReactAction({ reaction: [0,0,0,0,0,0.1] }), // free misc hormones
+	            // new ReactAction({ reaction: [0,0,0,-0.1,0,0] }), // free misc hormones
+	            // new ReactAction({ reaction: [0,0,0,0,-0.1,0] }), // free misc hormones
+	            // new ReactAction({ reaction: [0,0,0,0,0,-0.1] }), // free misc hormones
 	            new action_1.SpecializeAction({ toType: 0 }),
 	            new action_1.SpecializeAction({ toType: 1 }),
 	            new action_1.SpecializeAction({ toType: 2 }),
@@ -1074,7 +1124,7 @@
 	        for (var i = 0; i < DNA.N_CELL_TYPES; ++i) {
 	            var actionPerceptrons = [];
 	            for (var j = 0; j < this.actions.length; ++j) {
-	                actionPerceptrons[j] = new perceptron_1.Perceptron(fluids_1.Fluids.N_FLUIDS, 8, 1);
+	                actionPerceptrons[j] = new perceptron_1.Perceptron(fluids_1.Fluids.N_FLUIDS + 4, 8, 1);
 	            }
 	            this.cellTypes[i] = {
 	                color: DNA.COLOR_HEX_ARRAY[i % DNA.COLOR_HEX_ARRAY.length],
@@ -1114,15 +1164,46 @@
 	        // plant to create
 	        plant = [], cell, 
 	        // iterate.
-	        rowStart = rowCenterOfGrid + 2, rowEnd = rowCenterOfGrid + 10, colStart = colCenterOfGrid - 2, colEnd = colCenterOfGrid + 2;
-	        for (var row = rowStart; row < rowEnd; ++row) {
+	        rowStart = rowCenterOfGrid + 2, rowEnd = rowCenterOfGrid + 10, rowMid = Math.floor((rowStart + rowEnd) / 2), colStart = colCenterOfGrid - 2, colEnd = colCenterOfGrid + 2, colMid = Math.floor((colStart + colEnd) / 2);
+	        for (var row = rowStart; row < rowMid; ++row) {
 	            for (var col = colStart; col < colEnd; ++col) {
+	                if (col == colMid)
+	                    continue;
 	                fluids = new fluids_1.Fluids(waterInitial, glucoseInitial);
-	                cell = new cell_1.Cell(this, this.cellTypes[0], fluids, row, col);
+	                cell = new cell_1.Cell(this, this.cellTypes[2], fluids, row, col, cellArray);
 	                fluidsArray[row][col] = fluids;
 	                cellArray[row][col] = cell;
 	                plant.push(cell);
 	            }
+	        }
+	        for (var row = rowMid; row < rowEnd; ++row) {
+	            for (var col = colStart; col < colEnd; ++col) {
+	                if (col == colMid)
+	                    continue;
+	                fluids = new fluids_1.Fluids(waterInitial, glucoseInitial);
+	                cell = new cell_1.Cell(this, this.cellTypes[3], fluids, row, col, cellArray); // different type is only change
+	                fluidsArray[row][col] = fluids;
+	                cellArray[row][col] = cell;
+	                plant.push(cell);
+	            }
+	        }
+	        // create center column
+	        // meristems
+	        for (var row = rowStart; row < rowMid; ++row) {
+	            var col = colMid;
+	            fluids = new fluids_1.Fluids(waterInitial, glucoseInitial);
+	            cell = new cell_1.Cell(this, this.cellTypes[0], fluids, row, col, cellArray);
+	            fluidsArray[row][col] = fluids;
+	            cellArray[row][col] = cell;
+	            plant.push(cell);
+	        }
+	        for (var row = rowMid; row < rowEnd; ++row) {
+	            var col = colMid;
+	            fluids = new fluids_1.Fluids(waterInitial, glucoseInitial);
+	            cell = new cell_1.Cell(this, this.cellTypes[1], fluids, row, col, cellArray);
+	            fluidsArray[row][col] = fluids;
+	            cellArray[row][col] = cell;
+	            plant.push(cell);
 	        }
 	        return plant;
 	    };
@@ -1227,7 +1308,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var fluids_1 = __webpack_require__(5);
+	var fluids_1 = __webpack_require__(4);
 	var CellTypeSerializer = (function () {
 	    function CellTypeSerializer() {
 	    }
