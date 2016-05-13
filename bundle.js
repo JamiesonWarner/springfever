@@ -53,16 +53,16 @@
 	
 	*/
 	"use strict";
-	var evolution_1 = __webpack_require__(12);
+	var simulation_1 = __webpack_require__(1);
 	var angle_1 = __webpack_require__(7);
 	var utils_1 = __webpack_require__(5);
 	var dna_1 = __webpack_require__(8);
 	document.addEventListener("DOMContentLoaded", function (event) {
 	    var drawCanvas = document.getElementById("draw");
-	    // var sim = new Simulation(drawCanvas);
-	    // sim.run();
-	    var sim = new evolution_1.Evolution(drawCanvas);
+	    var sim = new simulation_1.Simulation(drawCanvas);
 	    sim.run();
+	    // var sim = new Evolution(drawCanvas);
+	    // sim.run();
 	    // var
 	    // window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
 	    window['resetSimulation'] = function () {
@@ -1457,143 +1457,6 @@
 	    return CellType;
 	}());
 	exports.CellType = CellType;
-
-
-/***/ },
-/* 11 */,
-/* 12 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-	var __extends = (this && this.__extends) || function (d, b) {
-	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-	    function __() { this.constructor = d; }
-	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-	};
-	var dna_1 = __webpack_require__(8);
-	var simulation_1 = __webpack_require__(1);
-	/*
-	
-	*/
-	var Evolution = (function (_super) {
-	    __extends(Evolution, _super);
-	    function Evolution(drawCanvas) {
-	        _super.call(this, drawCanvas);
-	        this.generation = 0;
-	        this.simulation = new simulation_1.Simulation(drawCanvas);
-	        // this.simulatio    n.pause(); // each frame will be an entire plant of automata
-	        this.simulation.FRAME_DELAY = 200;
-	        this.isEvolutionRunning = true;
-	        this.dna = new dna_1.DNA();
-	        this.runGenerationSelectBest(1000, this.dna, 150);
-	        // this.simulation.run();
-	    }
-	    Evolution.prototype.run = function (dna) {
-	        this.isEvolutionRunning = true;
-	        // if (!dna) {
-	        //     this.dna = new DNA();
-	        // }
-	        // this.dna = dna;
-	        // Run generation after generation...
-	        // TODO runGenerationSelectBest returns a Promise...
-	        // var ngenerations: number = 4;
-	        // var best = dna;
-	        // for (var i = 0; i < ngenerations; ++i) {
-	        // }
-	        // return best;
-	    };
-	    Evolution.prototype.reset = function () {
-	    };
-	    Evolution.prototype.pause = function () {
-	        this.simulation.pause();
-	        this.isEvolutionRunning = false;
-	    };
-	    Evolution.prototype.simulatedAnnealing = function (nchildren, dna, growtime) {
-	        if (growtime === void 0) { growtime = 40; }
-	        // TODO
-	        var schedule = function (round) {
-	            return 1 / (1 + round / 1000);
-	        };
-	        return null;
-	    };
-	    Evolution.prototype.runGenerationSelectBest = function (nchildren, dna, growtime) {
-	        // grow the dna for growtime iterations, then eval its fitness
-	        // if (dna)
-	        if (growtime === void 0) { growtime = 40; }
-	        // generate random children
-	        this.bestDna = null;
-	        this.bestFitness = -1;
-	        this.fitness = [];
-	        this.generation = 0;
-	        this.growtime = growtime;
-	        this.childrenPerGeneration = nchildren;
-	        this.childIndex = 0;
-	        this.runGenerationSelectBestHelper();
-	        var self = this;
-	        window['stop'] = function () {
-	            console.log('Stopping after ' + self.generation + ' generations. ');
-	            console.log('Best fitness: ', self.bestFitness);
-	            console.log('Best dna stored in finalBest. ');
-	            self.isEvolutionRunning = false;
-	            window['finalBest'] = self.bestDna; //DNASerializer.serialize(self.bestDna);
-	            window['DNASerializer'] = dna_1.DNASerializer;
-	            window['fitness'] = self.fitness;
-	        };
-	    };
-	    Evolution.prototype.updateStatus = function () {
-	        var status;
-	        if (this.isEvolutionRunning)
-	            status = 'Simulation running. ';
-	        else
-	            status = 'Simulation stopped. ';
-	        if (!this.simulation.drawEnabled)
-	            status += '(Draw disabled.) ';
-	        status += "Generation " + this.generation + ". ";
-	        this.simulation.showStatusString(status); // TODO move this out of simulation somehow?
-	    };
-	    /* Recursive function */
-	    Evolution.prototype.runGenerationSelectBestHelper = function () {
-	        if (this.childIndex >= this.childrenPerGeneration) {
-	            return;
-	        }
-	        if (!this.isEvolutionRunning) {
-	            return;
-	        }
-	        this.generation++;
-	        this.dna = new dna_1.DNA();
-	        this.dna.mutate(10);
-	        // grow the given dna
-	        // console.log('growing...');
-	        this.simulation.reset(this.dna);
-	        this.updateStatus();
-	        // this.simulation.automata.draw();
-	        this.simulation.runForNTicks(this.growtime);
-	        // console.log('done...');
-	        // evaluate its fitness
-	        var fit = this.evalFitness(this.simulation.automata.plant);
-	        this.fitness[this.childIndex] = fit;
-	        // mark it as the best dna if applicable
-	        if (fit > this.bestFitness) {
-	            console.log('New best fitness: ', fit);
-	            this.bestDna = this.dna.clone();
-	            this.bestFitness = fit;
-	        }
-	        // schedule to grow the next dna
-	        var self = this;
-	        this.childIndex++;
-	        window.setTimeout(this.runGenerationSelectBestHelper.bind(this), this.simulation.FRAME_DELAY);
-	    };
-	    Evolution.prototype.evalFitness = function (plant) {
-	        var tfluids = 0;
-	        for (var i = 0; i < plant.length; ++i) {
-	            var cell = plant[i];
-	            tfluids += cell.sumFluids();
-	        }
-	        return tfluids;
-	    };
-	    return Evolution;
-	}(simulation_1.Simulation));
-	exports.Evolution = Evolution;
 
 
 /***/ }

@@ -16,11 +16,11 @@ import {DNASerializer} from "./dna";
 document.addEventListener("DOMContentLoaded", function(event) {
     var drawCanvas = document.getElementById("draw");
 
-    // var sim = new Simulation(drawCanvas);
-    // sim.run();
-
-    var sim = new Evolution(drawCanvas);
+    var sim = new Simulation(drawCanvas);
     sim.run();
+
+    // var sim = new Evolution(drawCanvas);
+    // sim.run();
 
     // var
 
