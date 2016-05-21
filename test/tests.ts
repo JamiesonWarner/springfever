@@ -5,6 +5,8 @@ declare var it;
 declare var expect;
 declare var describe;
 
+describe("")
+
 describe("dnaSerializer", function() {
     it("works", function() {
         var dna = new DNA();

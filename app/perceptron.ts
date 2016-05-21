@@ -1,5 +1,8 @@
 import {Utils} from "./utils";
 
+/**
+Synaptic libs
+*/
 declare module Architect {
     class Perceptron {
         constructor(...nnodes)
@@ -18,6 +21,9 @@ declare class Connection {
 }
 
 
+/*
+
+*/
 export class Perceptron extends Architect.Perceptron {
     constructor(...nnodes) {
         super(...nnodes);

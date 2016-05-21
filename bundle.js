@@ -1370,6 +1370,9 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
+	/*
+	
+	*/
 	var Perceptron = (function (_super) {
 	    __extends(Perceptron, _super);
 	    function Perceptron() {

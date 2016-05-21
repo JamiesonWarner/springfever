@@ -47,6 +47,7 @@
 	"use strict";
 	var perceptron_1 = __webpack_require__(9);
 	var dna_1 = __webpack_require__(8);
+	describe("");
 	describe("dnaSerializer", function () {
 	    it("works", function () {
 	        var dna = new dna_1.DNA();
@@ -1264,6 +1265,9 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
+	/*
+	
+	*/
 	var Perceptron = (function (_super) {
 	    __extends(Perceptron, _super);
 	    function Perceptron() {
