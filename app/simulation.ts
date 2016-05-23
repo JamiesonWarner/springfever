@@ -20,7 +20,7 @@ export interface IViewSimulation {
 }
 
 export class Simulation implements IViewSimulation {
-    FRAME_DELAY: number = 10;
+    FRAME_DELAY: number = 80;
 
     automata: Automata;
     drawEnabled: boolean;

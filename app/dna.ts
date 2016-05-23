@@ -17,8 +17,8 @@ export class DNA {
     window['dna'] = this;
 
     this.actions = [
-      new DivideAction({ fluidGradient: [0,0,-1,0,0,0], gravityGradient: 2 }),
-      new DivideAction({ fluidGradient: [0,0,0,0,0,0], gravityGradient: 2 }),
+      // new DivideAction({ fluidGradient: [0,0,-1,0,0,0], gravityGradient: 2 }),
+      // new DivideAction({ fluidGradient: [0,0,0,0,0,0], gravityGradient: 2 }),
       new PumpAction({ fluidGradient: [0,0,0,0,0,0], fluids: [1,0,0,0,0,0] }),
       // new ReactAction({ reaction: [-0.2,0.8,0.1,0,0,0] }), //photosynth
       // new ReactAction({ reaction: [0,0,0.1,0,0,0] }), // free auxin
@@ -28,11 +28,11 @@ export class DNA {
       // new ReactAction({ reaction: [0,0,0,-0.1,0,0] }), // free misc hormones
       // new ReactAction({ reaction: [0,0,0,0,-0.1,0] }), // free misc hormones
       // new ReactAction({ reaction: [0,0,0,0,0,-0.1] }), // free misc hormones
-      new SpecializeAction({ toType: 0 }),
-      new SpecializeAction({ toType: 1 }),
-      new SpecializeAction({ toType: 2 }),
-      new SpecializeAction({ toType: 3 }),
-      new SpecializeAction({ toType: 4 })
+      // new SpecializeAction({ toType: 0 }),
+      // new SpecializeAction({ toType: 1 }),
+      // new SpecializeAction({ toType: 2 }),
+      // new SpecializeAction({ toType: 3 }),
+      // new SpecializeAction({ toType: 4 })
     ];
 
     // cell types

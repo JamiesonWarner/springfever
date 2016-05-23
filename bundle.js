@@ -63,8 +63,16 @@
 	    sim.run();
 	    // var sim = new Evolution(drawCanvas);
 	    // sim.run();
-	    // var
-	    // window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
+	    var simOn = sim.isSimulationRunning;
+	    window['toggleSimulation'] = function () {
+	        if (simOn) {
+	            sim.pause();
+	        }
+	        else {
+	            sim.run();
+	        }
+	        simOn = !simOn;
+	    };
 	    window['resetSimulation'] = function () {
 	        console.log("=== Resetting simulation ===");
 	        sim.reset();
@@ -93,7 +101,7 @@
 	var dna_1 = __webpack_require__(8);
 	var Simulation = (function () {
 	    function Simulation(drawCanvas) {
-	        this.FRAME_DELAY = 10;
+	        this.FRAME_DELAY = 80;
 	        this.tick = 0;
 	        this.drawCanvas = drawCanvas;
 	        this.drawEnabled = true;
@@ -317,7 +325,7 @@
 	    Automata.prototype.update = function () {
 	        //console.log("tick");
 	        // if (this.plant.length)
-	        //     console.log('cell fluids', this.plant[0].fluids.vector);
+	        //   console.log('cell fluids', this.plant[0].fluids.vector);
 	        this.doCellActions();
 	        this.doPassiveFlowAndPhotosynthesis();
 	        this.doCellMetabolism();
@@ -698,9 +706,12 @@
 	    Automata.GRID_N_COLUMNS = 120;
 	    Automata.GRID_N_ROWS = 100;
 	    Automata.CELL_SCALE_PIXELS = 8;
-	    Automata.MATERIAL_WATER_WATER_MEAN = 1.0; // used to estimate turgidity. Wolfram Alpha: mass of 1cm^3 water
-	    Automata.MATERIAL_DIRT_WATER_MEAN = 0.21; // Wolfram Alpha: mass of 1 cm^3 moist soil - Wolfram Alpha: mass of 1cm^3 dry soil;
-	    Automata.MATERIAL_AIR_WATER_MEAN = 1.519e-5; // Wolfram Alpha: mass of water vapor in 1 cubic centimer air;
+	    // used to estimate turgidity. Wolfram Alpha: mass of 1cm^3 water
+	    Automata.MATERIAL_WATER_WATER_MEAN = 1.0;
+	    // Wolfram Alpha: mass of 1 cm^3 moist soil - Wolfram Alpha: mass of 1cm^3 dry soil;
+	    Automata.MATERIAL_DIRT_WATER_MEAN = 0.21;
+	    // Wolfram Alpha: mass of water vapor in 1 cubic centimer air;
+	    Automata.MATERIAL_AIR_WATER_MEAN = 1.519e-5;
 	    return Automata;
 	}());
 	exports.Automata = Automata;
@@ -1208,22 +1219,9 @@
 	    function DNA() {
 	        window['dna'] = this;
 	        this.actions = [
-	            new action_1.DivideAction({ fluidGradient: [0, 0, -1, 0, 0, 0], gravityGradient: 2 }),
-	            new action_1.DivideAction({ fluidGradient: [0, 0, 0, 0, 0, 0], gravityGradient: 2 }),
+	            // new DivideAction({ fluidGradient: [0,0,-1,0,0,0], gravityGradient: 2 }),
+	            // new DivideAction({ fluidGradient: [0,0,0,0,0,0], gravityGradient: 2 }),
 	            new action_1.PumpAction({ fluidGradient: [0, 0, 0, 0, 0, 0], fluids: [1, 0, 0, 0, 0, 0] }),
-	            // new ReactAction({ reaction: [-0.2,0.8,0.1,0,0,0] }), //photosynth
-	            // new ReactAction({ reaction: [0,0,0.1,0,0,0] }), // free auxin
-	            // new ReactAction({ reaction: [0,0,0,0.1,0,0] }), // free misc hormones
-	            // new ReactAction({ reaction: [0,0,0,0,0.1,0] }), // free misc hormones
-	            // new ReactAction({ reaction: [0,0,0,0,0,0.1] }), // free misc hormones
-	            // new ReactAction({ reaction: [0,0,0,-0.1,0,0] }), // free misc hormones
-	            // new ReactAction({ reaction: [0,0,0,0,-0.1,0] }), // free misc hormones
-	            // new ReactAction({ reaction: [0,0,0,0,0,-0.1] }), // free misc hormones
-	            new action_1.SpecializeAction({ toType: 0 }),
-	            new action_1.SpecializeAction({ toType: 1 }),
-	            new action_1.SpecializeAction({ toType: 2 }),
-	            new action_1.SpecializeAction({ toType: 3 }),
-	            new action_1.SpecializeAction({ toType: 4 })
 	        ];
 	        // cell types
 	        this.cellTypes = new Array(DNA.N_CELL_TYPES);

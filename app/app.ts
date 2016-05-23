@@ -22,9 +22,15 @@ document.addEventListener("DOMContentLoaded", function(event) {
     // var sim = new Evolution(drawCanvas);
     // sim.run();
 
-    // var
-
-    // window['toggleSimulation'] = sim.toggleSimulation.bind(sim);
+    var simOn = sim.isSimulationRunning;
+    window['toggleSimulation'] = function() {
+        if (simOn) {
+            sim.pause();
+        } else {
+            sim.run();
+        }
+        simOn = !simOn;
+    }
     window['resetSimulation'] = function() {
         console.log("=== Resetting simulation ===");
         sim.reset();
