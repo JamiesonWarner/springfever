@@ -49,8 +49,6 @@
 	The view provider layer!
 	This calls:
 	(simulationStart) when
-	
-	
 	*/
 	"use strict";
 	var simulation_1 = __webpack_require__(1);
@@ -60,9 +58,8 @@
 	document.addEventListener("DOMContentLoaded", function (event) {
 	    var drawCanvas = document.getElementById("draw");
 	    var sim = new simulation_1.Simulation(drawCanvas);
-	    sim.run();
 	    // var sim = new Evolution(drawCanvas);
-	    // sim.run();
+	    sim.run();
 	    var simOn = sim.isSimulationRunning;
 	    window['toggleSimulation'] = function () {
 	        if (simOn) {
@@ -240,6 +237,7 @@
 	*/
 	var Automata = (function () {
 	    function Automata(runString, drawCanvas) {
+	        this.systems = new Array();
 	        this.canvas = drawCanvas;
 	        this.canvas.setAttribute('width', Automata.GRID_N_COLUMNS * Automata.CELL_SCALE_PIXELS);
 	        this.canvas.setAttribute('height', Automata.GRID_N_ROWS * Automata.CELL_SCALE_PIXELS);
@@ -254,7 +252,7 @@
 	                    water = Automata.MATERIAL_DIRT_WATER_MEAN;
 	                else
 	                    water = Automata.MATERIAL_AIR_WATER_MEAN;
-	                // Uncomment to make a random amount of starting water
+	                // Uncomment line to make a random amount of starting water
 	                // water = Math.random() * 2 * Automata.MATERIAL_AIR_WATER_MEAN;
 	                this.fluidsArray[row][col] = new fluids_1.Fluids(water, 0);
 	            }

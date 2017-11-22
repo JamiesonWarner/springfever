@@ -13,6 +13,7 @@ export interface IViewSimulation {
     reset(): void; // set state to initial
     pause(): void; // pause execution
     run(): void; //
+    isSimulationRunning
 
 
     // setDrawEnabled()

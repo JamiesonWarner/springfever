@@ -23,6 +23,8 @@ export class Automata {
   // Wolfram Alpha: mass of water vapor in 1 cubic centimer air;
   static MATERIAL_AIR_WATER_MEAN = 1.519e-5;
 
+  static
+
   canvas;
   canvasCtx: CanvasRenderingContext2D;
   fluidsArray: Array<Array<Fluids>>;
@@ -35,6 +37,8 @@ export class Automata {
   systems: Array<ISystem>;
 
   constructor(runString: String, drawCanvas: Element) {
+    this.systems = new Array();
+
     this.canvas = drawCanvas;
     this.canvas.setAttribute('width', Automata.GRID_N_COLUMNS * Automata.CELL_SCALE_PIXELS);
     this.canvas.setAttribute('height', Automata.GRID_N_ROWS * Automata.CELL_SCALE_PIXELS);
@@ -49,11 +53,11 @@ export class Automata {
     var water;
     if (this.isDirtCell(row, col))
       water = Automata.MATERIAL_DIRT_WATER_MEAN
-    // Uncomment to make a random amount of starting water
+    // Uncomment line to make a random amount of starting water
     // water = Math.random() * 2 * Automata.MATERIAL_DIRT_WATER_MEAN;
     else
       water = Automata.MATERIAL_AIR_WATER_MEAN
-    // Uncomment to make a random amount of starting water
+    // Uncomment line to make a random amount of starting water
     // water = Math.random() * 2 * Automata.MATERIAL_AIR_WATER_MEAN;
     this.fluidsArray[row][col] = new Fluids(water, 0);
     }
@@ -71,6 +75,73 @@ export class Automata {
     drawCanvas.addEventListener("mousemove", function(event: MouseEvent) {
       self.showInfo(event.offsetX, event.offsetY);
     })
+  }
+
+  makeCellsAtCoordinates  (cellArray: Array<Array<Cell>>, fluidsArray: Array<Array<Fluids>>) {
+    // compute initial fluid vectors
+    var waterInitial = 20; // 1.75 * Automata.MATERIAL_WATER_WATER_MEAN;
+    var glucoseInitial = 20; // 4.0;
+    var fluids: Fluids;
+
+    // reference coordinates
+    var rowCenterOfGrid = Math.floor(Automata.GRID_N_ROWS / 2),
+        colCenterOfGrid = Math.floor(Automata.GRID_N_COLUMNS / 2),
+
+    // plant to create
+        plant: Array<Cell> = [],
+        cell: Cell,
+
+    // iterate.
+        rowStart: number = rowCenterOfGrid + 2,
+        rowEnd: number = rowCenterOfGrid + 10,
+        rowMid: number = Math.floor((rowStart + rowEnd) / 2),
+        colStart: number = colCenterOfGrid - 2,
+        colEnd: number = colCenterOfGrid + 2,
+        colMid: number = Math.floor((colStart + colEnd) / 2);
+    for (var row = rowStart; row < rowMid; ++row) {
+      for (var col = colStart; col < colEnd; ++col) {
+        if (col == colMid) continue;
+        fluids = new Fluids(waterInitial, glucoseInitial);
+        cell = new Cell(this, this.cellTypes[2], fluids, row, col, cellArray);
+        fluidsArray[row][col] = fluids;
+        cellArray[row][col] = cell;
+        plant.push(cell)
+      }
+    }
+
+    for (var row = rowMid; row < rowEnd; ++row) {
+      for (var col = colStart; col < colEnd; ++col) {
+        if (col == colMid) continue;
+        fluids = new Fluids(waterInitial, glucoseInitial);
+        cell = new Cell(this, this.cellTypes[3], fluids, row, col, cellArray); // different type is only change
+        fluidsArray[row][col] = fluids;
+        cellArray[row][col] = cell;
+        plant.push(cell)
+      }
+    }
+
+    // create center column
+    // meristems
+    for (var row = rowStart; row < rowMid; ++row) {
+      var col = colMid;
+      fluids = new Fluids(waterInitial, glucoseInitial);
+      cell = new Cell(this, this.cellTypes[0], fluids, row, col, cellArray);
+      fluidsArray[row][col] = fluids;
+      cellArray[row][col] = cell;
+      plant.push(cell)
+    }
+
+    for (var row = rowMid; row < rowEnd; ++row) {
+      var col = colMid;
+      fluids = new Fluids(waterInitial, glucoseInitial);
+      cell = new Cell(this, this.cellTypes[1], fluids, row, col, cellArray);
+      fluidsArray[row][col] = fluids;
+      cellArray[row][col] = cell;
+      plant.push(cell)
+    }
+
+
+    return plant;
   }
 
   plantSeed(seed:DNA) {

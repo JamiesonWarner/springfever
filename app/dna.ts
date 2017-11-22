@@ -6,9 +6,17 @@ import {IAction, DivideAction, PumpAction, ReactAction, SpecializeAction, Action
 import {Perceptron} from "./perceptron";
 import {CellTypeSerializer} from "./celltypes";
 
+
+/**
+ * A lightweight DNA object to search over.
+ * Plantrpg is searching for the maximum of fitness over the set of all possible DNA.
+ *
+*/
 export class DNA {
   static N_CELL_TYPES: number = 5;
   static COLOR_HEX_ARRAY = ["#ededbe", "#8F8F6E", "#6E6E8F", "#8F6E7F", "#80C4A1"];
+
+  NEW_CELL_COST = new Fluids(0.2, 0.2);
 
   actions: Array<IAction>;
   cellTypes;
@@ -45,7 +53,7 @@ export class DNA {
       this.cellTypes[i] = {
         color: DNA.COLOR_HEX_ARRAY[i%DNA.COLOR_HEX_ARRAY.length],
         isLeaf: i==4,
-        cost: new Fluids(0.2, 0.2),
+        cost: this.NEW_CELL_COST,
         actionPerceptrons: actionPerceptrons
       };
     }
@@ -73,74 +81,6 @@ export class DNA {
     }
   }
 
-  plantSeed(cellArray: Array<Array<Cell>>, fluidsArray: Array<Array<Fluids>>) {
-    // compute initial fluid vectors
-    var waterInitial = 20; // 1.75 * Automata.MATERIAL_WATER_WATER_MEAN;
-    var glucoseInitial = 20; // 4.0;
-    var fluids1 = new Fluids(waterInitial, glucoseInitial),
-        fluids2 = new Fluids(waterInitial, glucoseInitial),
-        fluids: Fluids;
-
-    // reference coordinates
-    var rowCenterOfGrid = Math.floor(Automata.GRID_N_ROWS / 2),
-        colCenterOfGrid = Math.floor(Automata.GRID_N_COLUMNS / 2),
-
-    // plant to create
-        plant: Array<Cell> = [],
-        cell: Cell,
-
-    // iterate.
-        rowStart: number = rowCenterOfGrid + 2,
-        rowEnd: number = rowCenterOfGrid + 10,
-        rowMid: number = Math.floor((rowStart + rowEnd) / 2),
-        colStart: number = colCenterOfGrid - 2,
-        colEnd: number = colCenterOfGrid + 2,
-        colMid: number = Math.floor((colStart + colEnd) / 2);
-    for (var row = rowStart; row < rowMid; ++row) {
-      for (var col = colStart; col < colEnd; ++col) {
-        if (col == colMid) continue;
-        fluids = new Fluids(waterInitial, glucoseInitial);
-        cell = new Cell(this, this.cellTypes[2], fluids, row, col, cellArray);
-        fluidsArray[row][col] = fluids;
-        cellArray[row][col] = cell;
-        plant.push(cell)
-      }
-    }
-
-    for (var row = rowMid; row < rowEnd; ++row) {
-      for (var col = colStart; col < colEnd; ++col) {
-        if (col == colMid) continue;
-        fluids = new Fluids(waterInitial, glucoseInitial);
-        cell = new Cell(this, this.cellTypes[3], fluids, row, col, cellArray); // different type is only change
-        fluidsArray[row][col] = fluids;
-        cellArray[row][col] = cell;
-        plant.push(cell)
-      }
-    }
-
-    // create center column
-    // meristems
-    for (var row = rowStart; row < rowMid; ++row) {
-      var col = colMid;
-      fluids = new Fluids(waterInitial, glucoseInitial);
-      cell = new Cell(this, this.cellTypes[0], fluids, row, col, cellArray);
-      fluidsArray[row][col] = fluids;
-      cellArray[row][col] = cell;
-      plant.push(cell)
-    }
-
-    for (var row = rowMid; row < rowEnd; ++row) {
-      var col = colMid;
-      fluids = new Fluids(waterInitial, glucoseInitial);
-      cell = new Cell(this, this.cellTypes[1], fluids, row, col, cellArray);
-      fluidsArray[row][col] = fluids;
-      cellArray[row][col] = cell;
-      plant.push(cell)
-    }
-
-
-    return plant;
-  }
 
 
 

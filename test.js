@@ -127,6 +127,7 @@
 	*/
 	var Automata = (function () {
 	    function Automata(runString, drawCanvas) {
+	        this.systems = new Array();
 	        this.canvas = drawCanvas;
 	        this.canvas.setAttribute('width', Automata.GRID_N_COLUMNS * Automata.CELL_SCALE_PIXELS);
 	        this.canvas.setAttribute('height', Automata.GRID_N_ROWS * Automata.CELL_SCALE_PIXELS);
@@ -141,7 +142,7 @@
 	                    water = Automata.MATERIAL_DIRT_WATER_MEAN;
 	                else
 	                    water = Automata.MATERIAL_AIR_WATER_MEAN;
-	                // Uncomment to make a random amount of starting water
+	                // Uncomment line to make a random amount of starting water
 	                // water = Math.random() * 2 * Automata.MATERIAL_AIR_WATER_MEAN;
 	                this.fluidsArray[row][col] = new fluids_1.Fluids(water, 0);
 	            }
