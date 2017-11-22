@@ -4,11 +4,6 @@ TODO:
 - Implement NEAT search (https://github.com/OptimusLime/neatjs)
 - Use a symmetric transport and action function,
 
-f(a, b) =
-
-Also, let there be just 1 type of cell, and change its graphics depending on its behavior.
-- green = photosynthesis
-- transport (FROM or TO...) (can be negative).
 This is how transport PRESSURE works...
 
 -- [delta_transport_pressure_x_y] = f(x, y).
@@ -18,6 +13,9 @@ And, of course, the state function:
 
 -- delta_signals_x = g(x)
 
+Also, let there be just 1 type of cell, and change its graphics depending on its behavior.
+- green = photosynthesis
+- transport (FROM or TO...) (can be negative).
 
 
 How to run:
