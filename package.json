@@ -21,7 +21,7 @@
   "dependencies": {
     "neuroevolution-typescript": "0.0.2",
     "synaptic": "^1.0.2",
-    "ts-loader": "^0.8.2",
+    "ts-loader": "^3.1.1",
     "typescript": "^2.6.2"
   },
   "devDependencies": {
