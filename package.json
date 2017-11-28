@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/JamiesonWarner/springfever#readme",
   "dependencies": {
+    "neatjs": "^0.3.1",
     "synaptic": "^1.0.2",
     "ts-loader": "^0.8.2",
     "typescript": "^1.8.10"
