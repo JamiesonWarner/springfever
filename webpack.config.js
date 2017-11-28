@@ -1,19 +1,17 @@
 module.exports = {
-  entry: {
-    'bundle': './app/app.ts',
-    'test': './test/tests.ts'
-  },
+  devtool: 'inline-source-map',
+  entry: './app/app.ts',
   output: {
-    filename: '[name].js'
+    filename: 'bundle.js'
   },
   resolve: {
-    extensions: ['', '.webpack.js', '.web.js', '.ts', '.js']
+    // Add `.ts` and `.tsx` as a resolvable extension.
+    extensions: ['.ts', '.tsx', '.js']
   },
-  devtool: 'source-map', // if we want a source map
-
   module: {
-    loaders: [
-      { test: /\.ts$/, loader: 'ts-loader' }
+    rules: [
+      // all files with a `.ts` or `.tsx` extension will be handled by `ts-loader`
+      { test: /\.tsx?$/, loader: 'ts-loader' }
     ]
   }
 }

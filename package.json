@@ -19,10 +19,10 @@
   },
   "homepage": "https://github.com/JamiesonWarner/springfever#readme",
   "dependencies": {
-    "neatjs": "^0.3.1",
+    "neuroevolution-typescript": "0.0.2",
     "synaptic": "^1.0.2",
     "ts-loader": "^0.8.2",
-    "typescript": "^1.8.10"
+    "typescript": "^2.6.2"
   },
   "devDependencies": {
     "jasmine-core": "2.4.1"
