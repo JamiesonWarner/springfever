@@ -23,8 +23,6 @@ export class Automata {
   // Wolfram Alpha: mass of water vapor in 1 cubic centimer air;
   static MATERIAL_AIR_WATER_MEAN = 1.519e-5;
 
-  static
-
   canvas;
   canvasCtx: CanvasRenderingContext2D;
   fluidsArray: Array<Array<Fluids>>;
@@ -102,7 +100,7 @@ export class Automata {
       for (var col = colStart; col < colEnd; ++col) {
         if (col == colMid) continue;
         fluids = new Fluids(waterInitial, glucoseInitial);
-        cell = new Cell(this, this.cellTypes[2], fluids, row, col, cellArray);
+        cell = new Cell(this, this.dna.cellTypes[2], fluids, row, col, cellArray);
         fluidsArray[row][col] = fluids;
         cellArray[row][col] = cell;
         plant.push(cell)
@@ -113,7 +111,7 @@ export class Automata {
       for (var col = colStart; col < colEnd; ++col) {
         if (col == colMid) continue;
         fluids = new Fluids(waterInitial, glucoseInitial);
-        cell = new Cell(this, this.cellTypes[3], fluids, row, col, cellArray); // different type is only change
+        cell = new Cell(this, this.dna.cellTypes[3], fluids, row, col, cellArray); // different type is only change
         fluidsArray[row][col] = fluids;
         cellArray[row][col] = cell;
         plant.push(cell)
@@ -125,7 +123,7 @@ export class Automata {
     for (var row = rowStart; row < rowMid; ++row) {
       var col = colMid;
       fluids = new Fluids(waterInitial, glucoseInitial);
-      cell = new Cell(this, this.cellTypes[0], fluids, row, col, cellArray);
+      cell = new Cell(this, this.dna.cellTypes[0], fluids, row, col, cellArray);
       fluidsArray[row][col] = fluids;
       cellArray[row][col] = cell;
       plant.push(cell)
@@ -134,7 +132,7 @@ export class Automata {
     for (var row = rowMid; row < rowEnd; ++row) {
       var col = colMid;
       fluids = new Fluids(waterInitial, glucoseInitial);
-      cell = new Cell(this, this.cellTypes[1], fluids, row, col, cellArray);
+      cell = new Cell(this, this.dna.cellTypes[1], fluids, row, col, cellArray);
       fluidsArray[row][col] = fluids;
       cellArray[row][col] = cell;
       plant.push(cell)

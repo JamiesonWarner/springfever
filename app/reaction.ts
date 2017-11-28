@@ -5,9 +5,5 @@ Every update tick
 */
 export class ReactionSystem {
     constructor() {}
-
-    applyToFluids(fluids: Fluids)
-
-    static
-
+    applyToFluids(fluids: Fluids){}
 }
