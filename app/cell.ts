@@ -3,6 +3,7 @@ import {IAction} from "./action";
 import {Utils} from "./utils";
 
 /*
+A Cell is a stateful decision-maker. Cells are the living units of the grid.
 Cell is a fleighweight object for the Grid. Systems.
 Plus they also have context for fitting into the Grid.
 It can also be thought of as a DNA controller.
@@ -19,7 +20,7 @@ export class Cell {
     dna;
     angle;
     signals;
-    cellArray: Array<Array<Cell>>;
+    cellArray: Array<Array<Cell>>; // cellArray[row][col] is either null or a Cell object
 
     constructor(dna,type,fluids,row,col, cellArray) {
         this.row = row;
@@ -28,6 +29,10 @@ export class Cell {
         this.dna = dna;
         this.setType(type);
         this.cellArray = cellArray;
+    }
+
+    getChloroplastLevels() {
+        return this.fluids.vector[Fluids.CHLOROPLASTS];
     }
 
     sumFluids(): number {

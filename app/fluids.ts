@@ -3,9 +3,10 @@ import {Automata} from "./automata";
 export class Fluids {
     static WATER = 0;
     static GLUCOSE = 1;
-    static AUXIN = 2;
+    static CHLOROPLASTS = 2;
+    static AUXIN = 3;
 
-    static SIGNALS_START = 2;
+    static SIGNALS_START = 3;
     static N_SIGNALS = 4;
     static N_FLUIDS = 2 + Fluids.N_SIGNALS;
 

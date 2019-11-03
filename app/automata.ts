@@ -6,6 +6,48 @@ import {ISystem} from "./system";
 import {IAction, DivideAction, ReactAction, SpecializeAction, PumpAction} from "./action";
 import {Angle} from "./angle";
 
+function hex(byte){
+  let colorString = "";
+  if (byte < 16) {
+    colorString += "0" + byte.toString(16);
+  }
+  else {
+    colorString += byte.toString(16);
+  }
+  return colorString;
+}
+
+function interpColors(colors, weights) {
+  /*colors - a list of string hex representations, e.g., #0f5e9c
+  weights - a list of values from 0 to 1
+  */
+  // Create the color
+  var channels = []
+  for (var chan=0; chan<3; chan++) {
+    var weightedSumInChannel = 0.0
+    for (var i=0; i<colors.length; i++) {
+      let color = colors[i],
+          weight = weights[i]
+      let channelAmount = parseInt(color.slice(1+2*chan, 3+2*chan), 16)
+      weightedSumInChannel += Math.round(channelAmount * weight)
+    }
+    channels.push(weightedSumInChannel)
+  }
+
+  // Add a white fill background
+  let sumWeights = 0.0
+  for (const weight of weights) {
+    sumWeights += weight
+  }
+  let fillAmount = Math.max(0, 1.0 - sumWeights)
+  for (var chan=0; chan<3; chan++) {
+    channels[chan] += Math.floor(255*fillAmount)
+  }
+
+  // Convert the color to a hex code
+  return "#" + hex(channels[0]) + hex(channels[1]) + hex(channels[2])
+}
+
 /*
 TODO turn Automata into systems model.
 Automata is a place for shared state.
@@ -437,6 +479,7 @@ export class Automata {
   }
 
   doPassiveFlowAndPhotosynthesis() {
+
     // Initialize fluidsDiff to 0's
     var fluidsDiff = new Array(Automata.GRID_N_ROWS);
     for (var row = 0; row < Automata.GRID_N_ROWS; row++) {
@@ -538,27 +581,30 @@ export class Automata {
       return;
     }
 
+    const CHLOROPLAST_COLOR = "#"
+
+    // Background fill color
     let scale = Automata.CELL_SCALE_PIXELS;
     this.canvasCtx.lineWidth = 3;
-    this.canvasCtx.fillStyle = "#7EC0DD";
-    this.canvasCtx.fillRect(0,0, Automata.GRID_N_COLUMNS * scale, scale * Automata.GRID_N_ROWS)
-    this.canvasCtx.fillRect(0, 0, 100, 100);
+    // this.canvasCtx.fillStyle = "#7EC0DD"; // sky
+    // this.canvasCtx.fillRect(0,0, Automata.GRID_N_COLUMNS * scale, scale * Automata.GRID_N_ROWS)
+    // this.canvasCtx.fillRect(0, 0, 100, 100);
 
 
     for (var row = 0; row < Automata.GRID_N_ROWS; row ++){
       for (var col = 0; col < Automata.GRID_N_COLUMNS; col ++){
         var fluids = this.fluidsArray[row][col].vector;
-        var waterContent = Math.max(Math.min(Math.round(fluids[Fluids.WATER]),255),0);
+        var waterContent = Math.max(0, Math.min(255, Math.round(fluids[Fluids.WATER])));
 
         if (this.drawStyle === 'water') {
           var waterConcentration = fluids[Fluids.WATER] / (2 * Automata.MATERIAL_DIRT_WATER_MEAN);
           var waterColor = Math.max(Math.min(Math.round(255*waterConcentration),255),0);
-          var colorString = "#" + "0064" + this.getColorHex(waterColor);
+          var colorString = "#" + "0064" + hex(waterColor);
           this.canvasCtx.fillStyle = colorString;
         }
         else if(this.drawStyle === 'glucose'){
           if (this.cellArray[row][col]) {
-            this.canvasCtx.fillStyle = "#" + this.getColorHex(Math.min(255,Math.ceil(fluids[Fluids.GLUCOSE]))) + "0000";
+            this.canvasCtx.fillStyle = "#" + hex(Math.min(255,Math.ceil(fluids[Fluids.GLUCOSE]))) + "0000";
           }
           else {
             this.canvasCtx.fillStyle = "#000000";
@@ -567,25 +613,32 @@ export class Automata {
         else if (this.drawStyle === 'auxin') {
           var cell = this.cellArray[row][col];
           if (cell) {
-            this.canvasCtx.fillStyle = "#" + "0000" + this.getColorHex(Math.min(255,Math.ceil(255*fluids[Fluids.SIGNALS_START])));
+            this.canvasCtx.fillStyle = "#" + "0000" + hex(Math.min(255,Math.ceil(255*fluids[Fluids.SIGNALS_START])));
           }
           else {
             this.canvasCtx.fillStyle = "#000000";
           }
         }
         else {
+          // Default draw style is to show chemicals
           var cell = this.cellArray[row][col];
           if (cell) {
-            this.canvasCtx.fillStyle = cell.type.color;
+            // this.canvasCtx.fillStyle = cell.type.color;
+            const COLOR_WATER = "#0f5e9c";
+            const COLOR_CHLOROPLAST = "#25523b";
+            this.canvasCtx.fillStyle = interpColors(
+              [COLOR_WATER, COLOR_CHLOROPLAST],
+              [waterContent/50, cell.getChloroplastLevels()/50]
+             )
           }
           else if(row >= 50){
             var cval = Math.ceil(waterContent/4);
-        // console.log(waterContent);
-        this.canvasCtx.fillStyle = "#3311" + this.getColorHex(cval);
-        }
-        else {
-          this.canvasCtx.fillStyle = "#7EC0DD";
-        }
+            // console.log(waterContent);
+            this.canvasCtx.fillStyle = "#3311" + hex(cval);
+          }
+          else {
+            this.canvasCtx.fillStyle = "#7EC0DD";
+          }
         }
         this.canvasCtx.fillRect(Math.floor(scale * col), Math.floor(scale * row), scale, scale);
 
@@ -621,16 +674,5 @@ export class Automata {
         }
       }
     }
-  }
-
-  getColorHex(byte){
-    let colorString = "";
-    if (byte < 16) {
-      colorString += "0" + byte.toString(16);
-    }
-    else {
-      colorString += byte.toString(16);
-    }
-    return colorString;
   }
 }
