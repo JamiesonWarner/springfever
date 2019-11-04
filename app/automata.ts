@@ -3,7 +3,7 @@ import {Cell} from "./cell"
 import {Dirt} from "./dirt";
 import {Fluids} from "./fluids";
 import {ISystem} from "./system";
-import {IAction, DivideAction, ReactAction, SpecializeAction, PumpAction} from "./action";
+import {IAction, DivideAction, ReactAction, PumpAction} from "./action";
 import {Angle} from "./angle";
 
 function hex(byte){
@@ -142,7 +142,7 @@ export class Automata {
       for (var col = colStart; col < colEnd; ++col) {
         if (col == colMid) continue;
         fluids = new Fluids(waterInitial, glucoseInitial);
-        cell = new Cell(this, this.dna.cellTypes[2], fluids, row, col, cellArray);
+        cell = new Cell(this, fluids, row, col, cellArray);
         fluidsArray[row][col] = fluids;
         cellArray[row][col] = cell;
         plant.push(cell)
@@ -153,7 +153,7 @@ export class Automata {
       for (var col = colStart; col < colEnd; ++col) {
         if (col == colMid) continue;
         fluids = new Fluids(waterInitial, glucoseInitial);
-        cell = new Cell(this, this.dna.cellTypes[3], fluids, row, col, cellArray); // different type is only change
+        cell = new Cell(this, fluids, row, col, cellArray); // different type is only change
         fluidsArray[row][col] = fluids;
         cellArray[row][col] = cell;
         plant.push(cell)
@@ -165,7 +165,7 @@ export class Automata {
     for (var row = rowStart; row < rowMid; ++row) {
       var col = colMid;
       fluids = new Fluids(waterInitial, glucoseInitial);
-      cell = new Cell(this, this.dna.cellTypes[0], fluids, row, col, cellArray);
+      cell = new Cell(this, fluids, row, col, cellArray);
       fluidsArray[row][col] = fluids;
       cellArray[row][col] = cell;
       plant.push(cell)
@@ -174,7 +174,7 @@ export class Automata {
     for (var row = rowMid; row < rowEnd; ++row) {
       var col = colMid;
       fluids = new Fluids(waterInitial, glucoseInitial);
-      cell = new Cell(this, this.dna.cellTypes[1], fluids, row, col, cellArray);
+      cell = new Cell(this, fluids, row, col, cellArray);
       fluidsArray[row][col] = fluids;
       cellArray[row][col] = cell;
       plant.push(cell)
@@ -296,7 +296,7 @@ export class Automata {
         var gI = this.plant[i].row + drow;
         var gJ = this.plant[i].col + dcol;
 
-        var cost = cell.type.cost;
+        var cost = cell.dna.NEW_CELL_COST;
 
         var canAfford = true;
         for (var j = 0; j < cost.vector.length; j++) {
@@ -306,7 +306,6 @@ export class Automata {
           }
         }
         if (!canAfford) {
-          // console.log("cell can't afford...")
           continue;
         }
 
@@ -323,22 +322,24 @@ export class Automata {
 
         this.subtractFluids(cell.fluids, cost);
         var newFluids = this.splitFluids(cell.fluids);
-        var nCell = new Cell(this.dna, cell.type, newFluids, gI, gJ, this.cellArray);
+        var nCell = new Cell(this.dna, newFluids, gI, gJ, this.cellArray);
         this.plant.push(nCell);
         this.fluidsArray[gI][gJ] = newFluids;
         this.cellArray[gI][gJ] = nCell;
       }
 
-      // else if (action instanceof ReactAction) {
-      //   for (var i = 0; i < length; ++i) {
-      //     // code...
-      //   }
-      // }
 
-      else if (action instanceof SpecializeAction) {
-        var saction: SpecializeAction = action;
-        cell.setType(saction.toType);
+      else if (action instanceof ReactAction) {
+        for (var i = 0; i < this.plant.length; i++) {
+          let cell = this.plant[i];
+          // let dGlucose = Math.min(cell.fluids.vector[Fluids.WATER]/4, 100 * numAir);
+          // convert water to glucose
+          this.addFluids(cell.fluids, action.reaction)
+          // fluidsDiff[cell.row][cell.col][Fluids.WATER] -= dGlucose;
+          // fluidsDiff[cell.row][cell.col][Fluids.GLUCOSE] += REACTION_FACTOR*dGlucose;
+        }
       }
+
 
       else if (action instanceof PumpAction) {
         console.log('pumping....');
@@ -426,6 +427,12 @@ export class Automata {
     }
   }
 
+  addFluids(a, b){
+    for (var i = 0; i < a.vector.length; i ++){
+      a.vector[i] += b.vector[i];
+    }
+  }
+
   splitFluids(fluids){
     let newFluids = new Fluids();
     for (var i = 0; i < fluids.vector.length; i ++){
@@ -496,7 +503,7 @@ export class Automata {
     var REACTION_FACTOR = 10; // expend 1 water to get 4 glucose
     for (var i = 0; i < this.plant.length; i++) {
       let cell = this.plant[i];
-      if (cell.type.isLeaf) {
+      if (true) {
         let numAir = this.countAirNeighbors(cell.row, cell.col);
         let dGlucose = Math.min(cell.fluids.vector[Fluids.WATER]/4, 100 * numAir);
         // convert water to glucose
@@ -628,7 +635,7 @@ export class Automata {
             const COLOR_CHLOROPLAST = "#25523b";
             this.canvasCtx.fillStyle = interpColors(
               [COLOR_WATER, COLOR_CHLOROPLAST],
-              [waterContent/50, cell.getChloroplastLevels()/50]
+              [waterContent/50, cell.getChloroplastLevels()/10]
              )
           }
           else if(row >= 50){

@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/JamiesonWarner/springfever#readme",
   "dependencies": {
+    "neataptic": "^1.4.7",
     "neuroevolution-typescript": "0.0.2",
     "synaptic": "^1.0.2",
     "ts-loader": "^3.1.1",

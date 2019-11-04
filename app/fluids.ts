@@ -8,7 +8,7 @@ export class Fluids {
 
     static SIGNALS_START = 3;
     static N_SIGNALS = 4;
-    static N_FLUIDS = 2 + Fluids.N_SIGNALS;
+    static N_FLUIDS = 3 + Fluids.N_SIGNALS;
 
     vector;
 

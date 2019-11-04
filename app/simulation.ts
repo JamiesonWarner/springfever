@@ -97,6 +97,7 @@ export class Simulation implements IViewSimulation {
         } catch(e) {
             console.warn("Automata error! Stopping simulation...");
             this.pause();
+            this.showStatusString(e);
             throw e;
         }
 

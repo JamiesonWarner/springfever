@@ -20,9 +20,6 @@ export class ActionSerializer {
         else if (action.constructor == ReactAction) {
             cls = "ReactAction";
         }
-        else if (action.constructor == SpecializeAction) {
-            cls = "SpecializeAction";
-        }
         else {
             throw new TypeError("Did not recognize the specified action type");
         }
@@ -37,9 +34,6 @@ export class ActionSerializer {
         }
         else if (action instanceof ReactAction) {
             obj['reaction'] = action.reaction;
-        }
-        else if (action instanceof SpecializeAction) {
-            obj['toType'] = action.toType;
         }
         else if (action instanceof PumpAction) {
             obj['fluids'] = action.fluids;
@@ -65,8 +59,6 @@ export class ActionSerializer {
                 return new PumpAction(obj);
             case "ReactAction":
                 return new ReactAction(obj);
-            case "SpecializeAction":
-                return new SpecializeAction(obj);
             default:
                 console.log(obj, typeof obj);
                 throw new TypeError("Bad jsonAction");
@@ -152,16 +144,3 @@ export class ReactAction implements IAction {
     // mutating a react action should not change the reagents / products
     mutate(amount: number = 1) {}
 }
-
-export class SpecializeAction implements IAction {
-    toType: number;
-
-    constructor(args){
-        this.toType = args['toType'];
-    }
-
-    mutate(amount: number = 1) {
-
-    }
-}
-

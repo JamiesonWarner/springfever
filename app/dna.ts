@@ -2,9 +2,8 @@ import {Cell} from "./cell";
 import {Fluids} from "./fluids";
 import {Grid} from "./grid";
 import {Automata} from "./automata";
-import {IAction, DivideAction, PumpAction, ReactAction, SpecializeAction, ActionSerializer} from "./action";
+import {IAction, DivideAction, PumpAction, ReactAction, ActionSerializer} from "./action";
 import {Perceptron} from "./perceptron";
-import {CellTypeSerializer} from "./celltypes";
 
 
 /**
@@ -16,10 +15,10 @@ export class DNA {
   static N_CELL_TYPES: number = 5;
   static COLOR_HEX_ARRAY = ["#ededbe", "#8F8F6E", "#6E6E8F", "#8F6E7F", "#80C4A1"];
 
-  NEW_CELL_COST = new Fluids(0.2, 0.2);
+  static NEW_CELL_COST = new Fluids(0.2, 0.2);
 
   actions: Array<IAction>;
-  cellTypes;
+  actionPerceptrons;
 
   constructor() {
     window['dna'] = this;
@@ -28,6 +27,7 @@ export class DNA {
       // new DivideAction({ fluidGradient: [0,0,-1,0,0,0], gravityGradient: 2 }),
       // new DivideAction({ fluidGradient: [0,0,0,0,0,0], gravityGradient: 2 }),
       new PumpAction({ fluidGradient: [0,0,0,0,0,0], fluids: [1,0,0,0,0,0] }),
+      new ReactAction({ reaction: new Fluids(-2,-2, 1) }), //make chloroplasts
       // new ReactAction({ reaction: [-0.2,0.8,0.1,0,0,0] }), //photosynth
       // new ReactAction({ reaction: [0,0,0.1,0,0,0] }), // free auxin
       // new ReactAction({ reaction: [0,0,0,0.1,0,0] }), // free misc hormones
@@ -36,27 +36,14 @@ export class DNA {
       // new ReactAction({ reaction: [0,0,0,-0.1,0,0] }), // free misc hormones
       // new ReactAction({ reaction: [0,0,0,0,-0.1,0] }), // free misc hormones
       // new ReactAction({ reaction: [0,0,0,0,0,-0.1] }), // free misc hormones
-      // new SpecializeAction({ toType: 0 }),
-      // new SpecializeAction({ toType: 1 }),
-      // new SpecializeAction({ toType: 2 }),
-      // new SpecializeAction({ toType: 3 }),
-      // new SpecializeAction({ toType: 4 })
     ];
 
     // cell types
-    this.cellTypes = new Array(DNA.N_CELL_TYPES);
-    for (var i = 0; i < DNA.N_CELL_TYPES; ++i) {
-      var actionPerceptrons = [];
-      for (var j = 0; j < this.actions.length; ++j) {
-        actionPerceptrons[j] = new Perceptron(Fluids.N_FLUIDS + 4, 8, 1);
-      }
-      this.cellTypes[i] = {
-        color: DNA.COLOR_HEX_ARRAY[i%DNA.COLOR_HEX_ARRAY.length],
-        isLeaf: i==4,
-        cost: this.NEW_CELL_COST,
-        actionPerceptrons: actionPerceptrons
-      };
+    var actionPerceptrons = [];
+    for (var j = 0; j < this.actions.length; ++j) {
+      actionPerceptrons[j] = new Perceptron(Fluids.N_FLUIDS + 4, 8, 1);
     }
+    this.actionPerceptrons = actionPerceptrons;
   }
 
   clone(): DNA {
@@ -72,12 +59,8 @@ export class DNA {
     }
 
     // mutate type controllers
-    for (var i = 0; i < this.cellTypes.length; ++i) {
-      var type = this.cellTypes[i];
-      for (var j = 0; j < type.actionPerceptrons; ++j) {
-        var p = type.actionPerceptrons[j];
-        p.perturb(amount);
-      }
+    for (var p of this.actionPerceptrons) {
+      p.perturb(amount);
     }
   }
 
@@ -108,7 +91,7 @@ export class DNA {
       for (var col = colStart; col < colEnd; ++col) {
         if (col == colMid) continue;
         fluids = new Fluids(waterInitial, glucoseInitial);
-        cell = new Cell(this, this.cellTypes[2], fluids, row, col, cellArray);
+        cell = new Cell(this, fluids, row, col, cellArray);
         fluidsArray[row][col] = fluids;
         cellArray[row][col] = cell;
         plant.push(cell)
@@ -119,7 +102,7 @@ export class DNA {
       for (var col = colStart; col < colEnd; ++col) {
         if (col == colMid) continue;
         fluids = new Fluids(waterInitial, glucoseInitial);
-        cell = new Cell(this, this.cellTypes[3], fluids, row, col, cellArray); // different type is only change
+        cell = new Cell(this, fluids, row, col, cellArray); // different type is only change
         fluidsArray[row][col] = fluids;
         cellArray[row][col] = cell;
         plant.push(cell)
@@ -131,7 +114,7 @@ export class DNA {
     for (var row = rowStart; row < rowMid; ++row) {
       var col = colMid;
       fluids = new Fluids(waterInitial, glucoseInitial);
-      cell = new Cell(this, this.cellTypes[0], fluids, row, col, cellArray);
+      cell = new Cell(this, fluids, row, col, cellArray);
       fluidsArray[row][col] = fluids;
       cellArray[row][col] = cell;
       plant.push(cell)
@@ -140,7 +123,7 @@ export class DNA {
     for (var row = rowMid; row < rowEnd; ++row) {
       var col = colMid;
       fluids = new Fluids(waterInitial, glucoseInitial);
-      cell = new Cell(this, this.cellTypes[1], fluids, row, col, cellArray);
+      cell = new Cell(this, fluids, row, col, cellArray);
       fluidsArray[row][col] = fluids;
       cellArray[row][col] = cell;
       plant.push(cell)
@@ -184,41 +167,37 @@ Transitions between cell types can be modeled as a markov chain, though some sta
 Serialization is necessary to store the results of evolution so they can be played back, saved
 */
 export class DNASerializer {
-  static serialize(dna: DNA): string {
-    var actionsSerial = new Array(dna.actions.length);
-    for (var i = 0; i < dna.actions.length; ++i) {
-      actionsSerial[i] = ActionSerializer.serialize(dna.actions[i]);
-    }
+  static serialize(celltype: Object): string {
+      // var perceptrons = celltype['actionPerceptrons'];
+      // var perceptronsSerial = new Array(perceptrons.length);
+      // for (var i = 0; i < perceptrons.length; ++i) {
+      //     perceptronsSerial[i] = perceptrons[i].toJSON();
+      // }
 
-    var cellTypesSerial = new Array(dna.cellTypes.length);
-    for (var i = 0; i < dna.cellTypes.length; ++i) {
-        cellTypesSerial[i] = CellTypeSerializer.serialize(dna.cellTypes[i]);
-    }
-
-    return JSON.stringify({
-      cellTypes: cellTypesSerial,
-      actions: actionsSerial
-    });
+      // return JSON.stringify({
+      //     color: celltype['color'],
+      //     isLeaf: celltype['isLeaf'],
+      //     cost: celltype['cost'].vector,
+      //     actionPerceptrons: perceptronsSerial
+      // });
+      return null;
   }
 
   static deserialize(serialized: string): DNA {
-    var d = new DNA();
-    var o = JSON.parse(serialized);
+      // var obj: DNA;
+      // if (typeof serialized === 'string') {
+      //     obj = JSON.parse(serialized);
+      // }
 
-    var actionsSerial = o.actions;
-    var actions = new Array(actionsSerial.length);
-    for (var i = 0; i < actionsSerial.length; ++i) {
-      actions[i] = ActionSerializer.deserialize(actionsSerial[i]);
-    }
+      // var perceptronsSerial = obj.actionPerceptrons;
+      // var perceptrons = new Array(perceptronsSerial.length);
+      // for (var i = 0; i < perceptronsSerial.length; ++i) {
+      //     perceptrons[i] = Network.fromJSON(perceptronsSerial[i]);
+      // }
 
-    var cellTypesSerial = o.cellTypes;
-    var cellTypes = new Array(cellTypesSerial.length);
-    for (var i = 0; i < cellTypes.length; ++i) {
-      cellTypes[i] = CellTypeSerializer.deserialize(cellTypesSerial[i]);
-    }
+      // obj.actionPerceptrons = perceptrons;
 
-    d.cellTypes = cellTypes;
-    d.actions = actions;
-    return d;
+      // return obj;
+      return null;
   }
 }

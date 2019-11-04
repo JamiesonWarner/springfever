@@ -16,18 +16,16 @@ export class Cell {
     fluids: Fluids;
     row;
     col;
-    type; // coresponds to types in DNA
     dna;
     angle;
     signals;
     cellArray: Array<Array<Cell>>; // cellArray[row][col] is either null or a Cell object
 
-    constructor(dna,type,fluids,row,col, cellArray) {
+    constructor(dna, fluids, row, col, cellArray) {
         this.row = row;
         this.col = col;
         this.fluids = fluids;
         this.dna = dna;
-        this.setType(type);
         this.cellArray = cellArray;
     }
 
@@ -39,18 +37,6 @@ export class Cell {
         // Only sum "actual" fluids, not hormones.
         var glucoseWeight = 1.5;
         return this.fluids.vector[Fluids.WATER] + glucoseWeight * this.fluids.vector[Fluids.GLUCOSE];
-    }
-
-    /*
-    Pass either a literal type object or a numerical type index referencing dna type definitions
-    */
-    setType(type) {
-        if (typeof type === 'number') {
-            this.type = this.dna.cellTypes[type];
-        }
-        else {
-            this.type = type;
-        }
     }
 
     updateSignals() {
@@ -101,7 +87,7 @@ export class Cell {
             !!this.cellArray[this.row][this.col+1]
         ]);
         for (var i = 0; i < actions.length; ++i) {
-            potentials[i] = this.type.actionPerceptrons[i].activate(input)[0]; // this.getActionPotential(actions[i]);
+            potentials[i] = this.dna.actionPerceptrons[i].activate(input)[0]; // this.getActionPotential(actions[i]);
         }
 
         var bestIndex: number = Utils.argmax(potentials);
