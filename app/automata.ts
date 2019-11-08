@@ -296,7 +296,7 @@ export class Automata {
         var gI = this.plant[i].row + drow;
         var gJ = this.plant[i].col + dcol;
 
-        var cost = cell.dna.NEW_CELL_COST;
+        var cost = DNA.NEW_CELL_COST;
 
         var canAfford = true;
         for (var j = 0; j < cost.vector.length; j++) {

@@ -25,7 +25,7 @@ export class DNA {
 
     this.actions = [
       // new DivideAction({ fluidGradient: [0,0,-1,0,0,0], gravityGradient: 2 }),
-      // new DivideAction({ fluidGradient: [0,0,0,0,0,0], gravityGradient: 2 }),
+      new DivideAction({ fluidGradient: [0,0,0,0,0,0], gravityGradient: 2 }),
       new PumpAction({ fluidGradient: [0,0,0,0,0,0], fluids: [1,0,0,0,0,0] }),
       new ReactAction({ reaction: new Fluids(-2,-2, 1) }), //make chloroplasts
       // new ReactAction({ reaction: [-0.2,0.8,0.1,0,0,0] }), //photosynth
