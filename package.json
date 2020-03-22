@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "http-server -c-1 || echo \"Error: http-server not installed. Install with npm install http-server -g\"",
-    "prepublish": "webpack"
+    "prepare": "webpack"
   },
   "repository": {
     "type": "git",
@@ -19,13 +19,15 @@
   },
   "homepage": "https://github.com/JamiesonWarner/springfever#readme",
   "dependencies": {
-    "neataptic": "^1.4.7",
-    "neuroevolution-typescript": "0.0.2",
-    "synaptic": "^1.0.2",
-    "ts-loader": "^3.1.1",
-    "typescript": "^2.6.2"
+    "@tensorflow/tfjs": "^1.7.0",
+    "ts-loader": "^6.2.1",
+    "typescript": "^3.8.3"
   },
   "devDependencies": {
-    "jasmine-core": "2.4.1"
+    "@types/jasmine": "^3.5.9",
+    "@types/long": "^4.0.1",
+    "jasmine-core": "3.5.0",
+    "webpack": "^4.42.0",
+    "webpack-cli": "^3.3.11"
   }
 }
