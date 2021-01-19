@@ -23,6 +23,8 @@ export class ActionSerializer {
         else {
             throw new TypeError("Did not recognize the specified action type");
         }
+        // TS thinks action is the `never` type here for some reason
+        action = action as IAction;
 
         var obj = {
             class: cls
