@@ -210,7 +210,10 @@ export class Automata {
     }
   }
 
-  validateFluidsArray() {
+  /**
+   * Returns true if invalid
+   */
+  validateFluidsArray(): boolean {
     for (var row = 0; row < Automata.GRID_N_ROWS; ++row) {
       for (var col = 0; col < Automata.GRID_N_COLUMNS; ++col) {
         var f = this.fluidsArray[row][col].vector;
@@ -221,7 +224,7 @@ export class Automata {
           }
           if (f[k] < 0) {
             console.log('Warning: Negative fluids at: ', row, col);
-            return;
+            return true;
           }
         }
       }
