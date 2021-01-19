@@ -229,6 +229,7 @@ export class Automata {
         }
       }
     }
+    return false;
   }
 
   showInfo(x,y) {
